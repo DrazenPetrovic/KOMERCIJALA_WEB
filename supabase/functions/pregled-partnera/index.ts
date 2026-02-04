@@ -66,37 +66,14 @@ Deno.serve(async (req: Request) => {
     });
 
     const [rows] = await connection.execute(
-      'CALL pregled_partnera(?)',
+      'SELECT * FROM q_pregled_partnera_stvarni WHERE pripada_radniku = ?',
       [sifraRadnika]
     );
 
     await connection.end();
 
-    console.log('Raw rows:', JSON.stringify(rows, null, 2));
-    console.log('Rows type:', typeof rows);
-    console.log('Rows is array:', Array.isArray(rows));
-    console.log('Rows length:', Array.isArray(rows) ? rows.length : 'N/A');
-
-    if (Array.isArray(rows) && rows.length > 0) {
-      console.log('Rows[0] type:', typeof rows[0]);
-      console.log('Rows[0] is array:', Array.isArray(rows[0]));
-      console.log('Rows[0]:', JSON.stringify(rows[0], null, 2));
-    }
-
-    let partneri: any[] = [];
-
-    if (Array.isArray(rows)) {
-      if (Array.isArray(rows[0])) {
-        partneri = rows[0];
-      } else if (rows.length > 0 && typeof rows[0] === 'object') {
-        partneri = rows;
-      }
-    }
-
-    console.log('Final partneri count:', partneri.length);
-    if (partneri.length > 0) {
-      console.log('First partner:', JSON.stringify(partneri[0], null, 2));
-    }
+    const partneri = Array.isArray(rows) ? rows : [];
+    console.log(`Učitano ${partneri.length} partnera za radnika ${sifraRadnika}`);
 
     return new Response(
       JSON.stringify({
