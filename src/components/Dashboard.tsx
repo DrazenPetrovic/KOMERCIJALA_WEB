@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, Award, CheckCircle, BarChart3 } from 'lucide-react';
+import PartneriList from './PartneriList';
 
 interface DashboardProps {
   username: string;
@@ -23,6 +24,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
   ];
 
   const renderContent = () => {
+    if (activeSection === 'partneri-menu') {
+      return <PartneriList onBack={() => setActiveSection('narudzbe')} />;
+    }
+
     const contentMap: Record<MenuSection, string> = {
       narudzbe: 'Pregled narudžbi',
       dugovanja: 'Pregled dužovanja',
@@ -95,23 +100,27 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       </nav>
 
       <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
-          <div className="flex items-center gap-4 mb-6 md:mb-8">
-            <CheckCircle className="w-8 h-8 md:w-10 md:h-10" style={{ color: '#8FC74A' }} />
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
-              {renderContent()}
-            </h2>
+        {activeSection === 'partneri-menu' ? (
+          renderContent()
+        ) : (
+          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
+            <div className="flex items-center gap-4 mb-6 md:mb-8">
+              <CheckCircle className="w-8 h-8 md:w-10 md:h-10" style={{ color: '#8FC74A' }} />
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
+                {renderContent()}
+              </h2>
+            </div>
+            <p className="text-gray-600 text-base md:text-lg lg:text-xl">
+              Izabrali ste: <span className="font-semibold" style={{ color: '#785E9E' }}>
+                {menuItems.find(m => m.id === activeSection)?.label}
+              </span>
+            </p>
+            <div className="mt-8 md:mt-10 p-8 md:p-10 lg:p-12 bg-gray-50 rounded-2xl border-2 border-dashed text-center text-gray-600 text-base md:text-lg lg:text-xl"
+              style={{ borderColor: '#785E9E33' }}>
+              Sadržaj sekcije će biti prikazan ovdje
+            </div>
           </div>
-          <p className="text-gray-600 text-base md:text-lg lg:text-xl">
-            Izabrali ste: <span className="font-semibold" style={{ color: '#785E9E' }}>
-              {menuItems.find(m => m.id === activeSection)?.label}
-            </span>
-          </p>
-          <div className="mt-8 md:mt-10 p-8 md:p-10 lg:p-12 bg-gray-50 rounded-2xl border-2 border-dashed text-center text-gray-600 text-base md:text-lg lg:text-xl"
-            style={{ borderColor: '#785E9E33' }}>
-            Sadržaj sekcije će biti prikazan ovdje
-          </div>
-        </div>
+        )}
       </main>
     </div>
   );
