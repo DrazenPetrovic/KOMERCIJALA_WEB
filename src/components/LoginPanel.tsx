@@ -16,16 +16,35 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      if (username.trim() && password.trim()) {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/login-radnika`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
         localStorage.setItem('authenticated', 'true');
         localStorage.setItem('username', username);
         onLoginSuccess();
       } else {
-        setError('Unesite korisničko ime i lozinku');
+        setError(data.message || 'Pogrešno korisničko ime ili šifra');
       }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Greška pri povezivanju sa serverom');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (

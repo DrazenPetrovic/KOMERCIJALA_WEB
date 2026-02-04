@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import mysql from "npm:mysql2@3.6.5/promise";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,7 +32,7 @@ Deno.serve(async (req: Request) => {
 
     if (!username || !password) {
       return new Response(
-        JSON.stringify({ error: "Username and password required" }),
+        JSON.stringify({ error: "Korisničko ime i šifra su obavezni" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -39,25 +40,28 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const connectionString = `postgresql://google_korisnik:TeletabisI!123@localhost:5432/ziralni`;
-
-    const response = await fetch("http://localhost:5432", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `SELECT prijava_radnika($1, $2) as result`,
-        params: [username, password],
-      }),
+    const connection = await mysql.createConnection({
+      host: '94.130.111.127',
+      port: 3306,
+      user: 'komercijala1',
+      password: 'TeletabisI!123',
+      database: 'komercijalaa'
     });
 
-    const result = await response.json();
+    const [rows] = await connection.execute(
+      'CALL logovanje_korisnika(?, ?)',
+      [username, password]
+    );
+
+    await connection.end();
+
+    const result = rows[0][0];
+    const loginSuccess = result === 1;
 
     return new Response(
       JSON.stringify({
-        success: result.result === 1,
-        result: result.result,
+        success: loginSuccess,
+        message: loginSuccess ? 'Uspešno logovanje' : 'Pogrešno korisničko ime ili šifra'
       }),
       {
         status: 200,
@@ -67,7 +71,10 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("Login error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({
+        success: false,
+        error: "Greška pri povezivanju sa bazom"
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
