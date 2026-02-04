@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
       port: 3306,
       user: 'komercijala1',
       password: 'TeletabisI!123',
-      database: 'komercijalaa'
+      database: 'komercijala'
     });
 
     const [rows] = await connection.execute(
