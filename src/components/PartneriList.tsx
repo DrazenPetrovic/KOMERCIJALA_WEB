@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Search, ArrowLeft } from 'lucide-react';
 
 interface Partner {
-  sifra: number;
-  naziv: string;
-  grad: string;
+  sifra_partnera: number;
+  Naziv_partnera: string;
+  Naziv_grada: string;
+  sifra_grada: number;
+  pripada_radniku: number;
+  Naziv_radnika: string;
 }
 
 interface PartneriListProps {
@@ -29,7 +32,7 @@ export default function PartneriList({ onBack }: PartneriListProps) {
       } else {
         const filtered = partneri.filter(partner => {
           try {
-            const naziv = partner?.naziv?.toString() || '';
+            const naziv = partner?.Naziv_partnera?.toString() || '';
             return naziv.toLowerCase().includes(searchTerm.toLowerCase());
           } catch (err) {
             console.error('Error filtering partner:', partner, err);
@@ -154,12 +157,12 @@ export default function PartneriList({ onBack }: PartneriListProps) {
                   ) : (
                     filteredPartneri.map((partner, index) => (
                       <tr
-                        key={partner.sifra || index}
+                        key={partner.sifra_partnera || index}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-slate-700">{partner.sifra || '-'}</td>
-                        <td className="py-3 px-4 text-sm text-slate-900 font-medium">{partner.naziv || '-'}</td>
-                        <td className="py-3 px-4 text-sm text-slate-700">{partner.grad || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-700">{partner.sifra_partnera || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-900 font-medium">{partner.Naziv_partnera || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-700">{partner.Naziv_grada || '-'}</td>
                       </tr>
                     ))
                   )}
