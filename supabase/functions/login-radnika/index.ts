@@ -55,13 +55,39 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
-    const result = rows[0][0];
-    const loginSuccess = result === 1;
+    console.log('Full rows response:', JSON.stringify(rows));
+    console.log('rows[0]:', JSON.stringify(rows[0]));
+
+    const result = rows[0];
+    console.log('Result:', result);
+
+    let loginSuccess = false;
+    let message = 'Pogrešno korisničko ime ili šifra';
+
+    if (Array.isArray(result) && result.length > 0) {
+      const firstRow = result[0];
+      console.log('First row:', firstRow);
+
+      if (typeof firstRow === 'object' && firstRow !== null) {
+        const keys = Object.keys(firstRow);
+        console.log('Keys in first row:', keys);
+        const value = Object.values(firstRow)[0];
+        console.log('First value:', value);
+        loginSuccess = value === 1 || value === '1';
+      } else {
+        loginSuccess = firstRow === 1 || firstRow === '1';
+      }
+    }
 
     return new Response(
       JSON.stringify({
         success: loginSuccess,
-        message: loginSuccess ? 'Uspešno logovanje' : 'Pogrešno korisničko ime ili šifra'
+        message: loginSuccess ? 'Uspešno logovanje' : message,
+        debug: {
+          rowsLength: Array.isArray(rows) ? rows.length : 'not array',
+          firstElement: rows[0],
+          type: typeof rows[0]
+        }
       }),
       {
         status: 200,
