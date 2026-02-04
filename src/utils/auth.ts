@@ -1,5 +1,5 @@
 export const getAuthToken = (): string | null => {
-  return localStorage.getItem('token');
+  return localStorage.getItem('authToken');
 };
 
 export const getAuthHeaders = (): HeadersInit => {
@@ -15,6 +15,7 @@ export const isAuthenticated = (): boolean => {
 };
 
 export const clearAuth = (): void => {
-  localStorage.removeItem('token');
+  localStorage.removeItem('authToken');
   localStorage.removeItem('username');
+  localStorage.removeItem('sifraRadnika');
 };

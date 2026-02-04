@@ -72,12 +72,20 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
-    const partneri = rows[0];
+    console.log('Raw rows:', rows);
+    console.log('Rows type:', typeof rows);
+    console.log('Rows[0]:', rows[0]);
+
+    const partneri = Array.isArray(rows[0]) ? rows[0] : rows;
 
     return new Response(
       JSON.stringify({
         success: true,
-        data: partneri
+        data: partneri,
+        debug: {
+          rowsLength: Array.isArray(rows) ? rows.length : 0,
+          firstElementType: rows[0] ? typeof rows[0] : 'undefined'
+        }
       }),
       {
         status: 200,

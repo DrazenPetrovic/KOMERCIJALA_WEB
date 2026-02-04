@@ -7,7 +7,7 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
-type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | 'partneri-menu';
+type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli';
 
 export function Dashboard({ username, onLogout }: DashboardProps) {
   const [activeSection, setActiveSection] = useState<MenuSection>('narudzbe');
@@ -20,11 +20,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
     { id: 'partneri', label: 'Partneri', icon: Users, color: 'bg-orange-100 text-orange-600' },
     { id: 'dodatni', label: 'Dodatni podaci', icon: Package, color: 'bg-teal-100 text-teal-600' },
     { id: 'artikli', label: 'ARTIKLI', icon: Book, color: 'bg-indigo-100 text-indigo-600' },
-    { id: 'partneri-menu', label: 'PARTNERI', icon: Award, color: 'bg-pink-100 text-pink-600' },
   ];
 
   const renderContent = () => {
-    if (activeSection === 'partneri-menu') {
+    if (activeSection === 'partneri') {
       return <PartneriList onBack={() => setActiveSection('narudzbe')} />;
     }
 
@@ -36,7 +35,6 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       partneri: 'Partneri',
       dodatni: 'Dodatni podaci',
       artikli: 'Artikli',
-      'partneri-menu': 'Partneri info',
     };
 
     return contentMap[activeSection] || 'Sadržaj';
@@ -100,7 +98,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       </nav>
 
       <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
-        {activeSection === 'partneri-menu' ? (
+        {activeSection === 'partneri' ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
