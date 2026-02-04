@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
 
     if (loginSuccess) {
       const secret = new TextEncoder().encode(
-        Deno.env.get('JWT_SECRET') || 'default-secret-key-change-in-production'
+        Deno.env.get('JWT_SECRET') || 'karpas-jwt-secret-2024-secure-key-7x9m2p4q8n'
       );
 
       const token = await new SignJWT({
