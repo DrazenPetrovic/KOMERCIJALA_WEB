@@ -69,12 +69,6 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
             </div>
           </div>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-3" style={{ color: '#785E9E' }}>
-            Prijava
-          </h1>
-          <p className="text-center text-gray-600 text-base md:text-lg mb-8">
-            Unesite vaše kredencijale
-          </p>
 
           <form onSubmit={handleLogin} className="space-y-5 md:space-y-6">
             <div>
