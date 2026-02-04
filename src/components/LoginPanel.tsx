@@ -33,7 +33,7 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('authenticated', 'true');
+        localStorage.setItem('token', data.token);
         localStorage.setItem('username', username);
         onLoginSuccess();
       } else {

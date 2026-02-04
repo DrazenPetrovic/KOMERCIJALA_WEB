@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import mysql from "npm:mysql2@3.6.5/promise";
+import { SignJWT } from "npm:jose@5.2.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,10 +80,38 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    if (loginSuccess) {
+      const secret = new TextEncoder().encode(
+        Deno.env.get('JWT_SECRET') || 'default-secret-key-change-in-production'
+      );
+
+      const token = await new SignJWT({
+        username,
+        loginTime: new Date().toISOString()
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('8h')
+        .sign(secret);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Uspešno logovanje',
+          token,
+          user: { username }
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
-        success: loginSuccess,
-        message: loginSuccess ? 'Uspešno logovanje' : message,
+        success: false,
+        message,
         debug: {
           rowsLength: Array.isArray(rows) ? rows.length : 'not array',
           firstElement: rows[0],

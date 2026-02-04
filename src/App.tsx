@@ -7,9 +7,9 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    const authenticated = localStorage.getItem('authenticated');
+    const token = localStorage.getItem('token');
     const storedUsername = localStorage.getItem('username');
-    if (authenticated === 'true' && storedUsername) {
+    if (token && storedUsername) {
       setIsAuthenticated(true);
       setUsername(storedUsername);
     }
@@ -24,7 +24,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('authenticated');
+    localStorage.removeItem('token');
     localStorage.removeItem('username');
     setIsAuthenticated(false);
     setUsername('');
