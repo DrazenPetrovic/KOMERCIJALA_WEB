@@ -56,37 +56,34 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
-    console.log('Full rows response:', JSON.stringify(rows));
-    console.log('rows[0]:', JSON.stringify(rows[0]));
-
     const result = rows[0];
-    console.log('Result:', result);
-
-    let loginSuccess = false;
-    let message = 'Pogrešno korisničko ime ili šifra';
+    let sifraRadnika: number | null = null;
 
     if (Array.isArray(result) && result.length > 0) {
       const firstRow = result[0];
-      console.log('First row:', firstRow);
 
       if (typeof firstRow === 'object' && firstRow !== null) {
-        const keys = Object.keys(firstRow);
-        console.log('Keys in first row:', keys);
         const value = Object.values(firstRow)[0];
-        console.log('First value:', value);
-        loginSuccess = value === 1 || value === '1';
+        const numValue = typeof value === 'number' ? value : parseInt(value as string);
+        if (!isNaN(numValue) && numValue > 0) {
+          sifraRadnika = numValue;
+        }
       } else {
-        loginSuccess = firstRow === 1 || firstRow === '1';
+        const numValue = typeof firstRow === 'number' ? firstRow : parseInt(firstRow as string);
+        if (!isNaN(numValue) && numValue > 0) {
+          sifraRadnika = numValue;
+        }
       }
     }
 
-    if (loginSuccess) {
+    if (sifraRadnika) {
       const secret = new TextEncoder().encode(
         Deno.env.get('JWT_SECRET') || 'karpas-jwt-secret-2024-secure-key-7x9m2p4q8n'
       );
 
       const token = await new SignJWT({
         username,
+        sifraRadnika,
         loginTime: new Date().toISOString()
       })
         .setProtectedHeader({ alg: 'HS256' })
@@ -99,7 +96,7 @@ Deno.serve(async (req: Request) => {
           success: true,
           message: 'Uspešno logovanje',
           token,
-          user: { username }
+          user: { username, sifraRadnika }
         }),
         {
           status: 200,
@@ -111,15 +108,10 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: false,
-        message,
-        debug: {
-          rowsLength: Array.isArray(rows) ? rows.length : 'not array',
-          firstElement: rows[0],
-          type: typeof rows[0]
-        }
+        message: 'Pogrešno korisničko ime ili šifra'
       }),
       {
-        status: 200,
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );

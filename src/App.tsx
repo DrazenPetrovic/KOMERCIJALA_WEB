@@ -7,7 +7,7 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('authToken');
     const storedUsername = localStorage.getItem('username');
     if (token && storedUsername) {
       setIsAuthenticated(true);
@@ -24,8 +24,9 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('sifraRadnika');
     setIsAuthenticated(false);
     setUsername('');
   };

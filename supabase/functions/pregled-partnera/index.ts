@@ -40,10 +40,13 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('JWT_SECRET') || 'karpas-jwt-secret-2024-secure-key-7x9m2p4q8n'
     );
 
-    let username: string;
+    let sifraRadnika: number;
     try {
       const { payload } = await jwtVerify(token, secret);
-      username = payload.username as string;
+      sifraRadnika = payload.sifraRadnika as number;
+      if (!sifraRadnika) {
+        throw new Error('Missing sifraRadnika in token');
+      }
     } catch (error) {
       return new Response(
         JSON.stringify({ error: "Nevažeći token" }),
@@ -64,7 +67,7 @@ Deno.serve(async (req: Request) => {
 
     const [rows] = await connection.execute(
       'CALL pregled_partnera(?)',
-      [username]
+      [sifraRadnika]
     );
 
     await connection.end();

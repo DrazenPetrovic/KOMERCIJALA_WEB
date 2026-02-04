@@ -33,8 +33,9 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('username', username);
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('username', data.user.username);
+        localStorage.setItem('sifraRadnika', data.user.sifraRadnika.toString());
         onLoginSuccess();
       } else {
         setError(data.message || 'Pogrešno korisničko ime ili šifra');
