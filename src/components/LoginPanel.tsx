@@ -35,7 +35,7 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
           <div className="flex justify-center mb-8">
             <div className="w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
               <img
-                src="public/foto/karpas_logo_software.png"
+                src="/foto/karpas_logo_software.png"
                 alt="Karpas Logo"
                 className="w-full h-full object-contain"
                 onError={(e) => {
