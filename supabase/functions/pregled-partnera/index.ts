@@ -75,6 +75,11 @@ Deno.serve(async (req: Request) => {
     const partneri = Array.isArray(rows) ? rows : [];
     console.log(`Učitano ${partneri.length} partnera za radnika ${sifraRadnika}`);
 
+    if (partneri.length > 0) {
+      console.log('Struktura prvog partnera:', JSON.stringify(partneri[0], null, 2));
+      console.log('Kolone:', Object.keys(partneri[0]));
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
