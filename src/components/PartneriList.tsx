@@ -23,13 +23,24 @@ export default function PartneriList({ onBack }: PartneriListProps) {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredPartneri(partneri);
-    } else {
-      const filtered = partneri.filter(partner =>
-        partner.naziv.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredPartneri(filtered);
+    try {
+      if (searchTerm.trim() === '') {
+        setFilteredPartneri(partneri);
+      } else {
+        const filtered = partneri.filter(partner => {
+          try {
+            const naziv = partner?.naziv?.toString() || '';
+            return naziv.toLowerCase().includes(searchTerm.toLowerCase());
+          } catch (err) {
+            console.error('Error filtering partner:', partner, err);
+            return false;
+          }
+        });
+        setFilteredPartneri(filtered);
+      }
+    } catch (err) {
+      console.error('Error in search filter:', err);
+      setFilteredPartneri([]);
     }
   }, [searchTerm, partneri]);
 
@@ -58,10 +69,17 @@ export default function PartneriList({ onBack }: PartneriListProps) {
       }
 
       const result = await response.json();
-      if (result.success) {
-        setPartneri(result.data);
-        setFilteredPartneri(result.data);
+      console.log('API Response:', result);
+
+      if (result.success && result.data) {
+        const dataArray = Array.isArray(result.data) ? result.data : [];
+        console.log('Broj partnera:', dataArray.length);
+        console.log('Prvi partner:', dataArray[0]);
+
+        setPartneri(dataArray);
+        setFilteredPartneri(dataArray);
       } else {
+        console.error('API Error:', result);
         setError(result.error || 'Greška pri učitavanju partnera');
       }
     } catch (err) {
@@ -134,14 +152,14 @@ export default function PartneriList({ onBack }: PartneriListProps) {
                       </td>
                     </tr>
                   ) : (
-                    filteredPartneri.map((partner) => (
+                    filteredPartneri.map((partner, index) => (
                       <tr
-                        key={partner.sifra}
+                        key={partner.sifra || index}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
                       >
-                        <td className="py-3 px-4 text-sm text-slate-700">{partner.sifra}</td>
-                        <td className="py-3 px-4 text-sm text-slate-900 font-medium">{partner.naziv}</td>
-                        <td className="py-3 px-4 text-sm text-slate-700">{partner.grad}</td>
+                        <td className="py-3 px-4 text-sm text-slate-700">{partner.sifra || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-900 font-medium">{partner.naziv || '-'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-700">{partner.grad || '-'}</td>
                       </tr>
                     ))
                   )}

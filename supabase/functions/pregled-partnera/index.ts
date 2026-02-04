@@ -72,20 +72,37 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
-    console.log('Raw rows:', rows);
+    console.log('Raw rows:', JSON.stringify(rows, null, 2));
     console.log('Rows type:', typeof rows);
-    console.log('Rows[0]:', rows[0]);
+    console.log('Rows is array:', Array.isArray(rows));
+    console.log('Rows length:', Array.isArray(rows) ? rows.length : 'N/A');
 
-    const partneri = Array.isArray(rows[0]) ? rows[0] : rows;
+    if (Array.isArray(rows) && rows.length > 0) {
+      console.log('Rows[0] type:', typeof rows[0]);
+      console.log('Rows[0] is array:', Array.isArray(rows[0]));
+      console.log('Rows[0]:', JSON.stringify(rows[0], null, 2));
+    }
+
+    let partneri: any[] = [];
+
+    if (Array.isArray(rows)) {
+      if (Array.isArray(rows[0])) {
+        partneri = rows[0];
+      } else if (rows.length > 0 && typeof rows[0] === 'object') {
+        partneri = rows;
+      }
+    }
+
+    console.log('Final partneri count:', partneri.length);
+    if (partneri.length > 0) {
+      console.log('First partner:', JSON.stringify(partneri[0], null, 2));
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         data: partneri,
-        debug: {
-          rowsLength: Array.isArray(rows) ? rows.length : 0,
-          firstElementType: rows[0] ? typeof rows[0] : 'undefined'
-        }
+        count: partneri.length
       }),
       {
         status: 200,
