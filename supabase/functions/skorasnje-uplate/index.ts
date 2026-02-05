@@ -69,9 +69,8 @@ Deno.serve(async (req: Request) => {
 
     // Pozivamo stored proceduru koja koristi temp tabelu
     const [results] = await connection.execute(
-      'CALL komercijala.dostava_provjera_uplata(?)',
-      [sifraRadnika]
-    );
+      'CALL komercijala.dostava_provjera_uplata()',
+          );
 
     await connection.end();
 
