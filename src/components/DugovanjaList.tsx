@@ -84,7 +84,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
             ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
             dug_preko_30: parseFloat(d.Dug_trideset) || 0,
             dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
-            najstariji_racun: d.najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
+            najstariji_racun: d.Najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
           };
         });
 
