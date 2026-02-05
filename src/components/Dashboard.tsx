@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, Award, CheckCircle, BarChart3 } from 'lucide-react';
 import PartneriList from './PartneriList';
+import ArtikliList from './ArtikliList';
 
 interface DashboardProps {
   username: string;
@@ -25,6 +26,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
   const renderContent = () => {
     if (activeSection === 'partneri') {
       return <PartneriList onBack={() => setActiveSection('narudzbe')} />;
+    }
+
+    if (activeSection === 'artikli') {
+      return <ArtikliList onBack={() => setActiveSection('narudzbe')} />;
     }
 
     const contentMap: Record<MenuSection, string> = {
@@ -98,7 +103,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       </nav>
 
       <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
-        {activeSection === 'partneri' ? (
+        {activeSection === 'partneri' || activeSection === 'artikli' ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
