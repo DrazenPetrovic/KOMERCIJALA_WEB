@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
 
 interface DugovanjaListProps {
@@ -14,115 +14,110 @@ interface Dugovanje {
   najstariji_racun: string;
 }
 
+interface Stats {
+  ukupanDug: number;
+  dugPreko30: number;
+  dugPreko60: number;
+}
+
 export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [filter24Active, setFilter24Active] = useState(true);
   const [filter30Active, setFilter30Active] = useState(true);
   const [filter60Active, setFilter60Active] = useState(true);
+  const [allDugovanja, setAllDugovanja] = useState<Dugovanje[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    ukupanDug: 0,
+    dugPreko30: 0,
+    dugPreko60: 0
+  });
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock podaci za prikaz
-  const allDugovanja: Dugovanje[] = [
-    {
-      sifra: 5597,
-      naziv_partnera: "AEL KAFFERS CENTAR d.o.o.",
-      ukupan_dug: 117.00,
-      dug_preko_30: 0.00,
-      dug_preko_60: 0.00,
-      najstariji_racun: "16.01.2026."
-    },
-    {
-      sifra: 74,
-      naziv_partnera: "AMFORA d.o.o.",
-      ukupan_dug: 113.46,
-      dug_preko_30: 0.00,
-      dug_preko_60: 0.00,
-      najstariji_racun: "02.02.2026."
-    },
-    {
-      sifra: 5622,
-      naziv_partnera: "ART s.p. / vl.Bogdan Nikolić",
-      ukupan_dug: 708.92,
-      dug_preko_30: 0.00,
-      dug_preko_60: 0.00,
-      najstariji_racun: "27.01.2026."
-    },
-    {
-      sifra: 375,
-      naziv_partnera: "BARANDA+ kafe bar s.p Straživik Branislav",
-      ukupan_dug: 702.94,
-      dug_preko_30: 350.00,
-      dug_preko_60: 0.00,
-      najstariji_racun: "21.01.2026."
-    },
-    {
-      sifra: 5583,
-      naziv_partnera: "BELLISSIMA u.r. caffe pizzeria / vl.Omeragić Ismeta",
-      ukupan_dug: 672.83,
-      dug_preko_30: 672.83,
-      dug_preko_60: 0.00,
-      najstariji_racun: "02.02.2026."
-    },
-    {
-      sifra: 134,
-      naziv_partnera: "BOJAXCO IMPEX d.o.o.",
-      ukupan_dug: 10851.20,
-      dug_preko_30: 10038.80,
-      dug_preko_60: 10038.80,
-      najstariji_racun: "20.01.2026."
-    },
-    {
-      sifra: 111,
-      naziv_partnera: "CAKA i S.Z.r. pekara / vl.Ćesko Nervela",
-      ukupan_dug: 1181,
-      dug_preko_30: 1040,
-      dug_preko_60: 1040,
-      najstariji_racun: "18.01.2026."
+  useEffect(() => {
+    fetchDugovanja();
+  }, []);
+
+  const fetchDugovanja = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setError('Niste prijavljeni');
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-dugovanja`;
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Greška pri učitavanju dugovanja');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        const dugovanjaData = result.data.map((d: any) => ({
+          sifra: d.sifra,
+          naziv_partnera: d.naziv_partnera,
+          ukupan_dug: parseFloat(d.ukupan_dug),
+          dug_preko_30: parseFloat(d.dug_preko_30),
+          dug_preko_60: parseFloat(d.dug_preko_60),
+          najstariji_racun: new Date(d.najstariji_racun).toLocaleDateString('sr-RS')
+        }));
+
+        setAllDugovanja(dugovanjaData);
+        setStats(result.stats);
+      } else {
+        setError(result.error || 'Greška pri učitavanju dugovanja');
+      }
+    } catch (err) {
+      console.error('Error fetching dugovanja:', err);
+      setError('Greška pri učitavanju dugovanja');
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  // Mock statistike
-  const stats = {
-    ukupanDug: 137247.83,
-    dugPreko24: 59320.49,
-    dugPreko30: 59320.49,
-    dugUmanjeni: 81821.06
   };
 
-  // Filtriranje po aktivnim filterima
-  const dugovanja = allDugovanja.filter(dug => {
-    // Ako su svi filteri isključeni, ne prikazuj ništa
-    if (!filter24Active && !filter30Active && !filter60Active) {
-      return false;
+  // Filtriranje dugovanja - logika kao u VB.NET kodu
+  const filteredDugovanja = allDugovanja.filter(d => {
+    const matchesSearch = d.naziv_partnera.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          d.sifra.toString().includes(searchTerm);
+    if (!matchesSearch) return false;
+
+    // Ako ima dug preko 60 dana
+    if (d.dug_preko_60 > 0) {
+      return filter60Active;
+    }
+    // Ako ima dug preko 30 dana (ali ne preko 60)
+    else if (d.dug_preko_30 > 0) {
+      return filter30Active;
+    }
+    // Ako ima dug ali nije preko 30 dana
+    else if (d.ukupan_dug > 0) {
+      return filter24Active;
     }
 
-    let matchesFilter = false;
-
-    // Filter preko 60 dana
-    if (filter60Active && dug.dug_preko_60 > 0) {
-      matchesFilter = true;
-    }
-
-    // Filter preko 30 dana (ali manje od 60 ili bez duga preko 60)
-    if (filter30Active && dug.dug_preko_30 > 0) {
-      matchesFilter = true;
-    }
-
-    // Filter preko 24 dana (sva ostala dugovanja)
-    if (filter24Active && dug.ukupan_dug > 0) {
-      matchesFilter = true;
-    }
-
-    return matchesFilter;
+    return true;
   });
 
-  const filteredDugovanja = dugovanja.filter(dug =>
-    dug.naziv_partnera.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dug.sifra.toString().includes(searchTerm)
-  );
-
-  const isDugovanjeKriticno = (dug: Dugovanje) => {
-    return dug.dug_preko_60 > 0;
+  // Funkcija za određivanje boje reda - kao u VB.NET kodu
+  const getRowColor = (d: Dugovanje): string => {
+    if (d.dug_preko_60 > 0) {
+      return 'bg-red-100 hover:bg-red-200';
+    } else if (d.dug_preko_30 > 0) {
+      return 'bg-yellow-100 hover:bg-yellow-200';
+    } else if (d.ukupan_dug > 0) {
+      return 'bg-green-100 hover:bg-green-200';
+    }
+    return 'bg-white hover:bg-gray-50';
   };
 
   return (
@@ -150,9 +145,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           className="bg-green-100 border-2 border-green-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => setFilter24Active(!filter24Active)}
         >
-          <div className="text-sm font-medium text-green-800 mb-1">Dug preko 24 dana</div>
+          <div className="text-sm font-medium text-green-800 mb-1">Sva dugovanja</div>
           <div className="text-2xl font-bold text-green-900">
-            {stats.dugPreko24.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
+            {stats.ukupanDug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
             <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
@@ -186,7 +181,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
         >
           <div className="text-sm font-medium text-red-800 mb-1">Dug preko 60 dana</div>
           <div className="text-2xl font-bold text-red-900">
-            {stats.dugUmanjeni.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
+            {stats.dugPreko60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
             <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
@@ -226,7 +221,20 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           </div>
         )}
 
-        {!loading && (
+        {error && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
+            <p className="text-red-700 text-lg font-medium">{error}</p>
+            <button
+              onClick={fetchDugovanja}
+              className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Pokušaj ponovo
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && (
           <>
             <div className="mb-4 text-gray-600 text-lg">
               Pronađeno partnera: <span className="font-semibold">{filteredDugovanja.length}</span>
@@ -253,34 +261,25 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDugovanja.map((dug, index) => {
-                      const isKriticno = isDugovanjeKriticno(dug);
-                      return (
-                        <tr
-                          key={dug.sifra}
-                          className={`border-t border-gray-200 transition-colors ${
-                            isKriticno
-                              ? 'bg-red-100 hover:bg-red-200'
-                              : index % 2 === 0
-                                ? 'bg-white hover:bg-gray-50'
-                                : 'bg-gray-50 hover:bg-gray-100'
-                          }`}
-                        >
-                          <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
-                          <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
-                          <td className="px-6 py-4 text-right text-gray-800 font-bold">
-                            {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 text-right text-gray-800">
-                            {dug.dug_preko_30.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 text-right text-gray-800">
-                            {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
-                        </tr>
-                      );
-                    })}
+                    {filteredDugovanja.map((dug) => (
+                      <tr
+                        key={dug.sifra}
+                        className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
+                      >
+                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
+                        <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
+                        <td className="px-6 py-4 text-right text-gray-800 font-bold">
+                          {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-800">
+                          {dug.dug_preko_30.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 text-right text-gray-800">
+                          {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
