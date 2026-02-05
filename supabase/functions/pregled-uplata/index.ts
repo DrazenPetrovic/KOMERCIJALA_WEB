@@ -41,10 +41,12 @@ Deno.serve(async (req: Request) => {
     );
 
     try {
-      await jwtVerify(token, secret);
+      const { payload } = await jwtVerify(token, secret);
+      console.log('JWT payload (pregled-uplata):', payload);
     } catch (error) {
+      console.error('JWT verification error (pregled-uplata):', error);
       return new Response(
-        JSON.stringify({ error: "Nevažeći token" }),
+        JSON.stringify({ error: "Nevažeći token", details: error.message }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

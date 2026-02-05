@@ -43,13 +43,15 @@ Deno.serve(async (req: Request) => {
     let sifraRadnika: number;
     try {
       const { payload } = await jwtVerify(token, secret);
+      console.log('JWT payload:', payload);
       sifraRadnika = payload.sifraRadnika as number;
       if (!sifraRadnika) {
         throw new Error('Missing sifraRadnika in token');
       }
     } catch (error) {
+      console.error('JWT verification error:', error);
       return new Response(
-        JSON.stringify({ error: "Nevažeći token" }),
+        JSON.stringify({ error: "Nevažeći token", details: error.message }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
