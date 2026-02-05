@@ -20,6 +20,12 @@ interface Stats {
   dugPreko60: number;
 }
 
+interface Uplata {
+  sifra_partnera: number;
+  napomena: string;
+  sifra: number;
+}
+
 export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -27,6 +33,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [filter30Active, setFilter30Active] = useState(true);
   const [filter60Active, setFilter60Active] = useState(true);
   const [allDugovanja, setAllDugovanja] = useState<Dugovanje[]>([]);
+  const [uplate, setUplate] = useState<Uplata[]>([]);
   const [stats, setStats] = useState<Stats>({
     ukupanDug: 0,
     dugPreko30: 0,
@@ -35,10 +42,10 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDugovanja();
+    fetchData();
   }, []);
 
-  const fetchDugovanja = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,32 +56,53 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
         return;
       }
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-dugovanja`;
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Paralelno učitavanje dugovanja i uplata
+      const [dugovanjaResponse, uplateResponse] = await Promise.all([
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-dugovanja`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-uplata`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      ]);
 
-      if (!response.ok) {
+      if (!dugovanjaResponse.ok) {
         throw new Error('Greška pri učitavanju dugovanja');
       }
 
-      const result = await response.json();
+      const dugovanjaResult = await dugovanjaResponse.json();
 
-      if (result.success) {
-        setAllDugovanja(result.data);
-        setStats(result.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
+      if (dugovanjaResult.success) {
+        setAllDugovanja(dugovanjaResult.data);
+        setStats(dugovanjaResult.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
       } else {
-        setError(result.error || 'Greška pri učitavanju dugovanja');
+        setError(dugovanjaResult.error || 'Greška pri učitavanju dugovanja');
+      }
+
+      // Uplate su opcione, ne treba da blokiraju prikaz dugovanja
+      if (uplateResponse.ok) {
+        const uplateResult = await uplateResponse.json();
+        if (uplateResult.success) {
+          setUplate(uplateResult.data || []);
+        }
       }
     } catch (err) {
-      console.error('Error fetching dugovanja:', err);
+      console.error('Error fetching data:', err);
       setError('Greška pri učitavanju dugovanja');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Funkcija koja proverava da li postoji uplata za datu šifru
+  const imaUplatu = (sifra: number): boolean => {
+    return uplate.some(u => u.sifra === sifra);
   };
 
   // Filtriranje dugovanja - logika kao u VB.NET kodu
@@ -217,7 +245,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
             <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
             <p className="text-red-700 text-lg font-medium">{error}</p>
             <button
-              onClick={fetchDugovanja}
+              onClick={fetchData}
               className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Pokušaj ponovo
@@ -257,7 +285,14 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={`${dug.sifra}-${index}`}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
-                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
+                        <td className="px-6 py-4 text-gray-800 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span>{dug.sifra}</span>
+                            {imaUplatu(dug.sifra) && (
+                              <span className="text-green-600 font-bold text-xl" title="Ima uplatu danas">✓</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-bold">
                           {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
