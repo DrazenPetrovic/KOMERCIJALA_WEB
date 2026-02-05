@@ -75,16 +75,16 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           if (index < 3) {
             console.log(`Record ${index}:`, d);
             console.log(`  - ukupan_dug (raw):`, d.ukupan_dug, typeof d.Ukupan_dug);
-            console.log(`  - dug_preko_30 (raw):`, d.dug_preko_30, typeof d.dug_preko_30);
-            console.log(`  - dug_preko_60 (raw):`, d.dug_preko_60, typeof d.dug_preko_60);
+            console.log(`  - dug_preko_30 (raw):`, d.dug_preko_30, typeof d.Dug_trideset);
+            console.log(`  - dug_preko_60 (raw):`, d.dug_preko_60, typeof d.Dug_sezdeset);
           }
           return {
-            sifra: d.sifra || 0,
+            sifra: d.sifra_kup_z || 0,
             naziv_partnera: d.naziv_partnera || '',
-            ukupan_dug: parseFloat(d.ukupan_dug) || 0,
-            dug_preko_30: parseFloat(d.dug_preko_30) || 0,
-            dug_preko_60: parseFloat(d.dug_preko_60) || 0,
-            najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : '-'
+            ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
+            dug_preko_30: parseFloat(d.Dug_trideset) || 0,
+            dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
+            najstariji_racun: d.najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
           };
         });
 
