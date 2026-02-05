@@ -65,16 +65,16 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       if (result.success) {
         const dugovanjaData = result.data.map((d: any) => ({
-          sifra: d.sifra,
-          naziv_partnera: d.naziv_partnera,
-          ukupan_dug: parseFloat(d.ukupan_dug),
-          dug_preko_30: parseFloat(d.dug_preko_30),
-          dug_preko_60: parseFloat(d.dug_preko_60),
-          najstariji_racun: new Date(d.najstariji_racun).toLocaleDateString('sr-RS')
+          sifra: d.sifra || 0,
+          naziv_partnera: d.naziv_partnera || '',
+          ukupan_dug: parseFloat(d.ukupan_dug) || 0,
+          dug_preko_30: parseFloat(d.dug_preko_30) || 0,
+          dug_preko_60: parseFloat(d.dug_preko_60) || 0,
+          najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : ''
         }));
 
         setAllDugovanja(dugovanjaData);
-        setStats(result.stats);
+        setStats(result.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
       } else {
         setError(result.error || 'Greška pri učitavanju dugovanja');
       }
@@ -88,7 +88,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
   // Filtriranje dugovanja - logika kao u VB.NET kodu
   const filteredDugovanja = allDugovanja.filter(d => {
-    const matchesSearch = d.naziv_partnera.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (d.naziv_partnera || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           d.sifra.toString().includes(searchTerm);
     if (!matchesSearch) return false;
 

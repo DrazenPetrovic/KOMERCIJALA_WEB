@@ -48,7 +48,14 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
       const result = await response.json();
 
       if (result.success && Array.isArray(result.data)) {
-        setArtikli(result.data);
+        const artikliData = result.data.map((a: any) => ({
+          sifra_proizvoda: a.sifra_proizvoda || 0,
+          naziv_proizvoda: a.naziv_proizvoda || '',
+          jm: a.jm || '',
+          vpc: parseFloat(a.vpc || a.VPC) || 0,
+          mpc: parseFloat(a.mpc || a.MPC) || 0
+        }));
+        setArtikli(artikliData);
       } else {
         throw new Error(result.error || 'Nepoznata greška');
       }
@@ -65,8 +72,8 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
   }, []);
 
   const filteredArtikli = artikli.filter(artikal =>
-    artikal.naziv_proizvoda.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    artikal.sifra_proizvoda.toString().includes(searchTerm)
+    (artikal.naziv_proizvoda || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (artikal.sifra_proizvoda || '').toString().includes(searchTerm)
   );
 
   return (
@@ -164,10 +171,10 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
                         <td className="px-6 py-4 text-gray-800">{artikal.naziv_proizvoda}</td>
                         <td className="px-6 py-4 text-gray-600">{artikal.jm}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-medium">
-                          {artikal.VPC?.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} KM
+                          {artikal.vpc.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
                         </td>
                         <td className="px-6 py-4 text-right text-gray-800 font-medium">
-                          {artikal.mpc?.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} KM
+                          {artikal.mpc.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
                         </td>
                       </tr>
                     ))}
