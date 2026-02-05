@@ -72,7 +72,8 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
-    console.log('MySQL results:', JSON.stringify(results, null, 2));
+    console.log('[DUGOVANJA] MySQL results:', JSON.stringify(results, null, 2));
+    console.log('[DUGOVANJA] Sifra radnika:', sifraRadnika);
 
     // MySQL stored procedures vraćaju array of arrays
     // Prvi element je actual result set
