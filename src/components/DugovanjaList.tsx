@@ -17,9 +17,12 @@ interface Dugovanje {
 export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading] = useState(false);
+  const [filter24Active, setFilter24Active] = useState(true);
+  const [filter30Active, setFilter30Active] = useState(true);
+  const [filter60Active, setFilter60Active] = useState(true);
 
   // Mock podaci za prikaz
-  const dugovanja: Dugovanje[] = [
+  const allDugovanja: Dugovanje[] = [
     {
       sifra: 5597,
       naziv_partnera: "AEL KAFFERS CENTAR d.o.o.",
@@ -43,6 +46,38 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       dug_preko_30: 0.00,
       dug_preko_60: 0.00,
       najstariji_racun: "27.01.2026."
+    },
+    {
+      sifra: 375,
+      naziv_partnera: "BARANDA+ kafe bar s.p Straživik Branislav",
+      ukupan_dug: 702.94,
+      dug_preko_30: 350.00,
+      dug_preko_60: 0.00,
+      najstariji_racun: "21.01.2026."
+    },
+    {
+      sifra: 5583,
+      naziv_partnera: "BELLISSIMA u.r. caffe pizzeria / vl.Omeragić Ismeta",
+      ukupan_dug: 672.83,
+      dug_preko_30: 672.83,
+      dug_preko_60: 0.00,
+      najstariji_racun: "02.02.2026."
+    },
+    {
+      sifra: 134,
+      naziv_partnera: "BOJAXCO IMPEX d.o.o.",
+      ukupan_dug: 10851.20,
+      dug_preko_30: 10038.80,
+      dug_preko_60: 10038.80,
+      najstariji_racun: "20.01.2026."
+    },
+    {
+      sifra: 111,
+      naziv_partnera: "CAKA i S.Z.r. pekara / vl.Ćesko Nervela",
+      ukupan_dug: 1181,
+      dug_preko_30: 1040,
+      dug_preko_60: 1040,
+      najstariji_racun: "18.01.2026."
     }
   ];
 
@@ -54,13 +89,40 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     dugUmanjeni: 81821.06
   };
 
+  // Filtriranje po aktivnim filterima
+  const dugovanja = allDugovanja.filter(dug => {
+    // Ako su svi filteri isključeni, ne prikazuj ništa
+    if (!filter24Active && !filter30Active && !filter60Active) {
+      return false;
+    }
+
+    let matchesFilter = false;
+
+    // Filter preko 60 dana
+    if (filter60Active && dug.dug_preko_60 > 0) {
+      matchesFilter = true;
+    }
+
+    // Filter preko 30 dana (ali manje od 60 ili bez duga preko 60)
+    if (filter30Active && dug.dug_preko_30 > 0) {
+      matchesFilter = true;
+    }
+
+    // Filter preko 24 dana (sva ostala dugovanja)
+    if (filter24Active && dug.ukupan_dug > 0) {
+      matchesFilter = true;
+    }
+
+    return matchesFilter;
+  });
+
   const filteredDugovanja = dugovanja.filter(dug =>
     dug.naziv_partnera.toLowerCase().includes(searchTerm.toLowerCase()) ||
     dug.sifra.toString().includes(searchTerm)
   );
 
   const isDugovanjeKriticno = (dug: Dugovanje) => {
-    return dug.dug_preko_60 > 0 || dug.ukupan_dug > 10000;
+    return dug.dug_preko_60 > 0;
   };
 
   return (
@@ -82,38 +144,56 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           <div className="text-2xl font-bold text-blue-900">
             {stats.ukupanDug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
-          <div className="mt-2">
-            <span className="inline-block px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded">ON</span>
-          </div>
         </div>
 
-        <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4">
+        <div
+          className="bg-green-100 border-2 border-green-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setFilter24Active(!filter24Active)}
+        >
           <div className="text-sm font-medium text-green-800 mb-1">Dug preko 24 dana</div>
           <div className="text-2xl font-bold text-green-900">
             {stats.dugPreko24.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
-            <span className="inline-block px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded">ON</span>
+            <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
+              filter24Active ? 'bg-green-600' : 'bg-gray-400'
+            }`}>
+              {filter24Active ? 'ON' : 'OFF'}
+            </span>
           </div>
         </div>
 
-        <div className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4">
+        <div
+          className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setFilter30Active(!filter30Active)}
+        >
           <div className="text-sm font-medium text-yellow-800 mb-1">Dug preko 30 dana</div>
           <div className="text-2xl font-bold text-yellow-900">
             {stats.dugPreko30.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
-            <span className="inline-block px-3 py-1 bg-yellow-600 text-white text-xs font-semibold rounded">ON</span>
+            <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
+              filter30Active ? 'bg-yellow-600' : 'bg-gray-400'
+            }`}>
+              {filter30Active ? 'ON' : 'OFF'}
+            </span>
           </div>
         </div>
 
-        <div className="bg-red-100 border-2 border-red-300 rounded-xl p-4">
-          <div className="text-sm font-medium text-red-800 mb-1">Dug umanjeni</div>
+        <div
+          className="bg-red-100 border-2 border-red-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setFilter60Active(!filter60Active)}
+        >
+          <div className="text-sm font-medium text-red-800 mb-1">Dug preko 60 dana</div>
           <div className="text-2xl font-bold text-red-900">
             {stats.dugUmanjeni.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
-            <span className="inline-block px-3 py-1 bg-red-600 text-white text-xs font-semibold rounded">ON</span>
+            <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
+              filter60Active ? 'bg-red-600' : 'bg-gray-400'
+            }`}>
+              {filter60Active ? 'ON' : 'OFF'}
+            </span>
           </div>
         </div>
       </div>
