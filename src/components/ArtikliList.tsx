@@ -162,7 +162,7 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
                   <tbody>
                     {filteredArtikli.map((artikal, index) => (
                       <tr
-                        key={artikal.sifra_proizvoda}
+                        key={`${artikal.sifra_proizvoda}-${index}`}
                         className={`border-t border-gray-200 hover:bg-gray-50 transition-colors ${
                           index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                         }`}

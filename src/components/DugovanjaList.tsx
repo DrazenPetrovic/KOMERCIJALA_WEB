@@ -290,9 +290,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredDugovanja.map((dug) => (
+                    {filteredDugovanja.map((dug, index) => (
                       <tr
-                        key={dug.sifra}
+                        key={`${dug.sifra}-${index}`}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
                         <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
