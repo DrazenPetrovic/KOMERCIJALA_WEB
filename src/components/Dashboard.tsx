@@ -16,12 +16,12 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
 
   const menuItems = [
     { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
-    { id: 'dugovanja', label: 'Dužovanja', icon: TrendingUp, color: 'bg-red-100 text-red-600' },
+    { id: 'dugovanja', label: 'Dugovanja', icon: TrendingUp, color: 'bg-red-100 text-red-600' },
     { id: 'izvestaji', label: 'Izveštaji', icon: BarChart3, color: 'bg-green-100 text-green-600' },
     { id: 'poslovanje', label: 'Poslovanje', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
     { id: 'partneri', label: 'Partneri', icon: Users, color: 'bg-orange-100 text-orange-600' },
     { id: 'dodatni', label: 'Dodatni podaci', icon: Package, color: 'bg-teal-100 text-teal-600' },
-    { id: 'artikli', label: 'ARTIKLI', icon: Book, color: 'bg-indigo-100 text-indigo-600' },
+    { id: 'artikli', label: 'Artikli', icon: Book, color: 'bg-indigo-100 text-indigo-600' },
   ];
 
   const renderContent = () => {
