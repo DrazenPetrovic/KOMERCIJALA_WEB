@@ -65,6 +65,8 @@ Deno.serve(async (req: Request) => {
     const client = new Client(dbUrl);
     await client.connect();
 
+    console.log('Sifra radnika:', sifraRadnika);
+
     const result = await client.queryObject(`
       SELECT DISTINCT
         uu.sifra_kupac_iz_uplata as sifra_partnera
@@ -79,9 +81,13 @@ Deno.serve(async (req: Request) => {
         uu.sifra_kupac_iz_uplata
     `, [sifraRadnika]);
 
+    console.log('Query result rows:', result.rows);
+    console.log('Number of rows:', result.rows.length);
+
     await client.end();
 
     const uplatePartneri = result.rows.map((row: any) => row.sifra_partnera);
+    console.log('Mapped uplatePartneri:', uplatePartneri);
 
     return new Response(JSON.stringify({
       success: true,
