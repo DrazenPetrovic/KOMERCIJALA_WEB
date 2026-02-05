@@ -63,15 +63,33 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       const result = await response.json();
 
+      console.log('=== DUGOVANJA API RESPONSE ===');
+      console.log('Full result:', result);
+      console.log('result.success:', result.success);
+      console.log('result.data length:', result.data?.length);
+      console.log('First 3 raw records:', result.data?.slice(0, 3));
+      console.log('result.stats:', result.stats);
+
       if (result.success) {
-        const dugovanjaData = result.data.map((d: any) => ({
-          sifra: d.sifra || 0,
-          naziv_partnera: d.naziv_partnera || '',
-          ukupan_dug: parseFloat(d.ukupan_dug) || 0,
-          dug_preko_30: parseFloat(d.dug_preko_30) || 0,
-          dug_preko_60: parseFloat(d.dug_preko_60) || 0,
-          najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : '-'
-        }));
+        const dugovanjaData = result.data.map((d: any, index: number) => {
+          if (index < 3) {
+            console.log(`Record ${index}:`, d);
+            console.log(`  - ukupan_dug (raw):`, d.ukupan_dug, typeof d.ukupan_dug);
+            console.log(`  - dug_preko_30 (raw):`, d.dug_preko_30, typeof d.dug_preko_30);
+            console.log(`  - dug_preko_60 (raw):`, d.dug_preko_60, typeof d.dug_preko_60);
+          }
+          return {
+            sifra: d.sifra || 0,
+            naziv_partnera: d.naziv_partnera || '',
+            ukupan_dug: parseFloat(d.ukupan_dug) || 0,
+            dug_preko_30: parseFloat(d.dug_preko_30) || 0,
+            dug_preko_60: parseFloat(d.dug_preko_60) || 0,
+            najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : '-'
+          };
+        });
+
+        console.log('First 3 mapped records:', dugovanjaData.slice(0, 3));
+        console.log('=== END DUGOVANJA ===');
 
         setAllDugovanja(dugovanjaData);
         setStats(result.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
