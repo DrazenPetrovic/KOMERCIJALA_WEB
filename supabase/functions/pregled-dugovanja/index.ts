@@ -84,14 +84,12 @@ Deno.serve(async (req: Request) => {
       ? (Array.isArray(results[0]) ? results[0] : results)
       : [];
 
-    console.log('[DUGOVANJA] Raw dugovanja count:', rawDugovanja.length);
-    console.log('[DUGOVANJA] Raw dugovanja:', JSON.stringify(rawDugovanja, null, 2));
-
-    // Filtriraj samo zapise sa potpuno praznim podacima (sifra=0 I prazno ime)
+    // Filtriraj prazne ili nevažeće zapise
     const dugovanja = rawDugovanja.filter((d: any) =>
-      !(d.sifra === 0 && (!d.naziv_partnera || d.naziv_partnera.trim() === ''))
+      d.sifra_kup_z && d.sifra_kup_z > 0 &&  d.Naziv_partnera && d.Naziv_partnera.trim() !== ''
     );
 
+    console.log('[DUGOVANJA] Raw dugovanja count:', rawDugovanja.length);
     console.log('[DUGOVANJA] Filtered dugovanja count:', dugovanja.length);
     console.log('[DUGOVANJA] Processed dugovanja:', JSON.stringify(dugovanja, null, 2));
     console.log('[DUGOVANJA] First row keys:', dugovanja.length > 0 ? Object.keys(dugovanja[0]) : 'none');
