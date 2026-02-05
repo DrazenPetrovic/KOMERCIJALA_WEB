@@ -164,7 +164,7 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
                         <td className="px-6 py-4 text-gray-800">{artikal.naziv_proizvoda}</td>
                         <td className="px-6 py-4 text-gray-600">{artikal.jm}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-medium">
-                          {artikal.vpc?.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} KM
+                          {artikal.VPC?.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} KM
                         </td>
                         <td className="px-6 py-4 text-right text-gray-800 font-medium">
                           {artikal.mpc?.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0,00'} KM
