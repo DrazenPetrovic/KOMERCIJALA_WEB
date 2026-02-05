@@ -65,32 +65,27 @@ Deno.serve(async (req: Request) => {
       database: 'komercijala'
     });
 
-    console.log('Sifra radnika:', sifraRadnika);
+    console.log('[SKORASNJE-UPLATE] Sifra radnika:', sifraRadnika);
 
-    const [results] = await connection.execute(`
-      SELECT DISTINCT
-        uu.sifra_kupac_iz_uplata as sifra_partnera
-      FROM
-        utg_uplata uu
-      INNER JOIN
-        kupci k ON uu.sifra_kupac_iz_uplata = k.sifra_partnera
-      WHERE
-        k.pripada_radniku = ?
-        AND uu.datum_uplate >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-      ORDER BY
-        uu.sifra_kupac_iz_uplata
-    `, [sifraRadnika]);
+    const [results] = await connection.execute(
+      'CALL komercijala.dostava_provjera_uplata(?)',
+      [sifraRadnika]
+    );
 
     await connection.end();
 
-    console.log('MySQL results:', JSON.stringify(results, null, 2));
+    console.log('[SKORASNJE-UPLATE] MySQL results:', JSON.stringify(results, null, 2));
 
-    const uplatePartneri = Array.isArray(results)
-      ? results.map((row: any) => row.sifra_partnera)
+    // MySQL stored procedures vraćaju array of arrays
+    // Prvi element je actual result set
+    const uplateData = Array.isArray(results) && results.length > 0
+      ? (Array.isArray(results[0]) ? results[0] : results)
       : [];
 
-    console.log('Mapped uplatePartneri:', uplatePartneri);
-    console.log('Number of partners with recent payments:', uplatePartneri.length);
+    const uplatePartneri = uplateData.map((row: any) => row.sifra_partnera || row.SIFRA_PARTNERA);
+
+    console.log('[SKORASNJE-UPLATE] Mapped uplatePartneri:', uplatePartneri);
+    console.log('[SKORASNJE-UPLATE] Number of partners with recent payments:', uplatePartneri.length);
 
     return new Response(JSON.stringify({
       success: true,
@@ -103,7 +98,7 @@ Deno.serve(async (req: Request) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('[SKORASNJE-UPLATE] Error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Greška pri učitavanju uplata'
