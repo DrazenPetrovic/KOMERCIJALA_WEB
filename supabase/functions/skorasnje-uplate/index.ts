@@ -67,22 +67,29 @@ Deno.serve(async (req: Request) => {
 
     console.log('[SKORASNJE-UPLATE] Sifra radnika:', sifraRadnika);
 
-    const [results] = await connection.execute(
-      'CALL komercijala.dostava_provjera_uplata(?)',
-      [sifraRadnika]
-    );
+    // Implementiramo istu logiku kao stored procedura
+    // Datum od pre 1 dan
+    const query = `
+      SELECT
+        sifra_partnera,
+        napomena,
+        IF((SUBSTRING_INDEX(napomena, '#', -1) * 1) > 0,
+           SUBSTRING_INDEX(napomena, '#', -1),
+           sifra_partnera) AS sifra
+      FROM
+        uplate
+      WHERE
+        datum_uplate >= DATE_ADD(CURDATE(), INTERVAL -1 DAY)
+    `;
+
+    const [results] = await connection.execute(query);
 
     await connection.end();
 
     console.log('[SKORASNJE-UPLATE] MySQL results:', JSON.stringify(results, null, 2));
 
-    // MySQL stored procedures vraćaju array of arrays
-    // Prvi element je actual result set
-    const uplateData = Array.isArray(results) && results.length > 0
-      ? (Array.isArray(results[0]) ? results[0] : results)
-      : [];
-
-    const uplatePartneri = uplateData.map((row: any) => row.sifra_partnera || row.SIFRA_PARTNERA);
+    const uplateData = Array.isArray(results) ? results : [];
+    const uplatePartneri = uplateData.map((row: any) => row.sifra || row.SIFRA);
 
     console.log('[SKORASNJE-UPLATE] Mapped uplatePartneri:', uplatePartneri);
     console.log('[SKORASNJE-UPLATE] Number of partners with recent payments:', uplatePartneri.length);
