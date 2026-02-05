@@ -298,18 +298,18 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                             <CheckCircle className="w-6 h-6 text-green-600 mx-auto" title="Nedavna uplata (30 dana)" />
                           )}
                         </td>
-                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra_kup_z}</td>
-                        <td className="px-6 py-4 text-gray-800">{dug.Naziv_partnera}</td>
+                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
+                        <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-bold">
-                          {dug.Ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 text-right text-gray-800">
-                          {dug.Dug_trideset.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {dug.dug_preko_30.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 text-right text-gray-800">
-                          {dug.Dug_sezdeset.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="px-6 py-4 text-gray-800">{dug.Najstariji_racun}</td>
+                        <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
                       </tr>
                     ))}
                   </tbody>
