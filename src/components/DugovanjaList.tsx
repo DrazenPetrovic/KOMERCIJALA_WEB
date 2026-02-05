@@ -126,6 +126,17 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     return true;
   });
 
+  console.log('=== FILTER DEBUG ===');
+  console.log('allDugovanja.length:', allDugovanja.length);
+  console.log('allDugovanja:', allDugovanja);
+  console.log('searchTerm:', searchTerm);
+  console.log('filter24Active:', filter24Active);
+  console.log('filter30Active:', filter30Active);
+  console.log('filter60Active:', filter60Active);
+  console.log('filteredDugovanja.length:', filteredDugovanja.length);
+  console.log('filteredDugovanja:', filteredDugovanja);
+  console.log('=== END FILTER DEBUG ===');
+
   // Funkcija za određivanje boje reda - kao u VB.NET kodu
   const getRowColor = (d: Dugovanje): string => {
     if (d.dug_preko_60 > 0) {
