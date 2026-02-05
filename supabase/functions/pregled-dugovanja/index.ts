@@ -75,6 +75,12 @@ Deno.serve(async (req: Request) => {
     const rawDugovanja = Array.isArray(results) && results.length > 0
       ? (Array.isArray(results[0]) ? results[0] : results)
       : [];
+
+    // Log kolona za debugging
+    if (rawDugovanja.length > 0) {
+      console.log('Dostupne kolone:', Object.keys(rawDugovanja[0]));
+    }
+
     const dugovanja = rawDugovanja
       .filter((d: any) =>
         d.sifra_kup_z && d.sifra_kup_z > 0 && d.Naziv_partnera && d.Naziv_partnera.trim() !== ''
