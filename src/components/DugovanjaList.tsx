@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, AlertCircle, Search, CheckCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
 
 interface DugovanjaListProps {
   onBack: () => void;
@@ -33,11 +33,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     dugPreko60: 0
   });
   const [error, setError] = useState<string | null>(null);
-  const [skorasnje_uplate, setSkorasnjeUplate] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchDugovanja();
-    fetchSkorasnjeUplate();
   }, []);
 
   const fetchDugovanja = async () => {
@@ -85,43 +83,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       setError('Greška pri učitavanju dugovanja');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSkorasnjeUplate = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/skorasnje-uplate`;
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Skorasnje uplate result:', result);
-        console.log('Result data type:', typeof result.data);
-        console.log('Is array:', Array.isArray(result.data));
-        if (result.success && Array.isArray(result.data)) {
-          console.log('Skorasnje uplate data length:', result.data.length);
-          console.log('Skorasnje uplate data:', result.data);
-          console.log('First 5 elements:', result.data.slice(0, 5));
-          const uplateSet = new Set(result.data);
-          console.log('Set size:', uplateSet.size);
-          console.log('Set contents:', Array.from(uplateSet));
-          setSkorasnjeUplate(uplateSet);
-        } else {
-          console.log('Result not successful or data not array');
-        }
-      } else {
-        console.log('Response not OK:', response.status);
-      }
-    } catch (err) {
-      console.error('Error fetching recent payments:', err);
     }
   };
 
@@ -297,9 +258,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;30 dana</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;60 dana</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Najstariji račun</th>
-                      <th className="px-2 py-4 text-center font-semibold text-lg w-12">
-                        <CheckCircle className="w-5 h-5 mx-auto" />
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -308,14 +266,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={dug.sifra}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
-                        <td className="px-6 py-4 text-gray-800 font-medium">
-                          <div className="flex items-center gap-2">
-                            {skorasnje_uplate.has(dug.sifra) && (
-                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" title="Nedavna uplata" />
-                            )}
-                            <span>{dug.sifra}</span>
-                          </div>
-                        </td>
+                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
                         <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-bold">
                           {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -327,8 +278,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                           {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
-                        <td className="px-2 py-4 text-center w-12">
-                        </td>
                       </tr>
                     ))}
                   </tbody>
