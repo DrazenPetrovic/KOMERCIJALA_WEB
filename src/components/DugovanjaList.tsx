@@ -103,7 +103,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Skorasnje uplate result:', result);
         if (result.success && Array.isArray(result.data)) {
+          console.log('Skorasnje uplate data:', result.data);
           setSkorasnjeUplate(new Set(result.data));
         }
       }
@@ -278,7 +280,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                 <table className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
                   <thead className="text-white" style={{ backgroundColor: '#785E9E' }}>
                     <tr>
-                      <th className="px-6 py-4 text-center font-semibold text-lg">Uplata</th>
+                      <th className="px-2 py-4 text-center font-semibold text-lg w-12">
+                        <CheckCircle className="w-5 h-5 mx-auto" />
+                      </th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Šif</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Naziv partnera</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">Ukupan dug</th>
@@ -293,7 +297,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={dug.sifra}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-2 py-4 text-center w-12">
                           {skorasnje_uplate.has(dug.sifra) && (
                             <CheckCircle className="w-6 h-6 text-green-600 mx-auto" title="Nedavna uplata (30 dana)" />
                           )}
