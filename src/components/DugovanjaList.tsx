@@ -63,35 +63,8 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       const result = await response.json();
 
-      console.log('=== DUGOVANJA API RESPONSE ===');
-      console.log('Full result:', result);
-      console.log('result.success:', result.success);
-      console.log('result.data length:', result.data?.length);
-      console.log('First 3 raw records:', result.data?.slice(0, 3));
-      console.log('result.stats:', result.stats);
-
       if (result.success) {
-        const dugovanjaData = result.data.map((d: any, index: number) => {
-          if (index < 3) {
-            console.log(`Record ${index}:`, d);
-            console.log(`  - Ukupan_dug (raw):`, d.Ukupan_dug, typeof d.Ukupan_dug);
-            console.log(`  - Dug_trideset (raw):`, d.Dug_trideset, typeof d.Dug_trideset);
-            console.log(`  - Dug_sezdeset (raw):`, d.Dug_sezdeset, typeof d.Dug_sezdeset);
-          }
-          return {
-            sifra: d.sifra_kup_z || 0,
-            naziv_partnera: d.Naziv_partnera || '',
-            ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
-            dug_preko_30: parseFloat(d.Dug_trideset) || 0,
-            dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
-            najstariji_racun: d.Najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
-          };
-        });
-
-        console.log('First 3 mapped records:', dugovanjaData.slice(0, 3));
-        console.log('=== END DUGOVANJA ===');
-
-        setAllDugovanja(dugovanjaData);
+        setAllDugovanja(result.data);
         setStats(result.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
       } else {
         setError(result.error || 'Greška pri učitavanju dugovanja');
@@ -125,17 +98,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
     return true;
   });
-
-  console.log('=== FILTER DEBUG ===');
-  console.log('allDugovanja.length:', allDugovanja.length);
-  console.log('allDugovanja:', allDugovanja);
-  console.log('searchTerm:', searchTerm);
-  console.log('filter24Active:', filter24Active);
-  console.log('filter30Active:', filter30Active);
-  console.log('filter60Active:', filter60Active);
-  console.log('filteredDugovanja.length:', filteredDugovanja.length);
-  console.log('filteredDugovanja:', filteredDugovanja);
-  console.log('=== END FILTER DEBUG ===');
 
   // Funkcija za određivanje boje reda - kao u VB.NET kodu
   const getRowColor = (d: Dugovanje): string => {
