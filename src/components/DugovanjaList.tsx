@@ -104,10 +104,21 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       if (response.ok) {
         const result = await response.json();
         console.log('Skorasnje uplate result:', result);
+        console.log('Result data type:', typeof result.data);
+        console.log('Is array:', Array.isArray(result.data));
         if (result.success && Array.isArray(result.data)) {
+          console.log('Skorasnje uplate data length:', result.data.length);
           console.log('Skorasnje uplate data:', result.data);
-          setSkorasnjeUplate(new Set(result.data));
+          console.log('First 5 elements:', result.data.slice(0, 5));
+          const uplateSet = new Set(result.data);
+          console.log('Set size:', uplateSet.size);
+          console.log('Set contents:', Array.from(uplateSet));
+          setSkorasnjeUplate(uplateSet);
+        } else {
+          console.log('Result not successful or data not array');
         }
+      } else {
+        console.log('Response not OK:', response.status);
       }
     } catch (err) {
       console.error('Error fetching recent payments:', err);
