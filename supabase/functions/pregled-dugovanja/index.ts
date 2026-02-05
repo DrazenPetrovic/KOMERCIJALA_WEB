@@ -60,13 +60,19 @@ Deno.serve(async (req: Request) => {
       database: 'komercijala'
     });
 
-    const [rows] = await connection.execute(
+    const [results] = await connection.execute(
       'CALL komercijala.dugovanje_partnera_zbirno(0)'
     );
 
     await connection.end();
 
-    const dugovanja = Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+    console.log('MySQL results:', JSON.stringify(results, null, 2));
+
+    // MySQL stored procedures vraćaju array of arrays
+    // Prvi element je actual result set
+    const dugovanja = Array.isArray(results) && results.length > 0
+      ? (Array.isArray(results[0]) ? results[0] : results)
+      : [];
 
     let ukupanDug = 0;
     let dugPreko30 = 0;
