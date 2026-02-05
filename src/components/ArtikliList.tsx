@@ -24,9 +24,9 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
-        setError('Nema tokena');
+        setError('Niste prijavljeni');
         return;
       }
 
