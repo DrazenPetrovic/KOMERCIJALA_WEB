@@ -74,9 +74,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
         const dugovanjaData = result.data.map((d: any, index: number) => {
           if (index < 3) {
             console.log(`Record ${index}:`, d);
-            console.log(`  - ukupan_dug (raw):`, d.ukupan_dug, typeof d.Ukupan_dug);
-            console.log(`  - dug_preko_30 (raw):`, d.dug_preko_30, typeof d.Dug_trideset);
-            console.log(`  - dug_preko_60 (raw):`, d.dug_preko_60, typeof d.Dug_sezdeset);
+            console.log(`  - Ukupan_dug (raw):`, d.Ukupan_dug, typeof d.Ukupan_dug);
+            console.log(`  - Dug_trideset (raw):`, d.Dug_trideset, typeof d.Dug_trideset);
+            console.log(`  - Dug_sezdeset (raw):`, d.Dug_sezdeset, typeof d.Dug_sezdeset);
           }
           return {
             sifra: d.sifra_kup_z || 0,
