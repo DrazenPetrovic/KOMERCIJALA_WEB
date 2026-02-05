@@ -36,6 +36,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const token = authHeader.substring(7);
+    console.log('Token prefix:', token.substring(0, 20));
+    console.log('JWT_SECRET from env:', Deno.env.get('JWT_SECRET') ? 'exists' : 'using default');
+
     const secret = new TextEncoder().encode(
       Deno.env.get('JWT_SECRET') || 'karpas-jwt-secret-2024-secure-key-7x9m2p4q8n'
     );
@@ -50,8 +53,10 @@ Deno.serve(async (req: Request) => {
       }
     } catch (error) {
       console.error('JWT verification error:', error);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
       return new Response(
-        JSON.stringify({ error: "Nevažeći token", details: error.message }),
+        JSON.stringify({ error: "Nevažeći token", details: error.message, errorName: error.name }),
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

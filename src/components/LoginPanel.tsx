@@ -101,6 +101,7 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Unesite lozinku"
+                autoComplete="current-password"
                 className="w-full px-5 py-4 md:px-6 md:py-5 text-base md:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 transition"
                 style={{
                   '--tw-ring-color': '#785E9E',
