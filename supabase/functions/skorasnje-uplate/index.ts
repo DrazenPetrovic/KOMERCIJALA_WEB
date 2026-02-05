@@ -95,19 +95,24 @@ Deno.serve(async (req: Request) => {
     console.log('[SKORASNJE-UPLATE] Processed uplateData:', uplateData);
     console.log('[SKORASNJE-UPLATE] uplateData length:', uplateData.length);
 
-    // Ekstraktujemo sifru iz svakog reda (kolona 'sifra' iz temp_uplate)
-    const uplatePartneri = uplateData.map((row: any) => {
-      const sifra = row.sifra || row.SIFRA || row.sifra_partnera || row.SIFRA_PARTNERA;
-      console.log('[SKORASNJE-UPLATE] Row:', row, '=> sifra:', sifra);
-      return sifra;
-    }).filter((s: any) => s != null);
+    // Ekstraktujemo samo šifre partnera iz temp_uplate (kolona 'sifra')
+    // Ovo je LISTA UPLATA - samo šifre partnera koji su nedavno uplatili
+    const sifre_partnera_sa_uplatama = uplateData
+      .map((row: any) => {
+        const sifra = row.sifra || row.SIFRA || row.sifra_partnera || row.SIFRA_PARTNERA;
+        console.log('[SKORASNJE-UPLATE] Row:', row, '=> sifra:', sifra);
+        return sifra;
+      })
+      .filter((s: any) => s != null)
+      .map((s: any) => Number(s)); // Konvertujemo u brojeve
 
-    console.log('[SKORASNJE-UPLATE] Mapped uplatePartneri:', uplatePartneri);
-    console.log('[SKORASNJE-UPLATE] Number of partners with recent payments:', uplatePartneri.length);
+    console.log('[SKORASNJE-UPLATE] Mapped sifre partnera:', sifre_partnera_sa_uplatama);
+    console.log('[SKORASNJE-UPLATE] Number of partners with recent payments:', sifre_partnera_sa_uplatama.length);
 
     return new Response(JSON.stringify({
       success: true,
-      data: uplatePartneri
+      data: sifre_partnera_sa_uplatama,
+      count: sifre_partnera_sa_uplatama.length
     }), {
       headers: {
         ...corsHeaders,
