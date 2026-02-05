@@ -280,15 +280,15 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                 <table className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
                   <thead className="text-white" style={{ backgroundColor: '#785E9E' }}>
                     <tr>
-                      <th className="px-2 py-4 text-center font-semibold text-lg w-12">
-                        <CheckCircle className="w-5 h-5 mx-auto" />
-                      </th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Šif</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Naziv partnera</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">Ukupan dug</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;30 dana</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;60 dana</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Najstariji račun</th>
+                      <th className="px-2 py-4 text-center font-semibold text-lg w-12">
+                        <CheckCircle className="w-5 h-5 mx-auto" />
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,12 +297,14 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={dug.sifra}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
-                        <td className="px-2 py-4 text-center w-12">
-                          {skorasnje_uplate.has(dug.sifra) && (
-                            <CheckCircle className="w-6 h-6 text-green-600 mx-auto" title="Nedavna uplata (30 dana)" />
-                          )}
+                        <td className="px-6 py-4 text-gray-800 font-medium">
+                          <div className="flex items-center gap-2">
+                            {skorasnje_uplate.has(dug.sifra) && (
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" title="Nedavna uplata" />
+                            )}
+                            <span>{dug.sifra}</span>
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
                         <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-bold">
                           {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -314,6 +316,8 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                           {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
+                        <td className="px-2 py-4 text-center w-12">
+                        </td>
                       </tr>
                     ))}
                   </tbody>
