@@ -80,7 +80,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           }
           return {
             sifra: d.sifra_kup_z || 0,
-            naziv_partnera: d.naziv_partnera || '',
+            naziv_partnera: d.Naziv_partnera || '',
             ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
             dug_preko_30: parseFloat(d.Dug_trideset) || 0,
             dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
