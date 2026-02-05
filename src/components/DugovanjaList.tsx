@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Search, CheckCircle } from 'lucide-react';
 
 interface DugovanjaListProps {
   onBack: () => void;
@@ -33,9 +33,11 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     dugPreko60: 0
   });
   const [error, setError] = useState<string | null>(null);
+  const [skorasnje_uplate, setSkorasnjeUplate] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchDugovanja();
+    fetchSkorasnjeUplate();
   }, []);
 
   const fetchDugovanja = async () => {
@@ -70,7 +72,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           ukupan_dug: parseFloat(d.ukupan_dug) || 0,
           dug_preko_30: parseFloat(d.dug_preko_30) || 0,
           dug_preko_60: parseFloat(d.dug_preko_60) || 0,
-          najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : ''
+          najstariji_racun: d.najstariji_racun ? new Date(d.najstariji_racun).toLocaleDateString('sr-RS') : '-'
         }));
 
         setAllDugovanja(dugovanjaData);
@@ -83,6 +85,30 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       setError('Greška pri učitavanju dugovanja');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSkorasnjeUplate = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/skorasnje-uplate`;
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && Array.isArray(result.data)) {
+          setSkorasnjeUplate(new Set(result.data));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching recent payments:', err);
     }
   };
 
@@ -252,6 +278,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                 <table className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden">
                   <thead className="text-white" style={{ backgroundColor: '#785E9E' }}>
                     <tr>
+                      <th className="px-6 py-4 text-center font-semibold text-lg">Uplata</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Šif</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Naziv partnera</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">Ukupan dug</th>
@@ -266,6 +293,11 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={dug.sifra}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
+                        <td className="px-6 py-4 text-center">
+                          {skorasnje_uplate.has(dug.sifra) && (
+                            <CheckCircle className="w-6 h-6 text-green-600 mx-auto" title="Nedavna uplata (30 dana)" />
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-gray-800 font-medium">{dug.sifra}</td>
                         <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
                         <td className="px-6 py-4 text-right text-gray-800 font-bold">
