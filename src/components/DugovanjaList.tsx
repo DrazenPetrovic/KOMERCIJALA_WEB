@@ -9,15 +9,19 @@ interface Dugovanje {
   sifra: number;
   naziv_partnera: string;
   ukupan_dug: number;
+  dug_preko_24: number;
   dug_preko_30: number;
   dug_preko_60: number;
+  dug_preko_120: number;
   najstariji_racun: string;
 }
 
 interface Stats {
   ukupanDug: number;
+  dugPreko24: number;
   dugPreko30: number;
   dugPreko60: number;
+  dugPreko120: number;
 }
 
 interface Uplata {
@@ -32,12 +36,15 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [filter24Active, setFilter24Active] = useState(true);
   const [filter30Active, setFilter30Active] = useState(true);
   const [filter60Active, setFilter60Active] = useState(true);
+  const [filter120Active, setFilter120Active] = useState(true);
   const [allDugovanja, setAllDugovanja] = useState<Dugovanje[]>([]);
   const [uplate, setUplate] = useState<Uplata[]>([]);
   const [stats, setStats] = useState<Stats>({
     ukupanDug: 0,
+    dugPreko24: 0,
     dugPreko30: 0,
-    dugPreko60: 0
+    dugPreko60: 0,
+    dugPreko120: 0
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +87,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       if (dugovanjaResult.success) {
         setAllDugovanja(dugovanjaResult.data);
-        setStats(dugovanjaResult.stats || { ukupanDug: 0, dugPreko30: 0, dugPreko60: 0 });
+        setStats(dugovanjaResult.stats || { ukupanDug: 0, dugPreko24: 0, dugPreko30: 0, dugPreko60: 0, dugPreko120: 0 });
       } else {
         setError(dugovanjaResult.error || 'Greška pri učitavanju dugovanja');
       }
@@ -111,16 +118,20 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                           d.sifra.toString().includes(searchTerm);
     if (!matchesSearch) return false;
 
-    // Ako ima dug preko 60 dana
-    if (d.dug_preko_60 > 0) {
+    // Ako ima dug preko 120 dana
+    if (d.dug_preko_120 > 0) {
+      return filter120Active;
+    }
+    // Ako ima dug preko 60 dana (ali ne preko 120)
+    else if (d.dug_preko_60 > 0) {
       return filter60Active;
     }
     // Ako ima dug preko 30 dana (ali ne preko 60)
     else if (d.dug_preko_30 > 0) {
       return filter30Active;
     }
-    // Ako ima dug ali nije preko 30 dana
-    else if (d.ukupan_dug > 0) {
+    // Ako ima dug preko 24 dana (ali ne preko 30)
+    else if (d.dug_preko_24 > 0) {
       return filter24Active;
     }
 
@@ -129,14 +140,24 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
   // Funkcija za određivanje boje reda - kao u VB.NET kodu
   const getRowColor = (d: Dugovanje): string => {
-    if (d.dug_preko_60 > 0) {
+    if (d.dug_preko_120 > 0) {
+      return 'bg-red-900 hover:bg-red-800';
+    } else if (d.dug_preko_60 > 0) {
       return 'bg-red-100 hover:bg-red-200';
     } else if (d.dug_preko_30 > 0) {
       return 'bg-yellow-100 hover:bg-yellow-200';
-    } else if (d.ukupan_dug > 0) {
+    } else if (d.dug_preko_24 > 0) {
       return 'bg-green-100 hover:bg-green-200';
     }
     return 'bg-white hover:bg-gray-50';
+  };
+
+  // Funkcija za određivanje boje teksta
+  const getTextColor = (d: Dugovanje): string => {
+    if (d.dug_preko_120 > 0) {
+      return 'text-white';
+    }
+    return 'text-gray-800';
   };
 
   return (
@@ -152,7 +173,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       </div>
 
       {/* Statistika */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4">
           <div className="text-sm font-medium text-blue-800 mb-1">Ukupan dug</div>
           <div className="text-2xl font-bold text-blue-900">
@@ -164,9 +185,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           className="bg-green-100 border-2 border-green-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => setFilter24Active(!filter24Active)}
         >
-          <div className="text-sm font-medium text-green-800 mb-1">Sva dugovanja</div>
+          <div className="text-sm font-medium text-green-800 mb-1">Dug preko 24 dana</div>
           <div className="text-2xl font-bold text-green-900">
-            {stats.ukupanDug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
+            {stats.dugPreko24.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
           </div>
           <div className="mt-2">
             <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
@@ -207,6 +228,23 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
               filter60Active ? 'bg-red-600' : 'bg-gray-400'
             }`}>
               {filter60Active ? 'ON' : 'OFF'}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className="bg-red-900 border-2 border-red-950 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          onClick={() => setFilter120Active(!filter120Active)}
+        >
+          <div className="text-sm font-medium text-red-100 mb-1">Dug preko 120 dana</div>
+          <div className="text-2xl font-bold text-white">
+            {stats.dugPreko120.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM
+          </div>
+          <div className="mt-2">
+            <span className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
+              filter120Active ? 'bg-red-600' : 'bg-gray-400'
+            }`}>
+              {filter120Active ? 'ON' : 'OFF'}
             </span>
           </div>
         </div>
@@ -276,6 +314,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                       <th className="px-6 py-4 text-right font-semibold text-lg">Ukupan dug</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;30 dana</th>
                       <th className="px-6 py-4 text-right font-semibold text-lg">&gt;60 dana</th>
+                      <th className="px-6 py-4 text-right font-semibold text-lg">&gt;120 dana</th>
                       <th className="px-6 py-4 text-left font-semibold text-lg">Najstariji račun</th>
                     </tr>
                   </thead>
@@ -285,7 +324,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         key={`${dug.sifra}-${index}`}
                         className={`border-t border-gray-200 transition-colors ${getRowColor(dug)}`}
                       >
-                        <td className="px-6 py-4 text-gray-800 font-medium">
+                        <td className={`px-6 py-4 font-medium ${getTextColor(dug)}`}>
                           <div className="flex items-center gap-2">
                             <span>{dug.sifra}</span>
                             {imaUplatu(dug.sifra) && (
@@ -293,17 +332,20 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-gray-800">{dug.naziv_partnera}</td>
-                        <td className="px-6 py-4 text-right text-gray-800 font-bold">
+                        <td className={`px-6 py-4 ${getTextColor(dug)}`}>{dug.naziv_partnera}</td>
+                        <td className={`px-6 py-4 text-right font-bold ${getTextColor(dug)}`}>
                           {dug.ukupan_dug.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="px-6 py-4 text-right text-gray-800">
+                        <td className={`px-6 py-4 text-right ${getTextColor(dug)}`}>
                           {dug.dug_preko_30.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="px-6 py-4 text-right text-gray-800">
+                        <td className={`px-6 py-4 text-right ${getTextColor(dug)}`}>
                           {dug.dug_preko_60.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className="px-6 py-4 text-gray-800">{dug.najstariji_racun}</td>
+                        <td className={`px-6 py-4 text-right ${getTextColor(dug)}`}>
+                          {dug.dug_preko_120.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className={`px-6 py-4 ${getTextColor(dug)}`}>{dug.najstariji_racun}</td>
                       </tr>
                     ))}
                   </tbody>

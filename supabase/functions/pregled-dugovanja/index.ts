@@ -83,19 +83,25 @@ Deno.serve(async (req: Request) => {
         sifra: d.sifra_kup_z || 0,
         naziv_partnera: d.Naziv_partnera || '',
         ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
+        dug_preko_24: parseFloat(d.Dug_dvadesetcetiri) || 0,
         dug_preko_30: parseFloat(d.Dug_trideset) || 0,
         dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
+        dug_preko_120: parseFloat(d.Dug_stodvadeset) || 0,
         najstariji_racun: d.Najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
       }));
 
     let ukupanDug = 0;
+    let dugPreko24 = 0;
     let dugPreko30 = 0;
     let dugPreko60 = 0;
+    let dugPreko120 = 0;
 
     dugovanja.forEach((d: any) => {
       ukupanDug += d.ukupan_dug || 0;
+      dugPreko24 += d.dug_preko_24 || 0;
       dugPreko30 += d.dug_preko_30 || 0;
       dugPreko60 += d.dug_preko_60 || 0;
+      dugPreko120 += d.dug_preko_120 || 0;
     });
 
     return new Response(
@@ -104,8 +110,10 @@ Deno.serve(async (req: Request) => {
         data: dugovanja,
         stats: {
           ukupanDug: ukupanDug,
+          dugPreko24: dugPreko24,
           dugPreko30: dugPreko30,
-          dugPreko60: dugPreko60
+          dugPreko60: dugPreko60,
+          dugPreko120: dugPreko120
         },
         count: dugovanja.length
       }),
