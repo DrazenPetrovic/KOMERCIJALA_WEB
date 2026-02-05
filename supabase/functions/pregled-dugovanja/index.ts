@@ -84,25 +84,34 @@ Deno.serve(async (req: Request) => {
       ? (Array.isArray(results[0]) ? results[0] : results)
       : [];
 
-    // Filtriraj prazne ili nevažeće zapise
-    const dugovanja = rawDugovanja.filter((d: any) =>
-      d.sifra_kup_z && d.sifra_kup_z > 0 &&  d.Naziv_partnera && d.Naziv_partnera.trim() !== ''
-    );
-
     console.log('[DUGOVANJA] Raw dugovanja count:', rawDugovanja.length);
+    console.log('[DUGOVANJA] Raw dugovanja:', JSON.stringify(rawDugovanja, null, 2));
+
+    // Mapiranje podataka sa tačnim imenima kolona (velika slova na početku)
+    const dugovanja = rawDugovanja
+      .filter((d: any) =>
+        d.sifra_kup_z && d.sifra_kup_z > 0 && d.Naziv_partnera && d.Naziv_partnera.trim() !== ''
+      )
+      .map((d: any) => ({
+        sifra: d.sifra_kup_z || 0,
+        naziv_partnera: d.Naziv_partnera || '',
+        ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
+        dug_preko_30: parseFloat(d.Dug_trideset) || 0,
+        dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
+        najstariji_racun: d.Najstariji_racun ? new Date(d.Najstariji_racun).toLocaleDateString('sr-RS') : '-'
+      }));
+
     console.log('[DUGOVANJA] Filtered dugovanja count:', dugovanja.length);
     console.log('[DUGOVANJA] Processed dugovanja:', JSON.stringify(dugovanja, null, 2));
-    console.log('[DUGOVANJA] First row keys:', dugovanja.length > 0 ? Object.keys(dugovanja[0]) : 'none');
-    console.log('[DUGOVANJA] First row:', dugovanja.length > 0 ? JSON.stringify(dugovanja[0], null, 2) : 'none');
 
     let ukupanDug = 0;
     let dugPreko30 = 0;
     let dugPreko60 = 0;
 
     dugovanja.forEach((d: any) => {
-      ukupanDug += parseFloat(d.ukupan_dug) || 0;
-      dugPreko30 += parseFloat(d.dug_preko_30) || 0;
-      dugPreko60 += parseFloat(d.dug_preko_60) || 0;
+      ukupanDug += d.ukupan_dug || 0;
+      dugPreko30 += d.dug_preko_30 || 0;
+      dugPreko60 += d.dug_preko_60 || 0;
     });
 
     return new Response(
