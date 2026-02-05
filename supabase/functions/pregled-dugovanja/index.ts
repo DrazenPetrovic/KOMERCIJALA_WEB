@@ -72,6 +72,9 @@ Deno.serve(async (req: Request) => {
 
     await connection.end();
 
+    console.log('[DUGOVANJA] MySQL raw results type:', typeof results);
+    console.log('[DUGOVANJA] MySQL raw results is array:', Array.isArray(results));
+    console.log('[DUGOVANJA] MySQL raw results length:', Array.isArray(results) ? results.length : 'N/A');
     console.log('[DUGOVANJA] MySQL results:', JSON.stringify(results, null, 2));
     console.log('[DUGOVANJA] Sifra radnika:', sifraRadnika);
 
@@ -80,6 +83,10 @@ Deno.serve(async (req: Request) => {
     const dugovanja = Array.isArray(results) && results.length > 0
       ? (Array.isArray(results[0]) ? results[0] : results)
       : [];
+
+    console.log('[DUGOVANJA] Processed dugovanja:', JSON.stringify(dugovanja, null, 2));
+    console.log('[DUGOVANJA] First row keys:', dugovanja.length > 0 ? Object.keys(dugovanja[0]) : 'none');
+    console.log('[DUGOVANJA] First row:', dugovanja.length > 0 ? JSON.stringify(dugovanja[0], null, 2) : 'none');
 
     let ukupanDug = 0;
     let dugPreko30 = 0;
