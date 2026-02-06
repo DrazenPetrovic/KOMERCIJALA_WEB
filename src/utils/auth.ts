@@ -5,24 +5,47 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export const signUp = async (email: string, password: string) => {
-  return supabase.auth.signUp({ email, password });
+export interface User {
+  id: string;
+  username: string;
+  sifra_radnika: number;
+}
+
+let currentUser: User | null = null;
+
+export const signIn = async (username: string, password: string) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, username, sifra_radnika')
+    .eq('username', username)
+    .eq('password', password)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { error: new Error('Pogrešno korisničko ime ili lozinka'), data: null };
+  }
+
+  currentUser = data;
+  localStorage.setItem('user', JSON.stringify(data));
+  return { data, error: null };
 };
 
-export const signIn = async (email: string, password: string) => {
-  return supabase.auth.signInWithPassword({ email, password });
+export const signOut = () => {
+  currentUser = null;
+  localStorage.removeItem('user');
 };
 
-export const signOut = async () => {
-  return supabase.auth.signOut();
-};
+export const getCurrentUser = (): User | null => {
+  if (currentUser) return currentUser;
 
-export const getCurrentUser = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-};
-
-export const getSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session;
+  const stored = localStorage.getItem('user');
+  if (stored) {
+    try {
+      currentUser = JSON.parse(stored);
+      return currentUser;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 };

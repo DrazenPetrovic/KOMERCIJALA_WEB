@@ -6,7 +6,7 @@ interface LoginPanelProps {
 }
 
 export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,10 +17,10 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
     setLoading(true);
 
     try {
-      const { error: signInError } = await signIn(email.trim(), password.trim());
+      const { error: signInError } = await signIn(username.trim(), password.trim());
 
       if (signInError) {
-        setError(signInError.message || 'Pogrešna email adresa ili lozinka');
+        setError(signInError.message || 'Pogrešno korisničko ime ili lozinka');
       } else {
         onLoginSuccess();
       }
@@ -59,13 +59,13 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
           <form onSubmit={handleLogin} className="space-y-5 md:space-y-6">
             <div>
               <label className="block text-base md:text-lg font-medium text-gray-700 mb-3">
-                Email adresa
+                Korisničko ime
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Unesite email adresu"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Unesite korisničko ime"
                 className="w-full px-5 py-4 md:px-6 md:py-5 text-base md:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 transition"
                 style={{
                   '--tw-ring-color': '#785E9E',
