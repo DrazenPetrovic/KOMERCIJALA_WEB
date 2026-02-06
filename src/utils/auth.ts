@@ -1,36 +1,46 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface User {
-  id: string;
   username: string;
-  sifra_radnika: number;
+  sifraRadnika: number;
 }
 
 let currentUser: User | null = null;
 
 export const signIn = async (username: string, password: string) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('id, username, sifra_radnika')
-    .eq('username', username)
-    .eq('password', password)
-    .maybeSingle();
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ username, password }),
+    });
 
-  if (error || !data) {
-    return { error: new Error('Pogrešno korisničko ime ili lozinka'), data: null };
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      return { error: new Error(data.message || 'Pogrešno korisničko ime ili lozinka'), data: null };
+    }
+
+    currentUser = data.user;
+    localStorage.setItem('user', JSON.stringify(data.user));
+    return { data: data.user, error: null };
+  } catch (error) {
+    return { error: new Error('Greška prilikom povezivanja sa serverom'), data: null };
   }
-
-  currentUser = data;
-  localStorage.setItem('user', JSON.stringify(data));
-  return { data, error: null };
 };
 
-export const signOut = () => {
+export const signOut = async () => {
+  try {
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
   currentUser = null;
   localStorage.removeItem('user');
 };
@@ -48,4 +58,27 @@ export const getCurrentUser = (): User | null => {
     }
   }
   return null;
+};
+
+export const verifyAuth = async (): Promise<User | null> => {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/verify`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    if (data.authenticated) {
+      const user = { username: data.username, sifraRadnika: data.sifraRadnika };
+      currentUser = user;
+      localStorage.setItem('user', JSON.stringify(user));
+      return user;
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
 };

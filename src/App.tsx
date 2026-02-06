@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LoginPanel } from './components/LoginPanel';
 import { Dashboard } from './components/Dashboard';
-import { getCurrentUser, signOut } from './utils/auth';
+import { verifyAuth, signOut } from './utils/auth';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -9,24 +9,27 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      setUsername(user.username);
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
+    const checkAuth = async () => {
+      const user = await verifyAuth();
+      if (user) {
+        setUsername(user.username);
+        setIsAuthenticated(true);
+      }
+      setLoading(false);
+    };
+    checkAuth();
   }, []);
 
-  const handleLoginSuccess = () => {
-    const user = getCurrentUser();
+  const handleLoginSuccess = async () => {
+    const user = await verifyAuth();
     if (user) {
       setUsername(user.username);
       setIsAuthenticated(true);
     }
   };
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    await signOut();
     setIsAuthenticated(false);
     setUsername('');
   };
