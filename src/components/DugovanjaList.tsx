@@ -73,7 +73,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       }
 
       // Paralelno učitavanje dugovanja i uplata
-      const apiUrl = 'https://0ec90b57d6e95fcbda19832f.supabase.co';
+      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co';
       const [dugovanjaResponse, uplateResponse] = await Promise.all([
         fetch(`${apiUrl}/functions/v1/pregled-dugovanja`, {
           headers: {

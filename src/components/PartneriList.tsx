@@ -58,7 +58,7 @@ export default function PartneriList({ onBack }: PartneriListProps) {
         return;
       }
 
-      const apiUrl = 'https://0ec90b57d6e95fcbda19832f.supabase.co/functions/v1/pregled-partnera';
+      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-partnera';
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {

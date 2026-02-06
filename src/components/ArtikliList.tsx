@@ -31,7 +31,7 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
       }
 
       const response = await fetch(
-        'https://0ec90b57d6e95fcbda19832f.supabase.co/functions/v1/pregled-artikala',
+        'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-artikala',
         {
           method: 'GET',
           headers: {

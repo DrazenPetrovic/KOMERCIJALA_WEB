@@ -95,7 +95,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
           'Content-Type': 'application/json',
         };
 
-        const apiUrl = 'https://0ec90b57d6e95fcbda19832f.supabase.co';
+        const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co';
         const [tereniResponse, terenGradResponse] = await Promise.all([
           fetch(`${apiUrl}/functions/v1/pregled-terena-po-danima`, { headers }),
           fetch(`${apiUrl}/functions/v1/pregled-teren-grad`, { headers })
