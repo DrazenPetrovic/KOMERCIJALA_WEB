@@ -69,9 +69,19 @@ Deno.serve(async (req: Request) => {
       'CALL pregled_aktivnih_terena_po_danima()'
     );
 
+    console.log('=== RAW RESPONSE FROM DATABASE ===');
+    console.log('Type of rows:', typeof rows);
+    console.log('Is array:', Array.isArray(rows));
+    console.log('Rows length:', rows?.length);
+    console.log('Full rows:', JSON.stringify(rows, null, 2));
+
     await connection.end();
 
     const tereni = Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+
+    console.log('=== PROCESSED DATA ===');
+    console.log('Tereni count:', tereni.length);
+    console.log('Tereni data:', JSON.stringify(tereni, null, 2));
 
     return new Response(
       JSON.stringify({
