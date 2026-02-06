@@ -1,16 +1,28 @@
-export const getAuthHeaders = (): HeadersInit => {
-  return {
-    'Content-Type': 'application/json',
-  };
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const signUp = async (email: string, password: string) => {
+  return supabase.auth.signUp({ email, password });
 };
 
-export const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
-  return fetch(url, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      ...getAuthHeaders(),
-      ...options.headers,
-    },
-  });
+export const signIn = async (email: string, password: string) => {
+  return supabase.auth.signInWithPassword({ email, password });
+};
+
+export const signOut = async () => {
+  return supabase.auth.signOut();
+};
+
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
+export const getSession = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
 };

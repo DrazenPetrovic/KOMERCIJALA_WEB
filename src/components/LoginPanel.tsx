@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { LogIn } from 'lucide-react';
+import { signIn } from '../utils/auth';
 
 interface LoginPanelProps {
   onLoginSuccess: () => void;
 }
 
 export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,33 +17,17 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password: password.trim()
-        })
-      });
+      const { error: signInError } = await signIn(email.trim(), password.trim());
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        onLoginSuccess();
+      if (signInError) {
+        setError(signInError.message || 'Pogrešna email adresa ili lozinka');
       } else {
-        setError(data.message || 'Pogrešno korisničko ime ili šifra');
+        onLoginSuccess();
       }
     } catch (err) {
       console.error('Login error:', err);
       const errorMsg = err instanceof Error ? err.message : String(err);
-      setError(`Greška: Backend server nije dostupan\n(npm run dev:server)\n${errorMsg}`);
+      setError(`Greška: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -75,13 +59,13 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
           <form onSubmit={handleLogin} className="space-y-5 md:space-y-6">
             <div>
               <label className="block text-base md:text-lg font-medium text-gray-700 mb-3">
-                Korisničko ime
+                Email adresa
               </label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Unesite korisničko ime"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Unesite email adresu"
                 className="w-full px-5 py-4 md:px-6 md:py-5 text-base md:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 transition"
                 style={{
                   '--tw-ring-color': '#785E9E',

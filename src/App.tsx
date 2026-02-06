@@ -1,65 +1,59 @@
 import { useEffect, useState } from 'react';
 import { LoginPanel } from './components/LoginPanel';
 import { Dashboard } from './components/Dashboard';
+import { supabase } from './utils/auth';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        await fetch('http://localhost:3001/api/health');
-
-        const response = await fetch('http://localhost:3001/api/auth/verify', {
-          credentials: 'include'
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.authenticated) {
-            setUsername(data.username);
-            setIsAuthenticated(true);
-          }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUserEmail(session.user.email || '');
+          setIsAuthenticated(true);
         }
       } catch (err) {
         console.error('Auth check failed:', err);
+      } finally {
+        setLoading(false);
       }
     };
+
     checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUserEmail(session.user.email || '');
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setUserEmail('');
+      }
+    });
+
+    return () => subscription?.unsubscribe();
   }, []);
 
-  const handleLoginSuccess = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/auth/verify', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authenticated) {
-          setUsername(data.username);
-          setIsAuthenticated(true);
-        }
-      }
-    } catch (err) {
-      console.error('Auth check failed:', err);
-    }
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
   };
 
   const handleLogout = async () => {
-    try {
-      await fetch('http://localhost:3001/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
-    setUsername('');
+    setUserEmail('');
   };
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Učitavanje...</div>;
+  }
+
   return isAuthenticated ? (
-    <Dashboard username={username} onLogout={handleLogout} />
+    <Dashboard username={userEmail} onLogout={handleLogout} />
   ) : (
     <LoginPanel onLoginSuccess={handleLoginSuccess} />
   );
