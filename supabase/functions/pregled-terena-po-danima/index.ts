@@ -69,26 +69,24 @@ Deno.serve(async (req: Request) => {
       'CALL pregled_aktivnih_terena_po_danima()'
     );
 
-    console.log('=== RAW RESPONSE FROM DATABASE ===');
-    console.log('Type of rows:', typeof rows);
-    console.log('Is array:', Array.isArray(rows));
-    console.log('Rows length:', rows?.length);
-    console.log('Full rows:', JSON.stringify(rows, null, 2));
-
     await connection.end();
 
     const tereni = Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
 
-    console.log('=== PROCESSED DATA ===');
-    console.log('Tereni count:', tereni.length);
-    console.log('Tereni data:', JSON.stringify(tereni, null, 2));
-
+    // Return detailed debug info directly in response
     return new Response(
       JSON.stringify({
-        success: true,
-        data: tereni,
-        count: tereni.length
-      }),
+        debug_info: {
+          raw_response_type: typeof rows,
+          raw_is_array: Array.isArray(rows),
+          raw_length: rows?.length,
+          raw_data: rows
+        },
+        processed: {
+          tereni_count: tereni.length,
+          tereni_data: tereni
+        }
+      }, null, 2),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
