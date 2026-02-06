@@ -73,14 +73,15 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       }
 
       // Paralelno učitavanje dugovanja i uplata
+      const apiUrl = 'https://0ec90b57d6e95fcbda19832f.supabase.co';
       const [dugovanjaResponse, uplateResponse] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-dugovanja`, {
+        fetch(`${apiUrl}/functions/v1/pregled-dugovanja`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-uplata`, {
+        fetch(`${apiUrl}/functions/v1/pregled-uplata`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

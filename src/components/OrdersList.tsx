@@ -95,9 +95,10 @@ export function OrdersList({ onBack }: OrdersListProps) {
           'Content-Type': 'application/json',
         };
 
+        const apiUrl = 'https://0ec90b57d6e95fcbda19832f.supabase.co';
         const [tereniResponse, terenGradResponse] = await Promise.all([
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-terena-po-danima`, { headers }),
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-teren-grad`, { headers })
+          fetch(`${apiUrl}/functions/v1/pregled-terena-po-danima`, { headers }),
+          fetch(`${apiUrl}/functions/v1/pregled-teren-grad`, { headers })
         ]);
 
         if (!tereniResponse.ok) {
