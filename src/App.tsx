@@ -7,12 +7,23 @@ function App() {
   const [username, setUsername] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const storedUsername = localStorage.getItem('username');
-    if (token && storedUsername) {
-      setIsAuthenticated(true);
-      setUsername(storedUsername);
-    }
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/verify-auth', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.authenticated) {
+            setUsername(data.username);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+      }
+    };
+    checkAuth();
   }, []);
 
   const handleLoginSuccess = () => {
@@ -23,10 +34,15 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('username');
-    localStorage.removeItem('sifraRadnika');
+  const handleLogout = async () => {
+    try {
+      await fetch('https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     setIsAuthenticated(false);
     setUsername('');
   };

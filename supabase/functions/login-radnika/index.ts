@@ -95,12 +95,15 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({
           success: true,
           message: 'Uspešno logovanje',
-          token,
           user: { username, sifraRadnika }
         }),
         {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Set-Cookie": `authToken=${token}; Path=/; Max-Age=28800; SameSite=Lax`,
+          },
         }
       );
     }
