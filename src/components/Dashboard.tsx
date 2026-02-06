@@ -3,16 +3,17 @@ import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, Award, C
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
+import { OrdersList } from './OrdersList';
 
 interface DashboardProps {
   username: string;
   onLogout: () => void;
 }
 
-type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli';
+type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | null;
 
 export function Dashboard({ username, onLogout }: DashboardProps) {
-  const [activeSection, setActiveSection] = useState<MenuSection>('narudzbe');
+  const [activeSection, setActiveSection] = useState<MenuSection>(null);
 
   const menuItems = [
     { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
@@ -25,19 +26,25 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
   ];
 
   const renderContent = () => {
+    if (activeSection === null) return null;
+
+    if (activeSection === 'narudzbe') {
+      return <OrdersList onBack={() => setActiveSection(null)} />;
+    }
+
     if (activeSection === 'partneri') {
-      return <PartneriList onBack={() => setActiveSection('narudzbe')} />;
+      return <PartneriList onBack={() => setActiveSection(null)} />;
     }
 
     if (activeSection === 'artikli') {
-      return <ArtikliList onBack={() => setActiveSection('narudzbe')} />;
+      return <ArtikliList onBack={() => setActiveSection(null)} />;
     }
 
     if (activeSection === 'dugovanja') {
-      return <DugovanjaList onBack={() => setActiveSection('narudzbe')} />;
+      return <DugovanjaList onBack={() => setActiveSection(null)} />;
     }
 
-    const contentMap: Record<MenuSection, string> = {
+    const contentMap: Record<Exclude<MenuSection, null>, string> = {
       narudzbe: 'Pregled narudžbi',
       dugovanja: 'Pregled dužovanja',
       izvestaji: 'Izveštaji',
@@ -47,7 +54,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       artikli: 'Artikli',
     };
 
-    return contentMap[activeSection] || 'Sadržaj';
+    return contentMap[activeSection as Exclude<MenuSection, null>] || 'Sadržaj';
   };
 
   return (
@@ -108,7 +115,16 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
       </nav>
 
       <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
-        {activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' ? (
+        {activeSection === null ? (
+          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10 text-center">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-4" style={{ color: '#785E9E' }}>
+              Dobrodošli!
+            </h2>
+            <p className="text-gray-600 text-base md:text-lg lg:text-xl">
+              Izaberite stavku iz menija da biste nastavili
+            </p>
+          </div>
+        ) : activeSection === 'narudzbe' || activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
