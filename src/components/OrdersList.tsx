@@ -69,52 +69,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [centralneStavke] = useState<CentralnaStavka[]>([]);
 
-  const mockSchedule: Record<number, DaySchedule> = {
-    1: {
-      sifraTerenaDostava: 1,
-      sifraTerana: 84,
-      date: '03.02.2026',
-      day: 'Utorak',
-      cities: [
-        {
-          id: 'novo-grad',
-          name: 'Novi Grad',
-          customers: [
-            {
-              id: '10000',
-              code: '10000',
-              name: 'OSTALI / RAZNO',
-              orders: [
-                { id: '1', code: '142', productName: 'HD vrećica 280+(2x80)x550x00100', unit: 'pak', quantity: 4000 },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    2: {
-      sifraTerenaDostava: 2,
-      sifraTerana: 14,
-      date: '04.02.2026',
-      day: 'Srijeda',
-      cities: [
-        {
-          id: 'kolor-varos',
-          name: 'Kolor Varoš',
-          customers: [
-            {
-              id: '10000-w',
-              code: '10000',
-              name: 'OSTALI / RAZNO',
-              orders: [
-                { id: '1w', code: '74', productName: 'Kutija pizza 32 BT/E LOGO', unit: 'kom', quantity: 1000000 },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  };
 
   useEffect(() => {
     const fetchTereni = async () => {
