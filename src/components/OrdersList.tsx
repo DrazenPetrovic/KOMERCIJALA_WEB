@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader } from 'lucide-react';
 
+const formatDate = (dateString: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 interface TerenoData {
   sifra_terena_dostava: number;
   sifra_terena: number;
@@ -140,7 +149,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
     new Map(
       tereniData.map(t => [
         t.sifra_terena_dostava,
-        { sifraTerenaDostava: t.sifra_terena_dostava, day: t.naziv_dana, date: t.datum_dostave }
+        { sifraTerenaDostava: t.sifra_terena_dostava, day: t.naziv_dana, date: formatDate(t.datum_dostave) }
       ])
     ).values()
   ).sort((a, b) => a.sifraTerenaDostava - b.sifraTerenaDostava);

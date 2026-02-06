@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
 
+const formatDate = (dateString: string): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 interface DugovanjaListProps {
   onBack: () => void;
 }
@@ -345,7 +354,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                         <td className={`px-6 py-4 text-right ${getTextColor(dug)}`}>
                           {dug.dug_preko_120.toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </td>
-                        <td className={`px-6 py-4 ${getTextColor(dug)}`}>{dug.najstariji_racun}</td>
+                        <td className={`px-6 py-4 ${getTextColor(dug)}`}>{formatDate(dug.najstariji_racun)}</td>
                       </tr>
                     ))}
                   </tbody>
