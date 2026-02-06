@@ -17,10 +17,9 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
     setLoading(true);
 
     try {
-      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/login-radnika';
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

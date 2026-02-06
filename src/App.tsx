@@ -9,7 +9,7 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/verify-auth', {
+        const response = await fetch('http://localhost:3001/api/auth/verify', {
           credentials: 'include'
         });
         if (response.ok) {
@@ -26,17 +26,26 @@ function App() {
     checkAuth();
   }, []);
 
-  const handleLoginSuccess = () => {
-    const storedUsername = localStorage.getItem('username');
-    if (storedUsername) {
-      setUsername(storedUsername);
-      setIsAuthenticated(true);
+  const handleLoginSuccess = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/verify', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.authenticated) {
+          setUsername(data.username);
+          setIsAuthenticated(true);
+        }
+      }
+    } catch (err) {
+      console.error('Auth check failed:', err);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/logout', {
+      await fetch('http://localhost:3001/api/auth/logout', {
         method: 'POST',
         credentials: 'include'
       });
