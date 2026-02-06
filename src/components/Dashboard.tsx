@@ -4,6 +4,7 @@ import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
 import { OrdersList } from './OrdersList';
+import { CentralniPregled } from './CentralniPregled';
 
 interface DashboardProps {
   username: string;
@@ -42,6 +43,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
 
     if (activeSection === 'dugovanja') {
       return <DugovanjaList onBack={() => setActiveSection(null)} />;
+    }
+
+    if (activeSection === 'poslovanje') {
+      return <CentralniPregled onBack={() => setActiveSection(null)} />;
     }
 
     const contentMap: Record<Exclude<MenuSection, null>, string> = {
@@ -124,7 +129,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
               Izaberite stavku iz menija da biste nastavili
             </p>
           </div>
-        ) : activeSection === 'narudzbe' || activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' ? (
+        ) : activeSection === 'narudzbe' || activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' || activeSection === 'poslovanje' ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
