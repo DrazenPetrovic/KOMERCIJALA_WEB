@@ -73,20 +73,24 @@ Deno.serve(async (req: Request) => {
 
     const tereni = Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
 
-    // Return detailed debug info directly in response
+    console.log('=== BAZA VRAĆA ===');
+    console.log('Tip rows:', typeof rows);
+    console.log('Je li array:', Array.isArray(rows));
+    console.log('Dužina rows:', rows?.length);
+    console.log('Raw rows:', JSON.stringify(rows, null, 2));
+    console.log('Tereni (rows[0]):', JSON.stringify(tereni, null, 2));
+    console.log('==================');
+
     return new Response(
       JSON.stringify({
-        debug_info: {
-          raw_response_type: typeof rows,
-          raw_is_array: Array.isArray(rows),
-          raw_length: rows?.length,
-          raw_data: rows
-        },
-        processed: {
-          tereni_count: tereni.length,
-          tereni_data: tereni
+        success: true,
+        data: tereni,
+        debug: {
+          count: tereni.length,
+          raw_type: typeof rows,
+          raw_length: rows?.length
         }
-      }, null, 2),
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
