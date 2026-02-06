@@ -344,9 +344,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
             ) : (
               <div className="flex-1 overflow-y-auto">
                 <div className="p-6">
-                  <h3 className="text-xl font-bold mb-6" style={{ color: '#785E9E' }}>
-                    Centralni pregled
-                  </h3>
+  
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
