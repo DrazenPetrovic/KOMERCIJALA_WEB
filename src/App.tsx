@@ -9,6 +9,8 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        await fetch('http://localhost:3001/api/health');
+
         const response = await fetch('http://localhost:3001/api/auth/verify', {
           credentials: 'include'
         });

@@ -26,6 +26,10 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend je dostupan' });
+});
+
 const getConnection = async () => {
   return await mysql.createConnection(dbConfig);
 };
@@ -51,66 +55,80 @@ app.post('/api/auth/login', async (req, res) => {
 
     if (!username || !password) {
       return res.status(400).json({
-        error: 'Korisničko ime i šifra su obavezni'
+        success: false,
+        message: 'Korisničko ime i šifra su obavezni'
       });
     }
 
-    const connection = await getConnection();
-    const [rows] = await connection.execute(
-      'CALL logovanje_korisnika(?, ?)',
-      [username, password]
-    );
-    await connection.end();
-
-    const result = rows[0];
-    let sifraRadnika = null;
-
-    if (Array.isArray(result) && result.length > 0) {
-      const firstRow = result[0];
-      if (typeof firstRow === 'object' && firstRow !== null) {
-        const value = Object.values(firstRow)[0];
-        const numValue = typeof value === 'number' ? value : parseInt(value);
-        if (!isNaN(numValue) && numValue > 0) {
-          sifraRadnika = numValue;
-        }
-      } else {
-        const numValue = typeof firstRow === 'number' ? firstRow : parseInt(firstRow);
-        if (!isNaN(numValue) && numValue > 0) {
-          sifraRadnika = numValue;
-        }
-      }
+    let connection;
+    try {
+      connection = await getConnection();
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return res.status(503).json({
+        success: false,
+        message: 'Baza podataka nije dostupna. Kontaktiraj administratora.'
+      });
     }
 
-    if (sifraRadnika) {
-      const token = jwt.sign(
-        { username, sifraRadnika, loginTime: new Date().toISOString() },
-        JWT_SECRET,
-        { expiresIn: '8h' }
+    try {
+      const [rows] = await connection.execute(
+        'CALL logovanje_korisnika(?, ?)',
+        [username, password]
       );
 
-      res.cookie('authToken', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 8 * 60 * 60 * 1000
-      });
+      const result = rows[0];
+      let sifraRadnika = null;
 
-      return res.json({
-        success: true,
-        message: 'Uspešno logovanje',
-        user: { username, sifraRadnika }
+      if (Array.isArray(result) && result.length > 0) {
+        const firstRow = result[0];
+        if (typeof firstRow === 'object' && firstRow !== null) {
+          const value = Object.values(firstRow)[0];
+          const numValue = typeof value === 'number' ? value : parseInt(value);
+          if (!isNaN(numValue) && numValue > 0) {
+            sifraRadnika = numValue;
+          }
+        } else {
+          const numValue = typeof firstRow === 'number' ? firstRow : parseInt(firstRow);
+          if (!isNaN(numValue) && numValue > 0) {
+            sifraRadnika = numValue;
+          }
+        }
+      }
+
+      if (sifraRadnika) {
+        const token = jwt.sign(
+          { username, sifraRadnika, loginTime: new Date().toISOString() },
+          JWT_SECRET,
+          { expiresIn: '8h' }
+        );
+
+        res.cookie('authToken', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 8 * 60 * 60 * 1000
+        });
+
+        return res.json({
+          success: true,
+          message: 'Uspešno logovanje',
+          user: { username, sifraRadnika }
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: 'Pogrešno korisničko ime ili šifra'
       });
+    } finally {
+      await connection.end();
     }
-
-    return res.status(401).json({
-      success: false,
-      message: 'Pogrešno korisničko ime ili šifra'
-    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      error: 'Greška pri povezivanju sa bazom'
+      message: 'Greška pri obradi zahteva'
     });
   }
 });

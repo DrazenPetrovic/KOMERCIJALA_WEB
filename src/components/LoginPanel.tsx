@@ -29,6 +29,10 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -38,7 +42,8 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Greška pri povezivanju sa serverom');
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(`Greška: Backend server nije dostupan\n(npm run dev:server)\n${errorMsg}`);
     } finally {
       setLoading(false);
     }
