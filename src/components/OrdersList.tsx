@@ -18,6 +18,15 @@ interface TerenoData {
   naziv_dana: string;
 }
 
+interface TerenGrad {
+  sifra_tabele: number;
+  sifra_terena: number;
+  naziv_terena: string;
+  sifra_grada: number;
+  naziv_grada: string;
+  aktivan: number;
+}
+
 interface Customer {
   id: string;
   code: string;
@@ -63,6 +72,7 @@ interface OrdersListProps {
 
 export function OrdersList({ onBack }: OrdersListProps) {
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
+  const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
@@ -71,7 +81,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
 
   useEffect(() => {
-    const fetchTereni = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
@@ -80,40 +90,56 @@ export function OrdersList({ onBack }: OrdersListProps) {
           return;
         }
 
-        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-terena-po-danima`;
-        const response = await fetch(apiUrl, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const headers = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        const [tereniResponse, terenGradResponse] = await Promise.all([
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-terena-po-danima`, { headers }),
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pregled-teren-grad`, { headers })
+        ]);
+
+        if (!tereniResponse.ok) {
+          throw new Error(`API error (tereni): ${tereniResponse.status}`);
+        }
+        if (!terenGradResponse.ok) {
+          throw new Error(`API error (teren-grad): ${terenGradResponse.status}`);
         }
 
-        const result = await response.json();
-        if (result.success && result.data) {
-          setTereniData(result.data);
-          if (result.data.length > 0) {
-            setSelectedDay(result.data[0].sifra_terena_dostava);
+        const tereniResult = await tereniResponse.json();
+        const terenGradResult = await terenGradResponse.json();
+
+        if (tereniResult.success && tereniResult.data) {
+          setTereniData(tereniResult.data);
+          if (tereniResult.data.length > 0) {
+            setSelectedDay(tereniResult.data[0].sifra_terena_dostava);
           }
         }
+
+        if (terenGradResult.success && terenGradResult.data) {
+          setTerenGradData(terenGradResult.data);
+        }
       } catch (error) {
-        console.error('Greška pri učitavanju terena:', error);
+        console.error('Greška pri učitavanju podataka:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTereni();
+    fetchData();
   }, []);
 
   const uniqueDays = Array.from(
     new Map(
       tereniData.map(t => [
         t.sifra_terena_dostava,
-        { sifraTerenaDostava: t.sifra_terena_dostava, day: t.naziv_dana, date: formatDate(t.datum_dostave) }
+        {
+          sifraTerenaDostava: t.sifra_terena_dostava,
+          sifraTermena: t.sifra_terena,
+          day: t.naziv_dana,
+          date: formatDate(t.datum_dostave)
+        }
       ])
     ).values()
   ).sort((a, b) => a.sifraTerenaDostava - b.sifraTerenaDostava);
