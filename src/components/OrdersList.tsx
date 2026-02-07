@@ -112,14 +112,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
         const tereniResult = await tereniResponse.json();
         const terenGradResult = await terenGradResponse.json();
 
-        console.log('=== API ODGOVORI ===');
-        console.log('tereniResult:', tereniResult);
-        console.log('tereniResult.data:', tereniResult.data);
-        console.log('terenGradResult:', terenGradResult);
-        console.log('terenGradResult.data:', terenGradResult.data);
-        console.log('terenGradData length:', terenGradData.length);
-        console.log('===================');
-
         if (tereniResult.success && tereniResult.data) {
           setTereniData(tereniResult.data);
           if (tereniResult.data.length > 0) {
@@ -153,12 +145,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
       ])
     ).values()
   ).sort((a, b) => a.sifraTerenaDostava - b.sifraTerenaDostava);
-
-  console.log('=== UNIQUE DAYS ===');
-  console.log('tereniData:', tereniData);
-  console.log('uniqueDays:', uniqueDays);
-  console.log('uniqueDays.length:', uniqueDays.length);
-  console.log('==================');
 
   const currentSchedule = selectedDay ? mockSchedule[selectedDay] : undefined;
 
