@@ -1,0 +1,33 @@
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import { env } from './config/env.js';
+
+import healthRoutes from './routes/health.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import artikliRoutes from './routes/artikli.routes.js';
+import dugovanjaRoutes from './routes/dugovanja.routes.js';
+import partneriRoutes from './routes/partneri.routes.js';
+import terenRoutes from './routes/teren.routes.js';
+import uplateRoutes from './routes/uplate.routes.js';
+
+export const createApp = () => {
+  const app = express();
+
+  app.use(cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+  }));
+  app.use(express.json());
+  app.use(cookieParser());
+
+  app.use('/api', healthRoutes);
+  app.use('/api/auth', authRoutes);
+  app.use('/api/artikli', artikliRoutes);
+  app.use('/api/dugovanja', dugovanjaRoutes);
+  app.use('/api/partneri', partneriRoutes);
+  app.use('/api/teren', terenRoutes);
+  app.use('/api/uplate', uplateRoutes);
+
+  return app;
+};
