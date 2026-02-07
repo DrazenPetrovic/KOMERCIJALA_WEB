@@ -7,16 +7,38 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'DB_HOST',
+  'DB_USER',
+  'DB_PASSWORD',
+  'DB_NAME',
+  'JWT_SECRET'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => {
+  const value = process.env[varName];
+  return !value || value.trim() === '';
+});
+
+if (missingEnvVars.length > 0) {
+  console.error('FATAL ERROR: Missing required environment variables:');
+  missingEnvVars.forEach(varName => console.error(`  - ${varName}`));
+  console.error('\nPlease create a .env file with the required variables.');
+  console.error('See .env.example for reference.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'karpas-jwt-secret-2024-secure-key-7x9m2p4q8n';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const dbConfig = {
-  host: '94.130.111.127',
-  port: 3306,
-  user: 'komercijala1',
-  password: 'TeletabisI!123',
-  database: 'komercijala'
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '3306', 10),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 };
 
 app.use(cors({
