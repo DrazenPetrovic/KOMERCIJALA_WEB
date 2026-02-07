@@ -52,17 +52,11 @@ export default function PartneriList({ onBack }: PartneriListProps) {
       setLoading(true);
       setError('');
 
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Niste prijavljeni');
-        return;
-      }
-
-      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-partnera';
-      const response = await fetch(apiUrl, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/partneri`, {
         method: 'GET',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });

@@ -83,22 +83,20 @@ export function OrdersList({ onBack }: OrdersListProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.error('Nema autentifikacijskog tokena');
-          setLoading(false);
-          return;
-        }
-
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         const headers = {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         };
 
-        const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co';
         const [tereniResponse, terenGradResponse] = await Promise.all([
-          fetch(`${apiUrl}/functions/v1/pregled-terena-po-danima`, { headers }),
-          fetch(`${apiUrl}/functions/v1/pregled-teren-grad`, { headers })
+          fetch(`${apiUrl}/api/terena-po-danima`, { 
+            headers,
+            credentials: 'include'
+          }),
+          fetch(`${apiUrl}/api/teren-grad`, { 
+            headers,
+            credentials: 'include'
+          })
         ]);
 
         if (!tereniResponse.ok) {

@@ -24,18 +24,13 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Niste prijavljeni');
-        return;
-      }
-
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const response = await fetch(
-        'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-artikala',
+        `${apiUrl}/api/artikli`,
         {
           method: 'GET',
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }

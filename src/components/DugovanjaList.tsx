@@ -66,24 +66,18 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Niste prijavljeni');
-        return;
-      }
-
       // Paralelno učitavanje dugovanja i uplata
-      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       const [dugovanjaResponse, uplateResponse] = await Promise.all([
-        fetch(`${apiUrl}/functions/v1/pregled-dugovanja`, {
+        fetch(`${apiUrl}/api/dugovanja`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }),
-        fetch(`${apiUrl}/functions/v1/pregled-uplata`, {
+        fetch(`${apiUrl}/api/uplate`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         })

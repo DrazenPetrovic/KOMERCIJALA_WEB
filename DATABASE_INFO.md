@@ -1,23 +1,25 @@
 # Database Configuration
 
-**VAŽNO: Ovaj projekat NE koristi Supabase!**
-
 ## MySQL Baza
 
 Projekat koristi **MySQL bazu** koja se nalazi na eksternom serveru.
 
-Svi database pozivi se izvršavaju preko **Supabase Edge Functions** koje pozivaju MySQL bazu:
+Svi database pozivi se izvršavaju preko **Express.js backend servera** koji koristi `mysql2` biblioteku:
 
-- `supabase/functions/login-radnika/` - Autentifikacija radnika
-- `supabase/functions/pregled-artikala/` - Lista artikala
-- `supabase/functions/pregled-dugovanja/` - Pregled dugovanja
-- `supabase/functions/pregled-partnera/` - Lista partnera
-- `supabase/functions/pregled-teren-grad/` - Teren po gradu
-- `supabase/functions/pregled-terena-po-danima/` - Teren po danima
-- `supabase/functions/pregled-uplata/` - Uplate
+## Backend API Endpoints
+
+- `POST /api/auth/login` - Autentifikacija radnika
+- `GET /api/artikli` - Lista artikala
+- `GET /api/dugovanja` - Pregled dugovanja
+- `GET /api/partneri` - Lista partnera
+- `GET /api/teren-grad` - Teren po gradu
+- `GET /api/terena-po-danima` - Teren po danima
+- `GET /api/uplate` - Uplate
 
 ## Frontend
 
-Frontend poziva Edge Functions direktno preko `fetch` API-ja.
+Frontend poziva Express.js backend API direktno preko `fetch` API-ja sa `credentials: 'include'` za slanje HTTP-only cookies.
 
-**NIKADA ne instalirati @supabase/supabase-js paket!**
+## Autentifikacija
+
+Autentifikacija se vrši preko JWT tokena koji se čuvaju kao HTTP-only cookies na klijentu.
