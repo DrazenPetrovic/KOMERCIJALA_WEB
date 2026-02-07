@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Search, ArrowLeft } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface Partner {
   sifra_partnera: number;
   Naziv_partnera: string;
@@ -52,22 +54,19 @@ export default function PartneriList({ onBack }: PartneriListProps) {
       setLoading(true);
       setError('');
 
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Niste prijavljeni');
-        return;
-      }
-
-      const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-partnera';
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${API_URL}/api/partneri`, {
         method: 'GET',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setError('Niste prijavljeni');
+          return;
+        }
         throw new Error('Greška pri učitavanju partnera');
       }
 

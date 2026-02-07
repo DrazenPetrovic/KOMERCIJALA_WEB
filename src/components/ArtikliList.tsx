@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Package, RefreshCw } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface ArtikliListProps {
   onBack: () => void;
 }
@@ -24,24 +26,19 @@ export default function ArtikliList({ onBack }: ArtikliListProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setError('Niste prijavljeni');
-        return;
-      }
-
-      const response = await fetch(
-        'https://cakjyadlsfpdsrunpkyh.supabase.co/functions/v1/pregled-artikala',
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/api/artikli`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setError('Niste prijavljeni');
+          return;
+        }
         throw new Error(`HTTP greška: ${response.status}`);
       }
 

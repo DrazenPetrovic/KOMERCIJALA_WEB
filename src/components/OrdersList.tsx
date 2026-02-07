@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const formatDate = (dateString: string): string => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -83,22 +85,19 @@ export function OrdersList({ onBack }: OrdersListProps) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.error('Nema autentifikacijskog tokena');
-          setLoading(false);
-          return;
-        }
-
-        const headers = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        };
-
-        const apiUrl = 'https://cakjyadlsfpdsrunpkyh.supabase.co';
         const [tereniResponse, terenGradResponse] = await Promise.all([
-          fetch(`${apiUrl}/functions/v1/pregled-terena-po-danima`, { headers }),
-          fetch(`${apiUrl}/functions/v1/pregled-teren-grad`, { headers })
+          fetch(`${API_URL}/api/terena-po-danima`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch(`${API_URL}/api/teren-grad`, {
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          })
         ]);
 
         if (!tereniResponse.ok) {
