@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "mysql2/promise": "npm:mysql2@3.6.5/promise",
+    "jose": "npm:jose@5.2.0"
+  }
+}

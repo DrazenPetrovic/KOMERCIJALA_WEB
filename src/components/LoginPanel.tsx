@@ -17,7 +17,9 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
     setLoading(true);
 
     try {
+      console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/login-radnika`;
+      console.log(apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
