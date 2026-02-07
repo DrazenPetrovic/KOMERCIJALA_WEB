@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, Award, CheckCircle, BarChart3 } from 'lucide-react';
+import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3 } from 'lucide-react';
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';

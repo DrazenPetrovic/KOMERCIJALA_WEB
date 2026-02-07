@@ -78,6 +78,9 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [centralneStavke] = useState<CentralnaStavka[]>([]);
+  
+  // Mock schedule data - to be replaced with real API data later
+  const mockSchedule: Record<number, DaySchedule> = {};
 
 
   useEffect(() => {
@@ -114,6 +117,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
         console.log('tereniResult.data:', tereniResult.data);
         console.log('terenGradResult:', terenGradResult);
         console.log('terenGradResult.data:', terenGradResult.data);
+        console.log('terenGradData length:', terenGradData.length);
         console.log('===================');
 
         if (tereniResult.success && tereniResult.data) {
