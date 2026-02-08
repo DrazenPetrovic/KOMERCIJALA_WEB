@@ -27,6 +27,13 @@ interface TerenGrad {
   aktivan: number;
 }
 
+interface Kupac {
+  id: string;
+  sifra_kupca: number;
+  ime: string;
+  adresa: string;
+}
+
 interface Customer {
   id: string;
   code: string;
@@ -60,7 +67,7 @@ interface City {
 
 interface DaySchedule {
   sifraTerenaDostava: number;
-  sifraTerana: number;
+  sifraTermena: number;
   date: string;
   day: string;
   cities: City[];
@@ -71,66 +78,112 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ onBack }: OrdersListProps) {
+  // ===== DUMMY PODACI =====
+  const dummyCustomers: Kupac[] = [
+    { id: '1', sifra_kupca: 101, ime: 'Kupac 1', adresa: 'Adresa 1' },
+    { id: '2', sifra_kupca: 102, ime: 'Kupac 2', adresa: 'Adresa 2' },
+    { id: '3', sifra_kupca: 103, ime: 'Kupac 3', adresa: 'Adresa 3' },
+  ];
+
+  // ===== STATE =====
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
   const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [terenGradLoading, setTerenGradLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedTerenaSifra, setSelectedTerenaSifra] = useState<number | null>(null);
+  const [selectedGrad, setSelectedGrad] = useState<number | null>(null);
+  const [selectedKupac, setSelectedKupac] = useState<Kupac | null>(null);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [centralneStavke] = useState<CentralnaStavka[]>([]);
-  
-  // Mock schedule data - to be replaced with real API data later
+  const [terenGradError, setTerenGradError] = useState<string | null>(null);
+
   const mockSchedule: Record<number, DaySchedule> = {};
 
-
+  // ===== GLAVNA PROCEDURA - TERENI PO DANIMA (OBAVEZNA) =====
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const headers = {
-          'Content-Type': 'application/json',
-        };
-
-        const [tereniResponse, terenGradResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/terena-po-danima`, { 
-            headers,
-            credentials: 'include'
-          }),
-          fetch(`${apiUrl}/api/teren-grad`, { 
-            headers,
-            credentials: 'include'
-          })
-        ]);
-
-        if (!tereniResponse.ok) {
-          throw new Error(`API error (tereni): ${tereniResponse.status}`);
-        }
-        if (!terenGradResponse.ok) {
-          throw new Error(`API error (teren-grad): ${terenGradResponse.status}`);
-        }
-
-        const tereniResult = await tereniResponse.json();
-        const terenGradResult = await terenGradResponse.json();
-
-        if (tereniResult.success && tereniResult.data) {
-          setTereniData(tereniResult.data);
-          if (tereniResult.data.length > 0) {
-            setSelectedDay(tereniResult.data[0].sifra_terena_dostava);
-          }
-        }
-
-        if (terenGradResult.success && terenGradResult.data) {
-          setTerenGradData(terenGradResult.data);
-        }
-      } catch (error) {
-        console.error('Greška pri učitavanju podataka:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchTerenPoDanima();
   }, []);
+
+  const fetchTerenPoDanima = async () => {
+    try {
+      setLoading(true);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/teren/terena-po-danima`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const tereniResult = await response.json();
+
+      if (tereniResult.success && tereniResult.data) {
+        setTereniData(tereniResult.data);
+        console.log('✅ Tereni po danima učitani:', tereniResult.data);
+        
+        if (tereniResult.data.length > 0) {
+          const firstDay = tereniResult.data[0];
+          setSelectedDay(firstDay.sifra_terena_dostava);
+          setSelectedTerenaSifra(firstDay.sifra_terena);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Greška pri učitavanju terena:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ===== SEKUNDARNA PROCEDURA - TEREN GRAD (OPCIONA) =====
+  useEffect(() => {
+    fetchTerenGrad();
+  }, []);
+
+  const fetchTerenGrad = async () => {
+    try {
+      setTerenGradLoading(true);
+      setTerenGradError(null);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/teren/teren-grad`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Greška pri učitavanju teren-grad');
+        setTerenGradError('Gradovi se nisu mogli učitati');
+        return;
+      }
+
+      const terenGradResult = await response.json();
+
+      if (terenGradResult.success && terenGradResult.data) {
+        setTerenGradData(terenGradResult.data);
+        console.log('✅ Teren-grad učitan:', terenGradResult.data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching teren-grad:', error);
+      setTerenGradError('Greška pri učitavanju gradova');
+    } finally {
+      setTerenGradLoading(false);
+    }
+  };
+
+  // Filtriraj teren-grad podatke po odabranoj šifri
+  const getGradesForSelectedTeren = (): TerenGrad[] => {
+    if (!selectedTerenaSifra) return [];
+    return terenGradData.filter(tg => tg.sifra_terena === selectedTerenaSifra);
+  };
 
   const uniqueDays = Array.from(
     new Map(
@@ -158,6 +211,15 @@ export function OrdersList({ onBack }: OrdersListProps) {
     setExpandedCities(newExpanded);
   };
 
+  const handleDayClick = (day: any) => {
+    setSelectedDay(day.sifraTerenaDostava);
+    setSelectedTerenaSifra(day.sifraTermena);
+    setSelectedGrad(null); // ← RESETUJ GRAD
+    setSelectedKupac(null); // ← RESETUJ KUPCA
+    setExpandedCities(new Set());
+    setSelectedCustomer(null);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
       <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-4 md:py-5 border-b-2 border-gray-200">
@@ -183,7 +245,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
       </div>
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-220px)]">
-
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           <div className="w-full md:w-96 border-r-2 border-gray-200 overflow-y-auto bg-gray-50">
             <div className="sticky top-0 bg-white border-b-2 border-gray-200 z-10">
@@ -199,11 +260,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   uniqueDays.map((d) => (
                     <button
                       key={d.sifraTerenaDostava}
-                      onClick={() => {
-                        setSelectedDay(d.sifraTerenaDostava);
-                        setExpandedCities(new Set());
-                        setSelectedCustomer(null);
-                      }}
+                      onClick={() => handleDayClick(d)}
                       className={`px-3 py-2 rounded-lg whitespace-nowrap text-xs md:text-sm font-medium transition-all ${
                         selectedDay === d.sifraTerenaDostava
                           ? 'text-white shadow-lg'
@@ -219,9 +276,22 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   ))
                 )}
               </div>
+
+              {terenGradError && (
+                <div className="px-3 py-2 bg-yellow-50 border-t border-yellow-200 text-yellow-700 text-xs flex items-center gap-2">
+                  <span>⚠️ {terenGradError}</span>
+                </div>
+              )}
+
+              {terenGradLoading && (
+                <div className="px-3 py-2 text-gray-500 text-xs flex items-center gap-2">
+                  <Loader className="w-3 h-3 animate-spin" />
+                  <span>Učitavanje gradova...</span>
+                </div>
+              )}
             </div>
 
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-4">
               {currentSchedule?.cities.map((city) => (
                 <div key={city.id} className="bg-white rounded-lg shadow-sm">
                   <button
@@ -261,6 +331,58 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   )}
                 </div>
               ))}
+
+              {/* ===== GRADOVI KAO DUGMADI ===== */}
+              {!terenGradError && !terenGradLoading && getGradesForSelectedTeren().length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border-2 border-green-200 p-4">
+                  <div className="font-semibold mb-3" style={{ color: '#8FC74A' }}>
+                    📍 Gradovi
+                  </div>
+                  <div className="space-y-3">
+                    {getGradesForSelectedTeren().map((grad) => (
+                      <div key={grad.sifra_tabele} className="space-y-2">
+                        {/* DUGME ZA GRAD */}
+                        <button
+                          onClick={() => {
+                            setSelectedGrad(grad.sifra_grada);
+                            setSelectedKupac(null);
+                          }}
+                          className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left ${
+                            selectedGrad === grad.sifra_grada
+                              ? 'text-white shadow-lg'
+                              : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                          }`}
+                          style={{
+                            backgroundColor: selectedGrad === grad.sifra_grada ? '#8FC74A' : undefined,
+                          }}
+                        >
+                          {grad.naziv_grada}
+                        </button>
+
+                        {/* KUPCI ZA ODABRANI GRAD */}
+                        {selectedGrad === grad.sifra_grada && (
+                          <div className="pl-4 space-y-2 border-l-4 border-green-300">
+                            {dummyCustomers.map((kupac) => (
+                              <button
+                                key={kupac.id}
+                                onClick={() => setSelectedKupac(kupac)}
+                                className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left ${
+                                  selectedKupac?.id === kupac.id
+                                    ? 'bg-blue-100 border-l-4 border-blue-500'
+                                    : 'bg-gray-50 hover:bg-gray-100'
+                                }`}
+                              >
+                                <div className="font-medium">{kupac.ime}</div>
+                                <div className="text-xs text-gray-600">{kupac.adresa}</div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -323,10 +445,27 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   </button>
                 </div>
               </>
+            ) : selectedKupac ? (
+              <>
+                <div className="px-6 py-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
+                  <h3 className="text-lg font-semibold" style={{ color: '#785E9E' }}>
+                    {selectedKupac.ime}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Šifra: {selectedKupac.sifra_kupca} | Adresa: {selectedKupac.adresa}
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <p className="text-lg">Kupac je odabran</p>
+                    <p className="text-sm mt-2">Narudžbe će se učitati kad bude dostupna API logika</p>
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="flex-1 overflow-y-auto">
                 <div className="p-6">
-  
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">

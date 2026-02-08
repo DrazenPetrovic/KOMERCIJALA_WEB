@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, AlertCircle, Search } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Search, DollarSign} from 'lucide-react';
 
 const formatDate = (dateString: string): string => {
   if (!dateString) return '';
@@ -42,6 +42,7 @@ interface Uplata {
 export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [uplateLoading, setUplateLoading] = useState(true);
   const [filter24Active, setFilter24Active] = useState(true);
   const [filter30Active, setFilter30Active] = useState(true);
   const [filter60Active, setFilter60Active] = useState(true);
@@ -56,64 +57,103 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     dugPreko120: 0
   });
   const [error, setError] = useState<string | null>(null);
+  const [uplateError, setUplateError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    // 1️⃣ Prvo učitaj DUGOVANJA (obavezno)
+    fetchDugovanja();
+    
+    // 2️⃣ Zatim učitaj UPLATE u pozadini (opciono)
+    fetchUplate();
   }, []);
 
-  const fetchData = async () => {
+  // ===== DUGOVANJA - GLAVNA PROCEDURA (OBAVEZNA) =====
+  const fetchDugovanja = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Paralelno učitavanje dugovanja i uplata
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const [dugovanjaResponse, uplateResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/dugovanja`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }),
-        fetch(`${apiUrl}/api/uplate`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-      ]);
+      const response = await fetch(`${apiUrl}/api/dugovanja`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      if (!dugovanjaResponse.ok) {
+      if (!response.ok) {
         throw new Error('Greška pri učitavanju dugovanja');
       }
 
-      const dugovanjaResult = await dugovanjaResponse.json();
+      const dugovanjaResult = await response.json();
+      console.log('📊 DUGOVANJA UČITANA:', dugovanjaResult.data); // ← DODAJ OVO
+
 
       if (dugovanjaResult.success) {
         setAllDugovanja(dugovanjaResult.data);
-        setStats(dugovanjaResult.stats || { ukupanDug: 0, dugPreko24: 0, dugPreko30: 0, dugPreko60: 0, dugPreko120: 0 });
+        setStats(dugovanjaResult.stats || {
+          ukupanDug: 0,
+          dugPreko24: 0,
+          dugPreko30: 0,
+          dugPreko60: 0,
+          dugPreko120: 0
+        });
       } else {
         setError(dugovanjaResult.error || 'Greška pri učitavanju dugovanja');
       }
-
-      // Uplate su opcione, ne treba da blokiraju prikaz dugovanja
-      if (uplateResponse.ok) {
-        const uplateResult = await uplateResponse.json();
-        if (uplateResult.success) {
-          setUplate(uplateResult.data || []);
-        }
-      }
     } catch (err) {
-      console.error('Error fetching data:', err);
+      console.error('❌ Error fetching dugovanja:', err);
       setError('Greška pri učitavanju dugovanja');
     } finally {
       setLoading(false);
     }
   };
 
+  // ===== UPLATE - SEKUNDARNA PROCEDURA (OPCIONA) =====
+  const fetchUplate = async () => {
+    try {
+      setUplateLoading(true);
+      setUplateError(null);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/uplate`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Greška pri učitavanju uplata - nastavljam sa dugovima');
+        setUplateError('Uplate se nisu mogle učitati');
+        return;
+      }
+
+      const uplateResult = await response.json();
+       console.log('💰 UPLATE UČITANE:', uplateResult.data); // ← DODAJ OVO
+       console.log('🔍 TESTIRANJE imaUplatu(251):', uplateResult.data?.filter(u => Number(u.sifra) === 251)); // ← DODAJ OVO
+
+
+      if (uplateResult.success) {
+        setUplate(uplateResult.data || []);
+        console.log('✅ Uplate uspješno učitane');
+      } else {
+        console.warn('⚠️ Greška:', uplateResult.error);
+        setUplateError(uplateResult.error || 'Greška pri učitavanju uplata');
+      }
+    } catch (err) {
+      console.error('❌ Error fetching uplate:', err);
+      setUplateError('Greška pri učitavanju uplata');
+      // VAŽNO: Dugovanja nastavljaju raditi normalno!
+    } finally {
+      setUplateLoading(false);
+    }
+  };
+
   // Funkcija koja proverava da li postoji uplata za datu šifru
   const imaUplatu = (sifra: number): boolean => {
-    return uplate.some(u => u.sifra === sifra);
+    //return uplate.some(u => u.sifra === sifra);
+    return uplate.some(u => Number(u.sifra) === sifra);
   };
 
   // Filtriranje dugovanja - logika kao u VB.NET kodu
@@ -275,6 +315,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
         </div>
 
+        {/* ===== DUGOVANJA SE UVIJEK PRIKAZUJU ===== */}
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
@@ -287,7 +328,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
             <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-3" />
             <p className="text-red-700 text-lg font-medium">{error}</p>
             <button
-              onClick={fetchData}
+              onClick={fetchDugovanja}
               className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Pokušaj ponovo
@@ -300,6 +341,20 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
             <div className="mb-4 text-gray-600 text-lg">
               Pronađeno partnera: <span className="font-semibold">{filteredDugovanja.length}</span>
             </div>
+
+            {/* ===== UPOZORENJE ZA UPLATE (OPCIONO) ===== */}
+            {uplateError && (
+              <div className="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <span className="text-yellow-700 text-sm">⚠️ {uplateError}</span>
+              </div>
+            )}
+
+            {uplateLoading && (
+              <div className="mb-4 text-sm text-gray-500">
+                ⏳ Učitavanje uplata u pozadini...
+              </div>
+            )}
 
             {filteredDugovanja.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -332,7 +387,9 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
                           <div className="flex items-center gap-2">
                             <span>{dug.sifra}</span>
                             {imaUplatu(dug.sifra) && (
-                              <span className="text-green-600 font-bold text-xl" title="Ima uplatu danas">✓</span>
+                              // <span className="text-green-600 font-bold text-xl" title="Ima uplatu">✓</span>
+                               <DollarSign className="w-5 h-5 text-green-500" aria-label="Uplata evidentirana" />
+
                             )}
                           </div>
                         </td>
