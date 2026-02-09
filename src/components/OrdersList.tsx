@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader, X } from 'lucide-react';
 
 const formatDate = (dateString: string): string => {
   if (!dateString) return '';
@@ -9,6 +9,39 @@ const formatDate = (dateString: string): string => {
   const year = date.getFullYear();
   return `${day}.${month}.${year}`;
 };
+
+// ===== INTERFEJSI =====
+
+interface Order {
+  id: string;
+  code: string;
+  productName: string;
+  unit: string;
+  quantity: number;
+  note?: string;
+}
+
+interface Customer {
+  id: string;
+  code: string;
+  name: string;
+  orders: Order[];
+}
+
+interface City {
+  id: string;
+  name: string;
+  customers: Customer[];
+}
+
+interface CentralnaStavka {
+  sif_tabele: string;
+  sif: string;
+  naziv_proizvoda: string;
+  jm: string;
+  kolicina: number;
+  napomena: string;
+}
 
 interface TerenoData {
   sifra_terena_dostava: number;
@@ -28,49 +61,26 @@ interface TerenGrad {
 }
 
 interface Kupac {
-  id: string;
   sifra_kupca: number;
-  ime: string;
-  adresa: string;
-}
-
-interface Customer {
-  id: string;
-  code: string;
-  name: string;
-  orders: Order[];
-}
-
-interface Order {
-  id: string;
-  code: string;
-  productName: string;
-  unit: string;
-  quantity: number;
-  note?: string;
-}
-
-interface CentralnaStavka {
-  sif_tabele: string;
-  sif: string;
-  naziv_proizvoda: string;
-  jm: string;
-  kolicina: number;
-  napomena: string;
-}
-
-interface City {
-  id: string;
-  name: string;
-  customers: Customer[];
+  naziv_kupca: string;
+  sifra_grada: number;
+  naziv_grada: string;
+  vrsta_kupca: number;
 }
 
 interface DaySchedule {
   sifraTerenaDostava: number;
-  sifraTermena: number;
+  sifraTerena: number;
   date: string;
   day: string;
   cities: City[];
+}
+
+interface DayOption {
+  sifraTerenaDostava: number;
+  sifraTerena: number;
+  day: string;
+  date: string;
 }
 
 interface OrdersListProps {
@@ -78,30 +88,27 @@ interface OrdersListProps {
 }
 
 export function OrdersList({ onBack }: OrdersListProps) {
-  // ===== DUMMY PODACI =====
-  const dummyCustomers: Kupac[] = [
-    { id: '1', sifra_kupca: 101, ime: 'Kupac 1', adresa: 'Adresa 1' },
-    { id: '2', sifra_kupca: 102, ime: 'Kupac 2', adresa: 'Adresa 2' },
-    { id: '3', sifra_kupca: 103, ime: 'Kupac 3', adresa: 'Adresa 3' },
-  ];
-
   // ===== STATE =====
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
   const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
+  const [kupciData, setKupciData] = useState<Kupac[]>([]);
   const [loading, setLoading] = useState(true);
   const [terenGradLoading, setTerenGradLoading] = useState(true);
+  const [kupciLoading, setKupciLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTerenaSifra, setSelectedTerenaSifra] = useState<number | null>(null);
-  const [selectedGrad, setSelectedGrad] = useState<number | null>(null);
   const [selectedKupac, setSelectedKupac] = useState<Kupac | null>(null);
+  const [showKupacModal, setShowKupacModal] = useState(false);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [centralneStavke] = useState<CentralnaStavka[]>([]);
   const [terenGradError, setTerenGradError] = useState<string | null>(null);
+  const [kupciError, setKupciError] = useState<string | null>(null);
+  const [expandedGrad, setExpandedGrad] = useState<number | null>(null);
 
   const mockSchedule: Record<number, DaySchedule> = {};
 
-  // ===== GLAVNA PROCEDURA - TERENI PO DANIMA (OBAVEZNA) =====
+  // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
   useEffect(() => {
     fetchTerenPoDanima();
   }, []);
@@ -127,7 +134,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
       if (tereniResult.success && tereniResult.data) {
         setTereniData(tereniResult.data);
         console.log('✅ Tereni po danima učitani:', tereniResult.data);
-        
+
         if (tereniResult.data.length > 0) {
           const firstDay = tereniResult.data[0];
           setSelectedDay(firstDay.sifra_terena_dostava);
@@ -141,7 +148,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
     }
   };
 
-  // ===== SEKUNDARNA PROCEDURA - TEREN GRAD (OPCIONA) =====
+  // ===== SEKUNDARNA PROCEDURA - TEREN GRAD =====
   useEffect(() => {
     fetchTerenGrad();
   }, []);
@@ -179,10 +186,52 @@ export function OrdersList({ onBack }: OrdersListProps) {
     }
   };
 
-  // Filtriraj teren-grad podatke po odabranoj šifri
+  // ===== TERĆA PROCEDURA - KUPCI =====
+  useEffect(() => {
+    fetchTerenKupci();
+  }, []);
+
+  const fetchTerenKupci = async () => {
+    try {
+      setKupciLoading(true);
+      setKupciError(null);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/teren/teren-kupci`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Greška pri učitavanju kupaca');
+        setKupciError('Kupci se nisu mogli učitati');
+        return;
+      }
+
+      const kupciResult = await response.json();
+
+      if (kupciResult.success && kupciResult.data) {
+        setKupciData(kupciResult.data);
+        console.log('✅ Kupci učitani:', kupciResult.data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching kupci:', error);
+      setKupciError('Greška pri učitavanju kupaca');
+    } finally {
+      setKupciLoading(false);
+    }
+  };
+
+  // ===== FILTRIRAJUĆE FUNKCIJE =====
   const getGradesForSelectedTeren = (): TerenGrad[] => {
     if (!selectedTerenaSifra) return [];
     return terenGradData.filter(tg => tg.sifra_terena === selectedTerenaSifra);
+  };
+
+  const getKupciForGrad = (sifraGrada: number): Kupac[] => {
+    return kupciData.filter(k => k.sifra_grada === sifraGrada);
   };
 
   const uniqueDays = Array.from(
@@ -191,7 +240,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
         t.sifra_terena_dostava,
         {
           sifraTerenaDostava: t.sifra_terena_dostava,
-          sifraTermena: t.sifra_terena,
+          sifraTerena: t.sifra_terena,
           day: t.naziv_dana,
           date: formatDate(t.datum_dostave)
         }
@@ -201,6 +250,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
   const currentSchedule = selectedDay ? mockSchedule[selectedDay] : undefined;
 
+  // ===== HANDLER FUNKCIJE =====
   const toggleCity = (cityId: string) => {
     const newExpanded = new Set(expandedCities);
     if (newExpanded.has(cityId)) {
@@ -211,17 +261,36 @@ export function OrdersList({ onBack }: OrdersListProps) {
     setExpandedCities(newExpanded);
   };
 
-  const handleDayClick = (day: any) => {
+  const handleDayClick = (day: DayOption) => {
     setSelectedDay(day.sifraTerenaDostava);
-    setSelectedTerenaSifra(day.sifraTermena);
-    setSelectedGrad(null); // ← RESETUJ GRAD
-    setSelectedKupac(null); // ← RESETUJ KUPCA
+    setSelectedTerenaSifra(day.sifraTerena);
+    setExpandedGrad(null);
+    setSelectedKupac(null);
+    setShowKupacModal(false);
     setExpandedCities(new Set());
     setSelectedCustomer(null);
   };
 
+  const handleGradClick = (grad: TerenGrad) => {
+    if (expandedGrad === grad.sifra_grada) {
+      setExpandedGrad(null);
+      setSelectedKupac(null);
+      setShowKupacModal(false);
+    } else {
+      setExpandedGrad(grad.sifra_grada);
+      setSelectedKupac(null);
+      setShowKupacModal(false);
+    }
+  };
+
+  const handleKupacClick = (kupac: Kupac) => {
+    setSelectedKupac(kupac);
+    setShowKupacModal(true);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+      {/* HEADER */}
       <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-4 md:py-5 border-b-2 border-gray-200">
         <div className="flex items-center gap-3">
           <button
@@ -246,7 +315,9 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-220px)]">
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          {/* LIJEVA STRANA - NAVIGACIJA */}
           <div className="w-full md:w-96 border-r-2 border-gray-200 overflow-y-auto bg-gray-50">
+            {/* HEADER SA DANIMA */}
             <div className="sticky top-0 bg-white border-b-2 border-gray-200 z-10">
               <div className="flex overflow-x-auto gap-1 p-3">
                 {loading ? (
@@ -277,6 +348,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
                 )}
               </div>
 
+              {/* UPOZORENJA I LOADING */}
               {terenGradError && (
                 <div className="px-3 py-2 bg-yellow-50 border-t border-yellow-200 text-yellow-700 text-xs flex items-center gap-2">
                   <span>⚠️ {terenGradError}</span>
@@ -289,8 +361,22 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   <span>Učitavanje gradova...</span>
                 </div>
               )}
+
+              {kupciError && (
+                <div className="px-3 py-2 bg-yellow-50 border-t border-yellow-200 text-yellow-700 text-xs flex items-center gap-2">
+                  <span>⚠️ {kupciError}</span>
+                </div>
+              )}
+
+              {kupciLoading && (
+                <div className="px-3 py-2 text-gray-500 text-xs flex items-center gap-2">
+                  <Loader className="w-3 h-3 animate-spin" />
+                  <span>Učitavanje kupaca...</span>
+                </div>
+              )}
             </div>
 
+            {/* SADRŽAJ */}
             <div className="p-4 space-y-4">
               {currentSchedule?.cities.map((city) => (
                 <div key={city.id} className="bg-white rounded-lg shadow-sm">
@@ -334,48 +420,61 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
               {/* ===== GRADOVI KAO DUGMADI ===== */}
               {!terenGradError && !terenGradLoading && getGradesForSelectedTeren().length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border-2 border-green-200 p-4">
+                <div className="bg-white rounded-lg shadow-sm mt-4 border-2 border-green-200 p-4">
                   <div className="font-semibold mb-3" style={{ color: '#8FC74A' }}>
                     📍 Gradovi
                   </div>
                   <div className="space-y-3">
                     {getGradesForSelectedTeren().map((grad) => (
                       <div key={grad.sifra_tabele} className="space-y-2">
-                        {/* DUGME ZA GRAD */}
+                        {/* DUGME ZA GRAD - TOGGLE */}
                         <button
-                          onClick={() => {
-                            setSelectedGrad(grad.sifra_grada);
-                            setSelectedKupac(null);
-                          }}
-                          className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left ${
-                            selectedGrad === grad.sifra_grada
+                          onClick={() => handleGradClick(grad)}
+                          className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left flex items-center justify-between ${
+                            expandedGrad === grad.sifra_grada
                               ? 'text-white shadow-lg'
                               : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                           }`}
                           style={{
-                            backgroundColor: selectedGrad === grad.sifra_grada ? '#8FC74A' : undefined,
+                            backgroundColor: expandedGrad === grad.sifra_grada ? '#8FC74A' : undefined,
                           }}
                         >
-                          {grad.naziv_grada}
+                          <span>{grad.naziv_grada}</span>
+                          {expandedGrad === grad.sifra_grada ? (
+                            <ChevronUp className="w-5 h-5" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5" />
+                          )}
                         </button>
 
                         {/* KUPCI ZA ODABRANI GRAD */}
-                        {selectedGrad === grad.sifra_grada && (
-                          <div className="pl-4 space-y-2 border-l-4 border-green-300">
-                            {dummyCustomers.map((kupac) => (
-                              <button
-                                key={kupac.id}
-                                onClick={() => setSelectedKupac(kupac)}
-                                className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left ${
-                                  selectedKupac?.id === kupac.id
-                                    ? 'bg-blue-100 border-l-4 border-blue-500'
-                                    : 'bg-gray-50 hover:bg-gray-100'
-                                }`}
-                              >
-                                <div className="font-medium">{kupac.ime}</div>
-                                <div className="text-xs text-gray-600">{kupac.adresa}</div>
-                              </button>
-                            ))}
+                        {expandedGrad === grad.sifra_grada && (
+                          <div className="pl-4 space-y-2 border-l-4 border-green-300 animate-in fade-in duration-200">
+                            {kupciLoading ? (
+                              <div className="px-3 py-2 text-gray-500 text-xs flex items-center gap-2">
+                                <Loader className="w-3 h-3 animate-spin" />
+                                <span>Učitavanje kupaca...</span>
+                              </div>
+                            ) : getKupciForGrad(grad.sifra_grada).length === 0 ? (
+                              <div className="px-3 py-2 text-gray-600 text-sm">Nema kupaca</div>
+                            ) : (
+                              getKupciForGrad(grad.sifra_grada).map((kupac) => (
+                                <button
+                                  key={kupac.sifra_kupca}
+                                  onClick={() => handleKupacClick(kupac)}
+                                  className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left font-medium ${
+                                    selectedKupac?.sifra_kupca === kupac.sifra_kupca
+                                      ? 'text-white shadow-lg'
+                                      : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                                  }`}
+                                  style={{
+                                    backgroundColor: selectedKupac?.sifra_kupca === kupac.sifra_kupca ? '#8FC74A' : undefined,
+                                  }}
+                                >
+                                  {kupac.naziv_kupca}
+                                </button>
+                              ))
+                            )}
                           </div>
                         )}
                       </div>
@@ -386,6 +485,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
             </div>
           </div>
 
+          {/* ===== DESNA STRANA - SADRŽAJ ===== */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {selectedCustomer ? (
               <>
@@ -443,24 +543,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
                   >
                     Spremi narudžbu
                   </button>
-                </div>
-              </>
-            ) : selectedKupac ? (
-              <>
-                <div className="px-6 py-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-50 to-green-50">
-                  <h3 className="text-lg font-semibold" style={{ color: '#785E9E' }}>
-                    {selectedKupac.ime}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Šifra: {selectedKupac.sifra_kupca} | Adresa: {selectedKupac.adresa}
-                  </p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <p className="text-lg">Kupac je odabran</p>
-                    <p className="text-sm mt-2">Narudžbe će se učitati kad bude dostupna API logika</p>
-                  </div>
                 </div>
               </>
             ) : (
@@ -524,6 +606,82 @@ export function OrdersList({ onBack }: OrdersListProps) {
           </div>
         </div>
       </div>
+
+      {/* ===== MODAL ZA KUPCA ===== */}
+      {showKupacModal && selectedKupac && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold" style={{ color: '#785E9E' }}>
+                Odabrani kupac
+              </h2>
+              <button
+                onClick={() => {
+                  setShowKupacModal(false);
+                  setSelectedKupac(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                <div className="text-sm text-gray-600 mb-1">Šifra kupca:</div>
+                <div className="text-2xl font-bold" style={{ color: '#785E9E' }}>
+                  {selectedKupac.sifra_kupca}
+                </div>
+              </div>
+
+              <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                <div className="text-sm text-gray-600 mb-1">Naziv kupca:</div>
+                <div className="text-xl font-semibold text-gray-800">
+                  {selectedKupac.naziv_kupca}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                <div className="text-sm text-gray-600 mb-1">Grad:</div>
+                <div className="text-lg font-medium text-gray-800">
+                  {selectedKupac.naziv_grada}
+                </div>
+              </div>
+
+              <div className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
+                <div className="text-sm text-gray-600 mb-1">Vrsta kupca:</div>
+                <div className="text-lg font-medium text-gray-800">
+                  {selectedKupac.vrsta_kupca}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  console.log('Odabrani kupac:', selectedKupac);
+                  setShowKupacModal(false);
+                }}
+                className="flex-1 px-4 py-3 rounded-lg transition-all text-white font-medium"
+                style={{ backgroundColor: '#8FC74A' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7fb83a'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8FC74A'}
+              >
+                Kreiraj narudžbu
+              </button>
+              <button
+                onClick={() => {
+                  setShowKupacModal(false);
+                  setSelectedKupac(null);
+                }}
+                className="flex-1 px-4 py-3 rounded-lg transition-all text-gray-700 font-medium border-2 border-gray-300 hover:bg-gray-50"
+              >
+                Zatvori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

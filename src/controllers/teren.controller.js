@@ -21,3 +21,16 @@ export const getTerenPoDanima = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Greška pri učitavanju terena' });
   }
 };
+
+export const getTerenKupci = async (req, res) => {
+  try {
+    //const { sifraRadnika } = req.user;
+    const data = await TerenService.getTerenKupci();
+    return res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Pregled terena-po-danima error:', error);
+    return res.status(500).json({ success: false, error: 'Greška pri učitavanju terena' });
+  }
+};
+
+

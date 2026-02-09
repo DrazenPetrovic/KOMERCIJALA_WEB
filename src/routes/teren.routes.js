@@ -7,5 +7,6 @@ const router = Router();
 // router.get('/po-danima', verifyToken, TerenController.getTerenPoDanima);
 router.get('/terena-po-danima', verifyToken, TerenController.getTerenPoDanima);
 router.get('/teren-grad', verifyToken, TerenController.getTerenGrad);
+router.get('/teren-kupci', verifyToken, TerenController.getTerenKupci);
 
 export default router;

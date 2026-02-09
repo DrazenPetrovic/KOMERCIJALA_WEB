@@ -29,5 +29,6 @@ export const createApp = () => {
   app.use('/api/teren', terenRoutes);
   app.use('/api/uplate', uplateRoutes);
 
+console.log('✅ Teren rute su na /api/teren');
   return app;
 };
