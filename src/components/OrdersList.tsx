@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader, X } from 'lucide-react';
 
+// Prag za šifru kupca - ako je šifra veća od ovog broja, prikazuje se simbol
+const CUSTOMER_CODE_THRESHOLD = 10000;
+
 const formatDate = (dateString: string): string => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -471,7 +474,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
                                     backgroundColor: selectedKupac?.sifra_kupca === kupac.sifra_kupca ? '#8FC74A' : undefined,
                                   }}
                                 >
-                                  {kupac.naziv_kupca}
+                                  {kupac.naziv_kupca} {kupac.sifra_kupca > CUSTOMER_CODE_THRESHOLD && '⭐'}
                                 </button>
                               ))
                             )}
