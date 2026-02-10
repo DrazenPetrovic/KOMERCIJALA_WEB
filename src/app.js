@@ -10,6 +10,8 @@ import dugovanjaRoutes from './routes/dugovanja.routes.js';
 import partneriRoutes from './routes/partneri.routes.js';
 import terenRoutes from './routes/teren.routes.js';
 import uplateRoutes from './routes/uplate.routes.js';
+import narudzbeRoutes from './routes/narudzbe.routes.js';
+
 
 export const createApp = () => {
   const app = express();
@@ -28,7 +30,7 @@ export const createApp = () => {
   app.use('/api/partneri', partneriRoutes);
   app.use('/api/teren', terenRoutes);
   app.use('/api/uplate', uplateRoutes);
+  app.use('/api/narudzbe', narudzbeRoutes);
 
-console.log('✅ Teren rute su na /api/teren');
   return app;
 };
