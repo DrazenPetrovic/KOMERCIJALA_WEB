@@ -110,6 +110,8 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [kupciError, setKupciError] = useState<string | null>(null);
   const [expandedGrad, setExpandedGrad] = useState<number | null>(null);
 
+  const [searchKupac, setSearchKupac] = useState<string>('');
+
   const mockSchedule: Record<number, DaySchedule> = {};
 
   // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
@@ -234,9 +236,26 @@ export function OrdersList({ onBack }: OrdersListProps) {
     return terenGradData.filter(tg => tg.sifra_terena === selectedTerenaSifra);
   };
 
-  const getKupciForGrad = (sifraGrada: number): Kupac[] => {
-    return kupciData.filter(k => k.sifra_grada === sifraGrada);
+const getKupciForGrad = (sifraGrada: number): Kupac[] => {
+  //   return kupciData.filter(k => k.sifra_grada === sifraGrada);
+  // };
+  const kupciZaGrad = kupciData.filter(k => k.sifra_grada === sifraGrada);
+  
+  // Ako nema search texta, vrati sve kupce
+  if (!searchKupac.trim()) {
+    return kupciZaGrad;
+  }
+  
+  // Filtriraj kupce po search textu (traži u nazivu kupca)
+  const searchLower = searchKupac.toLowerCase();
+  return kupciZaGrad.filter(kupac => 
+    kupac.naziv_kupca.toLowerCase().includes(searchLower) ||
+    kupac.sifra_kupca.toString().includes(searchKupac)
+  );
   };
+
+
+
 
   const uniqueDays = Array.from(
     new Map(
@@ -273,6 +292,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
     setShowKupacModal(false);
     setExpandedCities(new Set());
     setSelectedCustomer(null);
+    setSearchKupac('');
   };
 
   const handleGradClick = (grad: TerenGrad) => {
@@ -425,9 +445,31 @@ export function OrdersList({ onBack }: OrdersListProps) {
               {/* ===== GRADOVI KAO DUGMADI ===== */}
               {!terenGradError && !terenGradLoading && getGradesForSelectedTeren().length > 0 && (
                 <div className="bg-white rounded-lg shadow-sm mt-4 border-2 border-green-200 p-4">
-                  <div className="font-semibold mb-3" style={{ color: '#8FC74A' }}>
+                  {/* <div className="font-semibold mb-3" style={{ color: '#8FC74A' }}>
                     📍 Gradovi
-                  </div>
+                  </div> */}
+
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          placeholder="🔍 Pretraži kupce po imenu ili šifri..."
+                          value={searchKupac}
+                          onChange={(e) => setSearchKupac(e.target.value)}
+                          className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-400 focus:outline-none transition-all"
+                        />
+                        {searchKupac && (
+                          <div className="mt-2 text-xs text-gray-600">
+                            Pretraga: "<span className="font-semibold text-green-600">{searchKupac}</span>"
+                            <button
+                              onClick={() => setSearchKupac('')}
+                              className="ml-2 text-red-500 hover:text-red-700 font-medium"
+                            >
+                              ✕ Obriši
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                   <div className="space-y-3">
                     {getGradesForSelectedTeren().map((grad) => (
                       <div key={grad.sifra_tabele} className="space-y-2">
@@ -460,7 +502,12 @@ export function OrdersList({ onBack }: OrdersListProps) {
                                 <span>Učitavanje kupaca...</span>
                               </div>
                             ) : getKupciForGrad(grad.sifra_grada).length === 0 ? (
-                              <div className="px-3 py-2 text-gray-600 text-sm">Nema kupaca</div>
+                              <div className="px-3 py-2 text-gray-600 text-sm">
+                                        {searchKupac ? (<> Nema kupaca za pretragu "<span className="font-semibold">{searchKupac}</span>"
+                                    </>) : (
+                                                'Nema kupaca'
+                                             )}                           
+                              </div>
                             ) : (
                               getKupciForGrad(grad.sifra_grada).map((kupac) => (
                                 <button
