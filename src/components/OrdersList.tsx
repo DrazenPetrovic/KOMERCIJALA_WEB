@@ -38,15 +38,6 @@ interface City {
   customers: Customer[];
 }
 
-interface CentralnaStavka {
-  sif_tabele: string;
-  sif: string;
-  naziv_proizvoda: string;
-  jm: string;
-  kolicina: number;
-  napomena: string;
-}
-
 interface NarudzbaProizvod {
   sif: string;
   naziv_proizvoda: string;
@@ -119,7 +110,6 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [showKupacModal, setShowKupacModal] = useState(false);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [centralneStavke] = useState<CentralnaStavka[]>([]);
   const [narudzbePoKupcu, setNarudzbePoKupcu] = useState<NarudzbaKupac[]>([]);
   const [loadingNarudzbe, setLoadingNarudzbe] = useState(false);
   const [terenGradError, setTerenGradError] = useState<string | null>(null);
