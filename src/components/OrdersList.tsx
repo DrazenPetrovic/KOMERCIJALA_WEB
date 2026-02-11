@@ -47,6 +47,20 @@ interface CentralnaStavka {
   napomena: string;
 }
 
+interface NarudzbaProizvod {
+  sif: string;
+  naziv_proizvoda: string;
+  jm: string;
+  kolicina: number;
+  napomena?: string;
+}
+
+interface NarudzbaKupac {
+  sifra_kupca: number;
+  naziv_kupca: string;
+  proizvodi: NarudzbaProizvod[];
+}
+
 interface TerenoData {
   sifra_terena_dostava: number;
   sifra_terena: number;
@@ -106,6 +120,8 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [centralneStavke] = useState<CentralnaStavka[]>([]);
+  const [narudzbePoKupcu, setNarudzbePoKupcu] = useState<NarudzbaKupac[]>([]);
+  const [loadingNarudzbe, setLoadingNarudzbe] = useState(false);
   const [terenGradError, setTerenGradError] = useState<string | null>(null);
   const [kupciError, setKupciError] = useState<string | null>(null);
   const [expandedGrad, setExpandedGrad] = useState<number | null>(null);
@@ -145,6 +161,11 @@ export function OrdersList({ onBack }: OrdersListProps) {
           const firstDay = tereniResult.data[0];
           setSelectedDay(firstDay.sifra_terena_dostava);
           setSelectedTerenaSifra(firstDay.sifra_terena);
+          
+          // Učitaj narudžbe za prvi dan
+          if (firstDay.sifra_terena) {
+            fetchAktivneNarudzbe(firstDay.sifra_terena);
+          }
         }
       }
     } catch (error) {
@@ -230,6 +251,81 @@ export function OrdersList({ onBack }: OrdersListProps) {
     }
   };
 
+  // ===== ČETVRTA PROCEDURA - AKTIVNE NARUDŽBE PO TERENU =====
+  const fetchAktivneNarudzbe = async (sifraTerena: number) => {
+    try {
+      setLoadingNarudzbe(true);
+      setNarudzbePoKupcu([]);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      
+      // Pozovi obe procedure
+      const [grupisaneResponse, aktivneResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/narudzbe/narudzbe-grupisane?sifraTerena=${sifraTerena}`, {
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        }),
+        fetch(`${apiUrl}/api/narudzbe/narudzbe-aktivne?sifraTerena=${sifraTerena}`, {
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        })
+      ]);
+
+      if (!grupisaneResponse.ok || !aktivneResponse.ok) {
+        console.warn('⚠️ Greška pri učitavanju narudžbi');
+        return;
+      }
+
+      const grupisaneResult = await grupisaneResponse.json();
+      const aktivneResult = await aktivneResponse.json();
+
+      console.log('✅ Grupisane narudžbe:', grupisaneResult.data);
+      console.log('✅ Aktivne narudžbe:', aktivneResult.data);
+
+      // Kombiniraj podatke - grupisane sadrže kupce, aktivne proizvode
+      if (grupisaneResult.success && aktivneResult.success) {
+        const grupisaneData = grupisaneResult.data || [];
+        const aktivneData = aktivneResult.data || [];
+
+        // Kreiraj mapu kupaca sa proizvodima
+        const kupciMap = new Map<number, NarudzbaKupac>();
+
+        // Prvo dodaj sve kupce iz grupisanih
+        grupisaneData.forEach((item: any) => {
+          if (!kupciMap.has(item.sifra_kupca)) {
+            kupciMap.set(item.sifra_kupca, {
+              sifra_kupca: item.sifra_kupca,
+              naziv_kupca: item.naziv_kupca || item.naziv || 'Nepoznat kupac',
+              proizvodi: []
+            });
+          }
+        });
+
+        // Dodaj proizvode iz aktivnih narudžbi
+        aktivneData.forEach((item: any) => {
+          const kupac = kupciMap.get(item.sifra_kupca);
+          if (kupac) {
+            kupac.proizvodi.push({
+              sif: item.sif || item.sifra_proizvoda,
+              naziv_proizvoda: item.naziv_proizvoda,
+              jm: item.jm,
+              kolicina: item.kolicina,
+              napomena: item.napomena || ''
+            });
+          }
+        });
+
+        const narudzbe = Array.from(kupciMap.values());
+        setNarudzbePoKupcu(narudzbe);
+        console.log('✅ Narudžbe po kupcu formirane:', narudzbe);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching aktivne narudžbe:', error);
+    } finally {
+      setLoadingNarudzbe(false);
+    }
+  };
+
   // ===== FILTRIRAJUĆE FUNKCIJE =====
   const getGradesForSelectedTeren = (): TerenGrad[] => {
     if (!selectedTerenaSifra) return [];
@@ -293,6 +389,11 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
     setExpandedCities(new Set());
     setSelectedCustomer(null);
     setSearchKupac('');
+    
+    // Učitaj aktivne narudžbe za odabrani teren
+    if (day.sifraTerena) {
+      fetchAktivneNarudzbe(day.sifraTerena);
+    }
   };
 
   const handleGradClick = (grad: TerenGrad) => {
@@ -599,58 +700,98 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
             ) : (
               <div className="flex-1 overflow-y-auto">
                 <div className="p-6">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            ŠIF
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            NAZIV PROIZVODA
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            JM
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            KOLIČINA
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            NAPOMENA
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {centralneStavke.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                              Nema podataka
-                            </td>
-                          </tr>
-                        ) : (
-                          centralneStavke.map((stavka, index) => (
-                            <tr key={`${stavka.sif_tabele}-${index}`} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {stavka.sif}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-900">
-                                {stavka.naziv_proizvoda}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {stavka.jm}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {stavka.kolicina}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-900">
-                                {stavka.napomena}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                  {loadingNarudzbe ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader className="w-8 h-8 animate-spin text-purple-600" />
+                      <span className="ml-3 text-gray-600">Učitavanje narudžbi...</span>
+                    </div>
+                  ) : narudzbePoKupcu.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 text-lg">Nema aktivnih narudžbi za odabrani dan</p>
+                      <p className="text-gray-400 text-sm mt-2">Odaberite dan da vidite narudžbe</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {narudzbePoKupcu.map((kupac) => (
+                        <div key={kupac.sifra_kupca} className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-200">
+                          {/* Zaglavlje sa nazivom kupca */}
+                          <div className="bg-gradient-to-r from-purple-100 to-green-100 px-6 py-4 border-b-2 border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-xl font-bold" style={{ color: '#785E9E' }}>
+                                  {kupac.naziv_kupca}
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Šifra kupca: <span className="font-semibold">{kupac.sifra_kupca}</span>
+                                  {kupac.sifra_kupca > CUSTOMER_CODE_THRESHOLD && <span className="ml-2">⭐</span>}
+                                </p>
+                              </div>
+                              <div className="bg-white px-4 py-2 rounded-lg shadow">
+                                <span className="text-sm text-gray-600">Ukupno stavki:</span>
+                                <span className="ml-2 text-lg font-bold" style={{ color: '#8FC74A' }}>
+                                  {kupac.proizvodi.length}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Tabela sa proizvodima */}
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ŠIF
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    NAZIV PROIZVODA
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    JM
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    KOLIČINA
+                                  </th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    NAPOMENA
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {kupac.proizvodi.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                      Nema proizvoda
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  kupac.proizvodi.map((proizvod, index) => (
+                                    <tr key={`${kupac.sifra_kupca}-${proizvod.sif}-${index}`} className="hover:bg-gray-50 transition-colors">
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {proizvod.sif}
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-900">
+                                        {proizvod.naziv_proizvoda}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {proizvod.jm}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold" style={{ color: '#8FC74A' }}>
+                                        {proizvod.kolicina}
+                                      </td>
+                                      <td className="px-6 py-4 text-sm text-gray-600">
+                                        {proizvod.napomena || '-'}
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

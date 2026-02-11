@@ -2,14 +2,18 @@ import * as NarudzbeService from '../services/aktivneNarudzbe.service.js';
 
 export const getAktivneNarudzbeGrupisano = async (req, res) => {
   try {
-    console.log('Sifra terena:', req.sifraTerena); // Dodaj log za sifraTerena
+    const sifraTerena = req.query.sifraTerena || req.params.sifraTerena;
+    console.log('Sifra terena:', sifraTerena);
 
+    if (!sifraTerena) {
+      return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });
+    }
 
-    const narudzbeGrupisane = await NarudzbeService.getAktivneNarudzbeGrupisano(req.sifraTerena); //Moguca greska
+    const narudzbeGrupisane = await NarudzbeService.getAktivneNarudzbeGrupisano(sifraTerena);
     return res.json({ success: true, data: narudzbeGrupisane, count: narudzbeGrupisane.length });
   } catch (error) {
     console.error('Pregled grupisanih narudžbi error:', error);
-    return res.status(500).json({ success: false, error: 'Greška pri učitavanju artikala' });
+    return res.status(500).json({ success: false, error: 'Greška pri učitavanju narudžbi' });
   }
 };
 
@@ -17,11 +21,17 @@ export const getAktivneNarudzbeGrupisano = async (req, res) => {
 
 export const getAktivneNarudzbe = async (req, res) => {
   try {
+    const sifraTerena = req.query.sifraTerena || req.params.sifraTerena;
+    console.log('Sifra terena za narudzbe:', sifraTerena);
+
+    if (!sifraTerena) {
+      return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });
+    }
     
-    const narudzbeGrupisane = await NarudzbeService.getAktivneNarudzbe(req.sifraTerena); //Moguca greska
-    return res.json({ success: true, data: narudzbeAktivne, count: narudzbeGrupisane.length });
+    const narudzbeAktivne = await NarudzbeService.getAktivneNarudzbe(sifraTerena);
+    return res.json({ success: true, data: narudzbeAktivne, count: narudzbeAktivne.length });
   } catch (error) {
     console.error('Pregled narudžbi error:', error);
-    return res.status(500).json({ success: false, error: 'Greška pri učitavanju artikala' });
+    return res.status(500).json({ success: false, error: 'Greška pri učitavanju narudžbi' });
   }
 };
