@@ -246,6 +246,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
     try {
       setLoadingNarudzbe(true);
       setNarudzbePoKupcu([]);
+      console.log(`⏳ Učitavanje narudžbi za teren ${sifraTerena}...`);
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       
