@@ -3,7 +3,7 @@ import * as NarudzbeService from '../services/aktivneNarudzbe.service.js';
 export const getAktivneNarudzbeGrupisano = async (req, res) => {
   try {
     const sifraTerena = req.query.sifraTerena || req.params.sifraTerena;
-    console.log('Sifra terena:', sifraTerena);
+
 
     if (!sifraTerena) {
       return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });
@@ -22,7 +22,7 @@ export const getAktivneNarudzbeGrupisano = async (req, res) => {
 export const getAktivneNarudzbe = async (req, res) => {
   try {
     const sifraTerena = req.query.sifraTerena || req.params.sifraTerena;
-    console.log('Sifra terena za narudzbe:', sifraTerena);
+  
 
     if (!sifraTerena) {
       return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });

@@ -44,6 +44,7 @@ interface NarudzbaProizvod {
   jm: string;
   kolicina: number;
   napomena?: string;
+  sifra_kupca: number;
 }
 
 interface NarudzbaKupac {
@@ -283,10 +284,10 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
         // Prvo dodaj sve kupce iz grupisanih
         grupisaneData.forEach((item: any) => {
-          if (!kupciMap.has(item.sifra_kupca)) {
-            kupciMap.set(item.sifra_kupca, {
-              sifra_kupca: item.sifra_kupca,
-              naziv_kupca: item.naziv_kupca || item.naziv || 'Nepoznat kupac',
+          if (!kupciMap.has(item.sifra_partnera)) {
+            kupciMap.set(item.sifra_partnera, {
+              sifra_kupca: item.sifra_partnera,
+              naziv_kupca: item.naziv_partnera || item.partnera || 'Nepoznat kupac',
               proizvodi: []
             });
           }
@@ -294,14 +295,15 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
         // Dodaj proizvode iz aktivnih narudžbi
         aktivneData.forEach((item: any) => {
-          const kupac = kupciMap.get(item.sifra_kupca);
+          const kupac = kupciMap.get(item.sifra_patnera || item.sifra_partnera);
           if (kupac) {
             kupac.proizvodi.push({
-              sif: item.sif || item.sifra_proizvoda,
+              sif: item.sifra_proizvoda || item.sifra_proizvoda,
               naziv_proizvoda: item.naziv_proizvoda,
               jm: item.jm,
               kolicina: item.kolicina_proizvoda,
-              napomena: item.napomena || ' '
+              napomena: item.napomena || ' ',
+              sifra_kupca:item.sifra_partnera
             });
           }
         });
