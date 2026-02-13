@@ -153,8 +153,8 @@ export function OrdersList({ onBack }: OrdersListProps) {
           setSelectedTerenaSifra(firstDay.sifra_terena);
           
           // Učitaj narudžbe za prvi dan
-          if (firstDay.sifra_terena) {
-            fetchAktivneNarudzbe(firstDay.sifra_terena);
+          if (firstDay.sifra_terena_dostava) {
+            fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
           }
         }
       }
@@ -300,8 +300,8 @@ export function OrdersList({ onBack }: OrdersListProps) {
               sif: item.sif || item.sifra_proizvoda,
               naziv_proizvoda: item.naziv_proizvoda,
               jm: item.jm,
-              kolicina: item.kolicina,
-              napomena: item.napomena || ''
+              kolicina: item.kolicina_proizvoda,
+              napomena: item.napomena || ' '
             });
           }
         });
@@ -383,7 +383,8 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
     
     // Učitaj aktivne narudžbe za odabrani teren
     if (day.sifraTerena) {
-      fetchAktivneNarudzbe(day.sifraTerena);
+      console.log(`📅 Odabran dan: ${day.day} (${day.date}), šifra terena: ${day.sifraTerenaDostava}`);
+      fetchAktivneNarudzbe(day.sifraTerenaDostava);
     }
   };
 
@@ -447,7 +448,10 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                   uniqueDays.map((d) => (
                     <button
                       key={d.sifraTerenaDostava}
-                      onClick={() => handleDayClick(d)}
+                      onClick={() => {
+                        console.log('Sifra narudzbe:', d.sifraTerenaDostava);
+                        handleDayClick(d);
+                      }}
                       className={`px-3 py-2 rounded-lg whitespace-nowrap text-xs md:text-sm font-medium transition-all ${
                         selectedDay === d.sifraTerenaDostava
                           ? 'text-white shadow-lg'
@@ -757,6 +761,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                                   </tr>
                                 ) : (
                                   kupac.proizvodi.map((proizvod, index) => (
+                                    console.log('Proizvod:', proizvod.kolicina),
                                     <tr key={`${kupac.sifra_kupca}-${proizvod.sif}-${index}`} className="hover:bg-gray-50 transition-colors">
                                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {proizvod.sif}
