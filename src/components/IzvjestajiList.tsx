@@ -275,7 +275,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
                 ) : (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {history.map((item, index) => (
-                      <div key={`${item.datum}-${index}`} className="bg-white rounded-lg p-3 border border-slate-200">
+                      <div key={`${selectedPartner?.sifra_partnera}-${item.datum}-${index}`} className="bg-white rounded-lg p-3 border border-slate-200">
                         <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum}</div>
                         <div className="text-sm text-slate-700 whitespace-pre-line">{item.tekst}</div>
                       </div>
