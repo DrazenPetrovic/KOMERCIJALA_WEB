@@ -26,7 +26,7 @@ const mockPartners: Partner[] = [
   { sif: '20989', naziv: 'Balance lange bar', grad: 'Doboj', radnik: 'Vračar Nikola' },
   { sif: '20471', naziv: 'Balkan El-Spres', grad: 'Bijedor', radnik: 'Vračar Nikola' },
   { sif: '20670', naziv: 'Bašeni Gacin', grad: 'Gacin', radnik: 'Vračar Nikola' },
-  { sif: '20471', naziv: 'Bašen ekspres', grad: 'Bijeko', radnik: 'Vračar Nikola' },
+  { sif: '20472', naziv: 'Bašen ekspres', grad: 'Bijeko', radnik: 'Vračar Nikola' },
   { sif: '20479', naziv: 'Big Ban', grad: 'Lučiči', radnik: 'Vračar Nikola' },
   { sif: '20002', naziv: 'Brahaj', grad: 'Banja Luka', radnik: 'Vračar Nikola' },
   { sif: '20385', naziv: 'Brko', grad: 'Broko', radnik: 'Vračar Nikola' },
@@ -37,7 +37,7 @@ const mockPartners: Partner[] = [
 const mockHistory: HistoryItem[] = [
   {
     datum: '11.02.2025',
-    tekst: 'Obišeo kupca.\nRazgovarao sam sa vlasnikom.Želi se da malo slabije ime posla.što se vidi po narudžbama da su rijeđe nego inače.U glavnom smo razgovarali ne obavezno i vezano za posao.'
+    tekst: 'Obišeo kupca. Razgovarao sam sa vlasnikom. Želi se da malo slabije ime posla. Što se vidi po narudžbama da su rijeđe nego inače. U glavnom smo razgovarali ne obavezno i vezano za posao.'
   },
   {
     datum: '08.02.2025',
