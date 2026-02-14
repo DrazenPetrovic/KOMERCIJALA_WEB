@@ -77,7 +77,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
       text: inputText,
       aiMessage
     });
-    alert('Izvještaj sačuvan! (Funkcionalnost će biti implementirana u sledećem koraku)');
+    // TODO: Implementirati backend poziv za čuvanje izvještaja
   };
 
   const handleAiGenerate = () => {
@@ -160,8 +160,8 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
                   Istorija izvještaja
                 </h2>
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {mockHistory.map((item, index) => (
-                    <div key={index} className="bg-white rounded-lg p-3 border border-slate-200">
+                  {mockHistory.map((item) => (
+                    <div key={item.datum} className="bg-white rounded-lg p-3 border border-slate-200">
                       <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum}</div>
                       <div className="text-sm text-slate-700 whitespace-pre-line">{item.tekst}</div>
                     </div>
