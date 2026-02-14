@@ -19,21 +19,6 @@ interface IzvjestajiListProps {
   onBack: () => void;
 }
 
-const mockHistory: HistoryItem[] = [
-  {
-    datum: '11.02.2025',
-    tekst: 'Obišeo kupca. Razgovarao sam sa vlasnikom. Želi se da malo slabije ime posla. Što se vidi po narudžbama da su rijeđe nego inače. U glavnom smo razgovarali ne obavezno i vezano za posao.'
-  },
-  {
-    datum: '08.02.2025',
-    tekst: 'Telefonski kontakt. Dogovorena isporuka za narednu sedmicu.'
-  },
-  {
-    datum: '05.02.2025',
-    tekst: 'Isporuka robe prema narudžbi. Sve u redu, nema primedbi.'
-  }
-];
-
 export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
   const [partneri, setPartneri] = useState<Partner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
@@ -43,10 +28,19 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
   const [filteredPartners, setFilteredPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
 
   useEffect(() => {
     fetchPartneri();
   }, []);
+
+  useEffect(() => {
+    if (selectedPartner) {
+      fetchHistorija(selectedPartner.sifra_partnera);
+    }
+  }, [selectedPartner]);
 
   useEffect(() => {
     if (searchText.trim() === '') {
@@ -105,6 +99,42 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
 
   const handleSearch = (value: string) => {
     setSearchText(value);
+  };
+
+  const fetchHistorija = async (sifraPartnera: number) => {
+    try {
+      setHistoryLoading(true);
+      setHistoryError('');
+      setHistory([]);
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/izvjestaji?sifraPartnera=${sifraPartnera}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Greška pri učitavanju istorije izvještaja');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const dataArray = Array.isArray(result.data) ? result.data : [];
+        setHistory(dataArray);
+      } else {
+        setHistoryError(result.error || 'Greška pri učitavanju istorije izvještaja');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Greška pri učitavanju istorije';
+      setHistoryError(errorMessage);
+      console.error('Greška pri učitavanju istorije izvještaja:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const handleSave = () => {
@@ -219,14 +249,39 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
                   <History size={20} />
                   Istorija izvještaja
                 </h2>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {mockHistory.map((item) => (
-                    <div key={item.datum} className="bg-white rounded-lg p-3 border border-slate-200">
-                      <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum}</div>
-                      <div className="text-sm text-slate-700 whitespace-pre-line">{item.tekst}</div>
-                    </div>
-                  ))}
-                </div>
+                {historyLoading ? (
+                  <div className="text-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-200 border-t-purple-600"></div>
+                    <p className="mt-4 text-slate-600">Učitavanje istorije...</p>
+                  </div>
+                ) : historyError ? (
+                  <div className="text-center py-8">
+                    <p className="text-red-600 mb-4">{historyError}</p>
+                    <button
+                      onClick={() => selectedPartner && fetchHistorija(selectedPartner.sifra_partnera)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Pokušaj ponovo
+                    </button>
+                  </div>
+                ) : !selectedPartner ? (
+                  <div className="text-center py-8 text-slate-500">
+                    Odaberite partnera da vidite istoriju izvještaja
+                  </div>
+                ) : history.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    Nema istorije izvještaja za ovog partnera
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    {history.map((item, index) => (
+                      <div key={`${item.datum}-${index}`} className="bg-white rounded-lg p-3 border border-slate-200">
+                        <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum}</div>
+                        <div className="text-sm text-slate-700 whitespace-pre-line">{item.tekst}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Input Section */}
