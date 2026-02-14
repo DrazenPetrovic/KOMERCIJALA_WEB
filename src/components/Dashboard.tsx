@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3 } from 'lucide-react';
+import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3,ChevronUp, ChevronDown  } from 'lucide-react';
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
@@ -14,6 +14,7 @@ type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'part
 
 export function Dashboard({ username, onLogout }: DashboardProps) {
   const [activeSection, setActiveSection] = useState<MenuSection>(null);
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);  // STATE ZA KOLAPS
 
   const menuItems = [
     { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
@@ -29,7 +30,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
     if (activeSection === null) return null;
 
     if (activeSection === 'narudzbe') {
-      return <OrdersList onBack={() => setActiveSection(null)} />;
+       return <OrdersList onBack={() => setActiveSection(null)} />;
     }
 
     if (activeSection === 'partneri') {
@@ -59,60 +60,86 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-md" style={{ borderBottom: '3px solid #785E9E' }}>
-        <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0">
-          <div className="flex items-center gap-4">
-            <img
-              src="/logo.png"
-              alt="Karpas Logo"
-              className="w-12 h-12 md:w-16 md:h-16 object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-            <div>
-              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
-                Karpas ambalaže doo
-              </h1>
-              <p className="text-base md:text-lg text-gray-600 mt-1">Korisnik: {username}</p>
-            </div>
-          </div>
+      {/* HEADER + NAV - KOLAPSIBILAN */}
+      <div className={`transition-all duration-300 relative ${
+        headerCollapsed ? 'max-h-12' : 'max-h-96'
+      }`}>
+        {/* STRELICA ZA TOGGLE - GORNJI LIJEVI UGAO */}
+        <div className="absolute top-2 left-2 z-50">
           <button
-            onClick={onLogout}
-            className="flex items-center gap-2 md:gap-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 md:px-6 py-3 md:py-4 rounded-xl transition-all text-base md:text-lg font-medium shadow-lg hover:shadow-xl transform active:scale-95"
+            onClick={() => setHeaderCollapsed(!headerCollapsed)}
+            className="p-1 hover:bg-gray-100 rounded-lg transition-all flex-shrink-0"
+            title={headerCollapsed ? 'Proširi header' : 'Smanji header'}
           >
-            <LogOut className="w-5 h-5 md:w-6 md:h-6" />
-            Odjava
+            {headerCollapsed ? (
+              <ChevronDown className="w-4 h-4 text-gray-600" />
+            ) : (
+              <ChevronUp className="w-4 h-4 text-gray-600" />
+            )}
           </button>
         </div>
-      </header>
 
-      <nav className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8">
-          <div className="flex overflow-x-auto gap-2 md:gap-3 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id as MenuSection)}
-                  className={`flex flex-col items-center gap-2 md:gap-3 px-5 md:px-6 py-3 md:py-4 rounded-xl transition-all whitespace-nowrap min-w-[100px] md:min-w-[120px] transform active:scale-95 ${
-                    isActive
-                      ? 'text-white font-semibold shadow-lg scale-105'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-md'
-                  }`}
-                  style={isActive ? { backgroundColor: '#785E9E' } : {}}
-                >
-                  <Icon className="w-7 h-7 md:w-8 md:h-8" />
-                  <span className="text-xs md:text-sm font-medium">{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </nav>
+        {/* HEADER - SKRIVENO KADA JE KOLABIRAN */}
+        {!headerCollapsed && (
+          <header className="bg-white shadow-md" style={{ borderBottom: '3px solid #785E9E' }}>
+            <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0">
+              <div className="flex items-center gap-4">
+                <img
+                  src="/logo.png"
+                  alt="Karpas Logo"
+                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <div>
+                  <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
+                    Karpas ambalaže doo
+                  </h1>
+                  <p className="text-base md:text-lg text-gray-600 mt-1">Korisnik: {username}</p>
+                </div>
+              </div>
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-2 md:gap-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 md:px-6 py-3 md:py-4 rounded-xl transition-all text-base md:text-lg font-medium shadow-lg hover:shadow-xl transform active:scale-95"
+              >
+                <LogOut className="w-5 h-5 md:w-6 md:h-6" />
+                Odjava
+              </button>
+            </div>
+          </header>
+        )}
+
+        {/* NAV - SKRIVENO KADA JE KOLABIRAN */}
+        {!headerCollapsed && (
+          <nav className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm">
+            <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8">
+              <div className="flex overflow-x-auto gap-2 md:gap-3 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveSection(item.id as MenuSection)}
+                      className={`flex flex-col items-center gap-2 md:gap-3 px-5 md:px-6 py-3 md:py-4 rounded-xl transition-all whitespace-nowrap min-w-[100px] md:min-w-[120px] transform active:scale-95 ${
+                        isActive
+                          ? 'text-white font-semibold shadow-lg scale-105'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-md'
+                      }`}
+                      style={isActive ? { backgroundColor: '#785E9E' } : {}}
+                    >
+                      <Icon className="w-7 h-7 md:w-8 md:h-8" />
+                      <span className="text-xs md:text-sm font-medium">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </nav>
+        )}
+      </div>
 
       <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
         {activeSection === null ? (
