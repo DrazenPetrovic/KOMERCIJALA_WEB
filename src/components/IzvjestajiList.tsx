@@ -80,11 +80,9 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
       }
 
       const result = await response.json();
-      console.log('API Response:', result);
 
       if (result.success && result.data) {
         const dataArray = Array.isArray(result.data) ? result.data : [];
-        console.log('Broj partnera:', dataArray.length);
         
         setPartneri(dataArray);
         setFilteredPartners(dataArray);
@@ -94,12 +92,12 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
           setSelectedPartner(dataArray[0]);
         }
       } else {
-        console.error('API Error:', result);
         setError(result.error || 'Greška pri učitavanju partnera');
       }
     } catch (err) {
-      setError('Greška pri učitavanju podataka');
-      console.error(err);
+      const errorMessage = err instanceof Error ? err.message : 'Greška pri učitavanju podataka';
+      setError(errorMessage);
+      console.error('Greška pri učitavanju partnera:', err);
     } finally {
       setLoading(false);
     }
