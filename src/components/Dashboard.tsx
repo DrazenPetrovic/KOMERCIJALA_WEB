@@ -3,6 +3,7 @@ import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCir
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
+import IzvjestajiList from './IzvjestajiList';
 import { OrdersList } from './OrdersList';
 
 interface DashboardProps {
@@ -43,6 +44,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
 
     if (activeSection === 'dugovanja') {
       return <DugovanjaList onBack={() => setActiveSection(null)} />;
+    }
+
+    if (activeSection === 'izvestaji') {
+      return <IzvjestajiList onBack={() => setActiveSection(null)} />;
     }
 
     const contentMap: Record<Exclude<MenuSection, null>, string> = {
@@ -151,7 +156,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
               Izaberite stavku iz menija da biste nastavili
             </p>
           </div>
-        ) : activeSection === 'narudzbe' || activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' ? (
+        ) : activeSection === 'narudzbe' || activeSection === 'partneri' || activeSection === 'artikli' || activeSection === 'dugovanja' || activeSection === 'izvestaji' ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
