@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, Edit2, Trash2, Loader, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Loader, X } from 'lucide-react';
 
 // Prag za šifru kupca - ako je šifra veća od ovog broja, prikazuje se simbol
 const CUSTOMER_CODE_THRESHOLD = 10000;
@@ -93,11 +93,12 @@ interface DayOption {
   date: string;
 }
 
-interface OrdersListProps {
-  onBack: () => void;
-}
+// interface OrdersListProps {
+//   // onBack: () => void;
+// }
+// export function OrdersList({ onBack }: OrdersListProps) {
 
-export function OrdersList({ onBack }: OrdersListProps) {
+export function OrdersList() {
   // ===== STATE =====
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
   const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
@@ -119,6 +120,10 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
   const [searchKupac, setSearchKupac] = useState<string>('');
 
+
+  // DODAJ OVAJ RED ISPOD:
+  const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
+  
   const mockSchedule: Record<number, DaySchedule> = {};
 
   // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
@@ -283,7 +288,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
         const kupciMap = new Map<number, NarudzbaKupac>();
 
         // Prvo dodaj sve kupce iz grupisanih
-        grupisaneData.forEach((item: any) => {
+        grupisaneData.forEach((item: { sifra_partnera: number; naziv_partnera: string; partnera: string }) => {
           if (!kupciMap.has(item.sifra_partnera)) {
             kupciMap.set(item.sifra_partnera, {
               sifra_kupca: item.sifra_partnera,
@@ -294,7 +299,15 @@ export function OrdersList({ onBack }: OrdersListProps) {
         });
 
         // Dodaj proizvode iz aktivnih narudžbi
-        aktivneData.forEach((item: any) => {
+        aktivneData.forEach((item: { 
+          sifra_patnera: number;
+          sifra_partnera: number;
+          sifra_proizvoda: string;
+          naziv_proizvoda: string;
+          jm: string;
+          kolicina_proizvoda: number;
+          napomena: string;
+        }) => {
           const kupac = kupciMap.get(item.sifra_patnera || item.sifra_partnera);
           if (kupac) {
             kupac.proizvodi.push({
@@ -409,35 +422,42 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
 
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-      {/* HEADER */}
-      <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-4 md:py-5 border-b-2 border-gray-200">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-all"
-          >
-            <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
-          </button>
-          <h2 className="text-2xl md:text-3xl font-bold" style={{ color: '#785E9E' }}>
-            Pregled narudžbi
-          </h2>
+
+           {/* HEADER - KOLAPSIBILAN */}
+      <div className={`border-b-2 border-gray-200 bg-white transition-all duration-300 relative  ${
+        headerCollapsed ? 'max-h-8' : 'max-h-24'
+      }`}>
+                  {/* STRELICA U DESNOM UGLU - UVIJEK VIDLJIVA */}
+          <div className="absolute top-1 left-3 z-20">
+            <button
+              onClick={() => setHeaderCollapsed(!headerCollapsed)}
+              className="p-1 hover:bg-gray-100 rounded-lg transition-all flex-shrink-0"
+              title={headerCollapsed ? 'Proširi header' : 'Smanji header'}
+            >
+              {headerCollapsed ? (
+                <ChevronDown className="w-4 h-4 text-gray-600" />
+              ) : (
+                <ChevronUp className="w-4 h-4 text-gray-600" />
+              )}
+            </button>
+          </div>
+        <div className="flex items-center justify-between gap-3 px-6 md:px-8 py-2 md:py-4">
+          {/* TEKST - VIDLJIV SAMO KADA NIJE KOLABIRAN */}
+          {!headerCollapsed && (
+            <h2 className="text-2xl md:text-3xl font-bold" style={{ color: '#785E9E' }}>
+              Pregled narudžbi
+            </h2>
+          )}
         </div>
-        <button
-          className="px-6 py-3 rounded-lg transition-all text-white font-medium text-sm md:text-base whitespace-nowrap"
-          style={{ backgroundColor: '#785E9E' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#785E9E'}
-        >
-          Opcije
-        </button>
       </div>
+
 
       <div className="flex flex-col lg:flex-row h-[calc(100vh-220px)]">
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
           {/* LIJEVA STRANA - NAVIGACIJA */}
           <div className="w-full md:w-96 border-r-2 border-gray-200 overflow-y-auto bg-gray-50">
             {/* HEADER SA DANIMA */}
-            <div className="sticky top-0 bg-white border-b-2 border-gray-200 z-10">
+          <div className="sticky top-0 bg-white border-b-2 border-gray-200 z-10">
               <div className="flex overflow-x-auto gap-1 p-3">
                 {loading ? (
                   <div className="flex items-center gap-2 px-3 py-2 text-gray-600">
@@ -467,6 +487,28 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                       <div className="text-xs">{d.date}</div>
                     </button>
                   ))
+                )}
+              </div>
+
+              {/* SEARCH BOX ZA KUPCE - POMAKNUT ISPOD DUGMADI */}
+              <div className="border-t-2 border-gray-200 p-3">
+                <input
+                  type="text"
+                  placeholder="🔍 Pretraži kupce po imenu ili šifri..."
+                  value={searchKupac}
+                  onChange={(e) => setSearchKupac(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-green-400 focus:outline-none transition-all"
+                />
+                {searchKupac && (
+                  <div className="mt-2 text-xs text-gray-600">
+                    Pretraga: "<span className="font-semibold text-green-600">{searchKupac}</span>"
+                    <button
+                      onClick={() => setSearchKupac('')}
+                      className="ml-2 text-red-500 hover:text-red-700 font-medium"
+                    >
+                      ✕ Obriši
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -547,7 +589,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                     📍 Gradovi
                   </div> */}
 
-                      <div className="mb-4">
+                      {/* <div className="mb-4">
                         <input
                           type="text"
                           placeholder="🔍 Pretraži kupce po imenu ili šifri..."
@@ -566,7 +608,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                             </button>
                           </div>
                         )}
-                      </div>
+                      </div> */}
 
                   <div className="space-y-3">
                     {getGradesForSelectedTeren().map((grad) => (
