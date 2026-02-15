@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, History, Save, FileText, Search, Sparkles, Send } from 'lucide-react';
+import { History, Save, FileText, Search, Sparkles, Send } from 'lucide-react';
 
 interface Partner {
   sifra_partnera: number;
@@ -11,15 +11,15 @@ interface Partner {
 }
 
 interface HistoryItem {
-  datum: string;
-  tekst: string;
+  datum_izvjestaja: string;
+  podaci_izvjestaja: string;
 }
 
-interface IzvjestajiListProps {
-  onBack: () => void;
-}
+// interface IzvjestajiListProps {
+//   onBack: () => void;
+// }
 
-export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
+export default function IzvjestajiList() {
   const [partneri, setPartneri] = useState<Partner[]>([]);
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [inputText, setInputText] = useState('');
@@ -108,6 +108,8 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
       setHistory([]);
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      // console.log('Učitavanje istorije za partnera sa šifrom:', sifraPartnera);
+      
       const response = await fetch(`${apiUrl}/api/izvjestaji?sifraPartnera=${sifraPartnera}`, {
         method: 'GET',
         credentials: 'include',
@@ -121,7 +123,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
       }
 
       const result = await response.json();
-
+      // console.log('Rezultat učitavanja istorije:', result);
       if (result.success && result.data) {
         const dataArray = Array.isArray(result.data) ? result.data : [];
         setHistory(dataArray);
@@ -156,7 +158,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <button
             onClick={onBack}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
@@ -164,7 +166,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
             <ArrowLeft size={20} />
             <span>Nazad</span>
           </button>
-        </div>
+        </div> */}
 
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -212,6 +214,7 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
                       filteredPartners.map((partner) => (
                         <div
                           key={partner.sifra_partnera}
+                   
                           onClick={() => setSelectedPartner(partner)}
                           className={`p-3 rounded-lg cursor-pointer transition-all ${
                             selectedPartner?.sifra_partnera === partner.sifra_partnera
@@ -275,9 +278,9 @@ export default function IzvjestajiList({ onBack }: IzvjestajiListProps) {
                 ) : (
                   <div className="space-y-3 max-h-64 overflow-y-auto">
                     {history.map((item, index) => (
-                      <div key={`${selectedPartner?.sifra_partnera}-${item.datum}-${index}`} className="bg-white rounded-lg p-3 border border-slate-200">
-                        <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum}</div>
-                        <div className="text-sm text-slate-700 whitespace-pre-line">{item.tekst}</div>
+                      <div key={`${selectedPartner?.sifra_partnera}-${item.datum_izvjestaja}-${index}`} className="bg-white rounded-lg p-3 border border-slate-200">
+                        <div className="text-sm font-semibold text-slate-600 mb-1">{item.datum_izvjestaja}</div>
+                        <div className="text-sm text-slate-700 whitespace-pre-line">{item.podaci_izvjestaja}</div>
                       </div>
                     ))}
                   </div>

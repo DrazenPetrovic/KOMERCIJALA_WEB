@@ -9,14 +9,15 @@ console.log('DB CONFIG:', dbConfig);
 
 export const getConnection = async () => {
   try {
-    console.log('Pokušaj konektovanja na:', dbConfig.host, dbConfig.port);
+    //console.log('Pokušaj konektovanja na:', dbConfig.host, dbConfig.port);
     const connection = await mysql.createConnection(dbConfig);
-    console.log('✅ Uspješna konekcija!');
+    //console.log('✅ Uspješna konekcija!');
     return connection;
   } catch (error) {
     console.error('❌ Greška pri konektovanju:', error.message);
     throw error;
   }
+  
 };
 
 
