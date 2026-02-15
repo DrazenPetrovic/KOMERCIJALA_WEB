@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Users, FileText, Save, Loader, Calendar } from 'lucide-react';
+import { Users, FileText, Save, Loader, Calendar, Search } from 'lucide-react';
 
 interface Partner {
   sifra_partnera: number;
@@ -23,6 +23,8 @@ interface IzvlestajListProps {
 
 export default function IzvlestajList({ onBack }: IzvlestajListProps) {
   const [partneri, setPartneri] = useState<Partner[]>([]);
+  const [filteredPartneri, setFilteredPartneri] = useState<Partner[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [reportData, setReportData] = useState<string>('');
@@ -35,6 +37,16 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
   useEffect(() => {
     fetchPartneri();
   }, []);
+
+  useEffect(() => {
+    // Filtriranje partnera u realnom vremenu
+    const filtered = partneri.filter((partner) =>
+      partner.Naziv_partnera.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      partner.Naziv_grada.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      partner.sifra_partnera.toString().includes(searchQuery)
+    );
+    setFilteredPartneri(filtered);
+  }, [searchQuery, partneri]);
 
   const fetchPartneri = async () => {
     try {
@@ -167,85 +179,91 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundImage: 'linear-gradient(to bottom right, #ffffff, #ffffff, #f0fdf4)' }}>
-      <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8">
-        {/* NAZAD DUGME */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 mb-8 transition-all hover:gap-3 font-medium"
-          style={{ color: '#785E9E' }}
-        >
-          <ArrowLeft size={22} />
-          <span>Nazad</span>
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* LIJEVA STRANA - LISTA PARTNERA */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 md:px-8 py-6 md:py-8" style={{ backgroundImage: 'linear-gradient(to right, #785E9E, #6a4f8a)' }}>
+    <div className="h-screen w-screen overflow-hidden" style={{ backgroundImage: 'linear-gradient(to bottom right, #ffffff, #ffffff, #f0fdf4)' }}>
+      <div className="h-full w-full px-4 md:px-6 lg:px-8 py-4 flex items-center justify-center">
+        
+        <div className="grid gap-6 h-full w-full max-w-7xl" style={{ gridTemplateColumns: '30% 1fr' }}>
+          {/* LIJEVA STRANA - LISTA PARTNERA (30%) */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+            <div className="px-6 md:px-8 py-4 md:py-6" style={{ backgroundImage: 'linear-gradient(to right, #785E9E, #6a4f8a)' }}>
               <div className="flex items-center gap-3">
-                <Users className="w-8 h-8 md:w-10 md:h-10 text-white" />
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">Partneri</h1>
-                  <p className="text-white text-opacity-80 mt-1">Odaberite partnera za izvještaj</p>
-                </div>
+                <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                <h1 className="text-xl md:text-2xl font-bold text-white">Partneri</h1>
               </div>
             </div>
 
-            <div className="p-6 md:p-8 max-h-[600px] overflow-y-auto">
+            {/* SEARCH BOX */}
+            <div className="p-4 md:p-6 border-b border-gray-200 flex-shrink-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Pretraži partnere..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 transition-all text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {loading ? (
                 <div className="text-center py-16">
                   <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300" style={{ borderTopColor: '#785E9E' }}></div>
-                  <p className="mt-6 text-gray-600 text-lg">Učitavanje partnera...</p>
+                  <p className="mt-6 text-gray-600 text-sm">Učitavanje partnera...</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {partneri.map((partner) => (
-                    <button
-                      key={partner.sifra_partnera}
-                      onClick={() => handlePartnerClick(partner)}
-                      className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                        selectedPartner?.sifra_partnera === partner.sifra_partnera
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
-                      }`}
-                    >
-                      <p className="font-semibold text-gray-900">{partner.Naziv_partnera}</p>
-                      <p className="text-sm text-gray-600 mt-1">{partner.Naziv_grada}</p>
-                      <p className="text-xs text-gray-500 mt-1">Šifra: {partner.sifra_partnera}</p>
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  {filteredPartneri.length === 0 ? (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                      <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-600 text-sm">Nema pronađenih partnera</p>
+                    </div>
+                  ) : (
+                    filteredPartneri.map((partner) => (
+                      <button
+                        key={partner.sifra_partnera}
+                        onClick={() => handlePartnerClick(partner)}
+                        className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
+                          selectedPartner?.sifra_partnera === partner.sifra_partnera
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
+                        }`}
+                      >
+                        <p className="font-semibold text-gray-900 text-sm">{partner.Naziv_partnera}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{partner.Naziv_grada}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Šifra: {partner.sifra_partnera}</p>
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* DESNA STRANA - FORMA ZA IZVJEŠTAJ */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="px-6 md:px-8 py-6 md:py-8" style={{ backgroundImage: 'linear-gradient(to right, #8FC74A, #7fb83a)' }}>
+          {/* DESNA STRANA - FORMA ZA IZVJEŠTAJ (70%) */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+            <div className="px-6 md:px-8 py-4 md:py-6 flex-shrink-0" style={{ backgroundImage: 'linear-gradient(to right, #8FC74A, #7fb83a)' }}>
               <div className="flex items-center gap-3">
-                <FileText className="w-8 h-8 md:w-10 md:h-10 text-white" />
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">Izvještaj</h1>
-                  <p className="text-white text-opacity-80 mt-1">Unesite podatke o razgovoru</p>
-                </div>
+                <FileText className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                <h1 className="text-xl md:text-2xl font-bold text-white">Izvještaj</h1>
               </div>
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {!selectedPartner ? (
                 <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                   <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-lg">Molimo odaberite partnera sa lijeve strane</p>
+                  <p className="text-gray-600 text-sm">Molimo odaberite partnera sa lijeve strane</p>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {/* INFO O ODABRANOM PARTNERU */}
-                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200">
-                    <h3 className="font-bold text-lg mb-2" style={{ color: '#785E9E' }}>
+                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200 flex-shrink-0">
+                    <h3 className="font-bold text-base mb-2" style={{ color: '#785E9E' }}>
                       {selectedPartner.Naziv_partnera}
                     </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
                         <p className="text-gray-600">Grad:</p>
                         <p className="font-semibold">{selectedPartner.Naziv_grada}</p>
@@ -258,29 +276,29 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                   </div>
 
                   {/* FORMA ZA UNOS PODATAKA */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <div className="flex-shrink-0">
+                    <label className="block text-xs font-semibold text-gray-700 mb-2">
                       Podaci o razgovoru:
                     </label>
                     <textarea
                       value={reportData}
                       onChange={(e) => setReportData(e.target.value)}
                       placeholder="Unesite podatke o razgovoru sa partnerom..."
-                      rows={8}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 transition-all resize-none"
+                      rows={6}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 transition-all resize-none text-sm"
                     />
                   </div>
 
                   {/* PORUKE */}
                   {error && (
-                    <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
-                      <p className="text-red-600 font-medium">{error}</p>
+                    <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex-shrink-0">
+                      <p className="text-red-600 font-medium text-sm">{error}</p>
                     </div>
                   )}
 
                   {successMessage && (
-                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                      <p className="text-green-600 font-medium">{successMessage}</p>
+                    <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 flex-shrink-0">
+                      <p className="text-green-600 font-medium text-sm">{successMessage}</p>
                     </div>
                   )}
 
@@ -288,7 +306,7 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                   <button
                     onClick={handleSave}
                     disabled={saving || !reportData.trim()}
-                    className="w-full px-6 py-4 rounded-xl transition-all text-white font-bold text-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-6 py-3 rounded-xl transition-all text-white font-bold text-base flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     style={{ backgroundColor: '#785E9E' }}
                     onMouseEnter={(e) => {
                       if (!saving && reportData.trim()) {
@@ -301,44 +319,44 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                   >
                     {saving ? (
                       <>
-                        <Loader className="w-6 h-6 animate-spin" />
+                        <Loader className="w-5 h-5 animate-spin" />
                         <span>Spremanje...</span>
                       </>
                     ) : (
                       <>
-                        <Save className="w-6 h-6" />
+                        <Save className="w-5 h-5" />
                         <span>SAVE</span>
                       </>
                     )}
                   </button>
 
                   {/* ISTORIJA IZVJEŠTAJA */}
-                  <div className="border-t-2 border-gray-200 pt-6 mt-6">
-                    <h3 className="font-bold text-lg mb-4" style={{ color: '#785E9E' }}>
+                  <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                    <h3 className="font-bold text-base mb-3 flex-shrink-0" style={{ color: '#785E9E' }}>
                       Istorija izvještavanja
                     </h3>
 
                     {loadingReports ? (
-                      <div className="text-center py-8">
-                        <Loader className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
-                        <p className="text-gray-600 mt-2">Učitavanje izvještaja...</p>
+                      <div className="text-center py-6">
+                        <Loader className="w-6 h-6 animate-spin text-purple-600 mx-auto" />
+                        <p className="text-gray-600 mt-2 text-xs">Učitavanje izvještaja...</p>
                       </div>
                     ) : reports.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                        <FileText className="w-10 h-10 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-600">Nema prethodnih izvještaja</p>
+                      <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                        <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-600 text-xs">Nema prethodnih izvještaja</p>
                       </div>
                     ) : (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {reports.map((report) => (
                           <div
                             key={report.sifra_tabele}
-                            className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200 hover:border-purple-300 transition-all"
+                            className="bg-gray-50 rounded-xl p-3 border-2 border-gray-200 hover:border-purple-300 transition-all"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-purple-600" />
-                                <span className="font-semibold text-gray-900">
+                                <Calendar className="w-3 h-3 text-purple-600" />
+                                <span className="font-semibold text-gray-900 text-xs">
                                   {formatDate(report.datum_razgovora)}
                                 </span>
                               </div>
@@ -348,7 +366,7 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                            <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">
                               {report.podaci}
                             </p>
                           </div>
