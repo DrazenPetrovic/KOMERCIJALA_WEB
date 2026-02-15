@@ -3,7 +3,7 @@ import { withConnection } from './db.service.js';
 export const getIzvjestajiIstorija = async (sifraPartnera) => {
   // Provjera da li je parametar prosleđen
   if (sifraPartnera === undefined || sifraPartnera === null) {
-    throw new Error('sifraRadnika parametar je obavezan');
+    throw new Error('sifraPartnera parametar je obavezan');
   }
 
 
