@@ -4,6 +4,7 @@ import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
 import { OrdersList } from './OrdersList';
+import IzvlestajList from './IzvlestajList';
 
 interface DashboardProps {
   username: string;
@@ -43,6 +44,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
 
     if (activeSection === 'dugovanja') {
       return <DugovanjaList onBack={() => setActiveSection(null)} />;
+    }
+
+    if (activeSection === 'izvestaji') {
+      return <IzvlestajList onBack={() => setActiveSection(null)} />;
     }
 
     const contentMap: Record<Exclude<MenuSection, null>, string> = {

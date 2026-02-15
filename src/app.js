@@ -11,6 +11,7 @@ import partneriRoutes from './routes/partneri.routes.js';
 import terenRoutes from './routes/teren.routes.js';
 import uplateRoutes from './routes/uplate.routes.js';
 import narudzbeRoutes from './routes/narudzbe.routes.js';
+import izvjestajiRoutes from './routes/izvjestaji.routes.js';
 
 
 export const createApp = () => {
@@ -31,6 +32,7 @@ export const createApp = () => {
   app.use('/api/teren', terenRoutes);
   app.use('/api/uplate', uplateRoutes);
   app.use('/api/narudzbe', narudzbeRoutes);
+  app.use('/api/izvjestaji', izvjestajiRoutes);
 
   return app;
 };
