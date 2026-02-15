@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Users, FileText, Save, Loader, Calendar, User, Hash } from 'lucide-react';
+import { ArrowLeft, Users, FileText, Save, Loader, Calendar } from 'lucide-react';
 
 interface Partner {
   sifra_partnera: number;

@@ -93,12 +93,11 @@ interface DayOption {
   date: string;
 }
 
-// interface OrdersListProps {
-//   // onBack: () => void;
-// }
-// export function OrdersList({ onBack }: OrdersListProps) {
+interface OrdersListProps {
+  onBack: () => void;
+}
 
-export function OrdersList() {
+export function OrdersList({ onBack }: OrdersListProps) {
   // ===== STATE =====
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
   const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
