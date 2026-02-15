@@ -15,6 +15,8 @@ Svi database pozivi se izvršavaju preko **Express.js backend servera** koji kor
 - `GET /api/teren-grad` - Teren po gradu
 - `GET /api/terena-po-danima` - Teren po danima
 - `GET /api/uplate` - Uplate
+- `POST /api/izvjestaji/save` - Spremanje izvještaja o partneru
+- `GET /api/izvjestaji/:sifraPartnera` - Učitavanje izvještaja za partnera
 
 ## Frontend
 
