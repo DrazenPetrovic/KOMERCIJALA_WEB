@@ -341,7 +341,7 @@ try {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('❌ Greška:', errorMessage);
     alert('❌ Greška pri spremanju narudžbe: ' + errorMessage);
-    
+
   }
 };
 
@@ -422,7 +422,7 @@ useEffect(() => {
 
       if (tereniResult.success && tereniResult.data) {
         setTereniData(tereniResult.data);
-        console.log('✅ Tereni po danima učitani:', tereniResult.data);
+        //console.log('✅ Tereni po danima učitani:', tereniResult.data);
 
         if (tereniResult.data.length > 0) {
           const firstDay = tereniResult.data[0];
@@ -470,7 +470,7 @@ useEffect(() => {
 
       if (terenGradResult.success && terenGradResult.data) {
         setTerenGradData(terenGradResult.data);
-        console.log('✅ Teren-grad učitan:', terenGradResult.data);
+        //console.log('✅ Teren-grad učitan:', terenGradResult.data);
       }
     } catch (error) {
       console.error('❌ Error fetching teren-grad:', error);
@@ -508,7 +508,7 @@ useEffect(() => {
 
       if (kupciResult.success && kupciResult.data) {
         setKupciData(kupciResult.data);
-       
+        //console.log('✅ Kupci učitani:', kupciResult.data);
       }
     } catch (error) {
       console.error('❌ Error fetching kupci:', error);
@@ -523,7 +523,7 @@ useEffect(() => {
     try {
       setLoadingNarudzbe(true);
       setNarudzbePoKupcu([]);
-      console.log(`⏳ Učitavanje narudžbi za teren ${sifraTerena}...`);
+      //console.log(`⏳ Učitavanje narudžbi za teren ${sifraTerena}...`);
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       
@@ -1568,35 +1568,15 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
             </div>
           </div>
 
-                    {/* FOOTER SA DUGMIĆIMA - FIKSNA POZICIJA */}
-                    <div className="border-t-2 bg-white p-4 flex-shrink-0" style={{ borderColor: '#8FC74A' }}>                      
-                      {/* RED 1 - SUMMARY */}
-                      {novaArtiklUNarudzbi.length > 0 && (
-                        <div className="mb-3 rounded-lg p-3" style={{ backgroundColor: '#F5F3FF', borderLeft: '4px solid #8FC74A' }}>
-                          <div className="flex justify-between items-center gap-4">
-                            <div>
-                              <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>Broj stavki:</span>
-                              <span className="font-bold text-lg text-white px-2 py-1 rounded ml-2" style={{ backgroundColor: '#8FC74A' }}>
-                                {novaArtiklUNarudzbi.length}
-                              </span>
-                            </div>
-                            <div className="border-l-2" style={{ borderColor: '#8FC74A' }}></div>
-                            <div>
-                              <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>UKUPNO:</span>
-                              <span className="text-2xl font-bold ml-2" style={{ color: '#8FC74A' }}>
-                                {calculateModalTotalPrice().toFixed(2)} BAM
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-
-                      {/* RED 3 - DUGMIĆI */}
-                      <div className="flex gap-2 justify-end">
+                  {/* FOOTER SA DUGMIĆIMA - FIKSNA POZICIJA */}
+                  <div className="border-t-2 bg-white p-4 flex-shrink-0" style={{ borderColor: '#8FC74A' }}>
+                    <div className="flex items-center justify-between gap-4">
+                      
+                      {/* LIJEVA STRANA - DUGMIĆI */}
+                      <div className="flex gap-2">
                         <button
                           onClick={handleSaveNewOrder}
-                          className="px-6 py-3 rounded-lg transition-all text-white font-medium"
+                          className="px-6 py-3 rounded-lg transition-all text-white font-medium whitespace-nowrap"
                           style={{ backgroundColor: '#8FC74A' }}
                           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
                           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
@@ -1613,7 +1593,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                             setSelectedArtiklModal(null);
                             setSelectedVrstaPlacanja(null);
                           }}
-                          className="px-6 py-3 rounded-lg transition-all font-medium border-2"
+                          className="px-6 py-3 rounded-lg transition-all font-medium border-2 whitespace-nowrap"
                           style={{ color: '#785E9E', borderColor: '#785E9E' }}
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F3FF'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -1621,7 +1601,32 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                           Zatvori
                         </button>
                       </div>
+
+                      {/* DESNA STRANA - SUMMARY */}
+                      {novaArtiklUNarudzbi.length > 0 && (
+                        <div className="flex items-center gap-6 ml-auto">
+                          <div className="border-l-2 h-12" style={{ borderColor: '#E0E0E0' }}></div>
+                          
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>Stavki:</span>
+                            <span className="font-bold text-lg text-white px-2 py-1 rounded" style={{ backgroundColor: '#8FC74A' }}>
+                              {novaArtiklUNarudzbi.length}
+                            </span>
+                          </div>
+
+                          <div className="border-l-2 h-12" style={{ borderColor: '#E0E0E0' }}></div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>UKUPNO:</span>
+                            <span className="text-xl font-bold" style={{ color: '#8FC74A' }}>
+                              {calculateModalTotalPrice().toFixed(2)} BAM
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </div>
+
         </div>
       </div>
 )}

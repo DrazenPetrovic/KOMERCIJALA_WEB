@@ -31,7 +31,7 @@ export const createNarudzba = async (narudzbaData) => {
       // Kreni transakciju
       await connection.beginTransaction();
 
-      console.log('🔄 Transakcija pokrenuta - unos narudžbe za kupca:', sifraKupca);
+      // console.log('🔄 Transakcija pokrenuta - unos narudžbe za kupca:', sifraKupca);
 
       // Za svaki proizvod u narudžbi
       for (const proizvod of proizvodi) {
@@ -57,7 +57,7 @@ export const createNarudzba = async (narudzbaData) => {
           0                             // p_spremljena_kolicina (DEFAULT)
         ];
 
-        console.log('📦 Unos proizvoda:', sifraProizvoda, 'Količina:', kolicina);
+        // console.log('📦 Unos proizvoda:', sifraProizvoda, 'Količina:', kolicina);
 
         // Pozovi proceduru
         await connection.execute(
@@ -68,7 +68,7 @@ export const createNarudzba = async (narudzbaData) => {
 
       // Ako je sve ok, COMMIT
       await connection.commit();
-      console.log('✅ Transakcija uspješna - narudžba unijeta');
+      // console.log('✅ Transakcija uspješna - narudžba unijeta');
 
       return {
         sifraKupca,
