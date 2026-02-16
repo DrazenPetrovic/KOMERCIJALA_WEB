@@ -39,7 +39,7 @@ export const getPartnerReports = async (req, res) => {
       });
     }
 
-    const data = await IzvjestajiService.getPartnerReports(sifraPartnera);
+    const data = await IzvjestajiService.getIzvjestajiIstorija(sifraPartnera);
     return res.json({ success: true, data, count: data.length });
   } catch (error) {
     console.error('Greška pri učitavanju izvještaja:', error);
@@ -49,3 +49,29 @@ export const getPartnerReports = async (req, res) => {
     });
   }
 };
+
+
+// export const getPartnerReports = async (req, res) => {
+//   try {
+//     const { sifraPartnera } = req.params;
+
+//     if (!sifraPartnera) {
+//       return res.status(400).json({ 
+//         success: false, 
+//         error: 'Nedostaje šifra partnera' 
+//       });
+//     }
+
+//     const data = await IzvjestajiService.getPartnerReports(sifraPartnera);
+//     return res.json({ success: true, data, count: data.length });
+//   } catch (error) {
+//     console.error('Greška pri učitavanju izvještaja:', error);
+//     return res.status(500).json({ 
+//       success: false, 
+//       error: 'Greška pri učitavanju izvještaja' 
+//     });
+//   }
+// };
+
+
+

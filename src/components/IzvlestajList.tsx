@@ -8,20 +8,32 @@ interface Partner {
   sifra_grada: number;
 }
 
+// interface Report {
+//   sifra_tabele: number;
+//   sifra_radnika: number;
+//   sifra_partnera: number;
+//   datum_razgovora: string;
+//   podaci: string;
+//   poslano_emailom: number;
+// }
+
+
 interface Report {
-  sifra_tabele: number;
-  sifra_radnika: number;
-  sifra_partnera: number;
-  datum_razgovora: string;
-  podaci: string;
-  poslano_emailom: number;
+  sifra_tabele: number
+  datum_izvjestaja: string;
+  podaci_izvjestaja: string;
 }
 
-interface IzvlestajListProps {
-  onBack: () => void;
-}
+// interface HistoryItem {
+//   datum_izvjestaja: string;
+//   podaci_izvjestaja: string;
+// }
 
-export default function IzvlestajList({ onBack }: IzvlestajListProps) {
+// interface IzvlestajListProps {
+//   onBack: () => void;
+// }
+
+export default function IzvlestajList() {
   const [partneri, setPartneri] = useState<Partner[]>([]);
   const [filteredPartneri, setFilteredPartneri] = useState<Partner[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,7 +46,9 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  useEffect(() => {
+
+
+    useEffect(() => {
     fetchPartneri();
   }, []);
 
@@ -68,6 +82,8 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
 
       const result = await response.json();
 
+      // console.log('Rezultat API poziva za partneri:', result);
+      
       if (result.success && result.data) {
         const dataArray = Array.isArray(result.data) ? result.data : [];
         setPartneri(dataArray);
@@ -102,6 +118,7 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
 
       if (result.success && result.data) {
         setReports(result.data);
+        // console.log('Rezultat API poziva za izvještaje:', result.data);
       }
     } catch (err) {
       console.error('Greška pri učitavanju izvještaja:', err);
@@ -169,14 +186,14 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
     }
   };
 
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const year = date.getUTCFullYear();
-    return `${day}.${month}.${year}`;
-  };
+  // const formatDate = (dateString: string): string => {
+  //   if (!dateString) return '';
+  //   const date = new Date(dateString);
+  //   const day = String(date.getUTCDate()).padStart(2, '0');
+  //   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  //   const year = date.getUTCFullYear();
+  //   return `${day}.${month}.${year}`;
+  // };
 
   return (
     <div className="h-screen w-screen overflow-hidden" style={{ backgroundImage: 'linear-gradient(to bottom right, #ffffff, #ffffff, #f0fdf4)' }}>
@@ -325,7 +342,7 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                     ) : (
                       <>
                         <Save className="w-5 h-5" />
-                        <span>SAVE</span>
+                        <span>SAČUVAJ</span>
                       </>
                     )}
                   </button>
@@ -350,24 +367,25 @@ export default function IzvlestajList({ onBack }: IzvlestajListProps) {
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {reports.map((report) => (
                           <div
-                            key={report.sifra_tabele}
+                           key={report.sifra_tabele}
                             className="bg-gray-50 rounded-xl p-3 border-2 border-gray-200 hover:border-purple-300 transition-all"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <Calendar className="w-3 h-3 text-purple-600" />
-                                <span className="font-semibold text-gray-900 text-xs">
-                                  {formatDate(report.datum_razgovora)}
+                                <span className="font-bold text-gray-900 text-xs">
+                                
+                                  {report.datum_izvjestaja}
                                 </span>
                               </div>
-                              {report.poslano_emailom === 1 && (
+                              {/* {report.poslano_emailom === 1 && (
                                 <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                                   Poslano
                                 </span>
-                              )}
+                              )} */}
                             </div>
-                            <p className="text-xs text-gray-700 whitespace-pre-wrap break-words">
-                              {report.podaci}
+                            <p className="font-normal text-xs text-gray-700 whitespace-pre-wrap break-words">
+                              {report.podaci_izvjestaja}
                             </p>
                           </div>
                         ))}
