@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Loader, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Loader, X, Search } from 'lucide-react';
 
 // Prag za šifru kupca - ako je šifra veća od ovog broja, prikazuje se simbol
 const CUSTOMER_CODE_THRESHOLD = 10000;
@@ -78,6 +78,14 @@ interface Kupac {
   vrsta_kupca: number;
 }
 
+interface Artikal {
+  sifra_proizvoda: number;
+  naziv_proizvoda: string;
+  jm: string;
+  VPC: number;
+  mpc: number;
+}
+
 interface DaySchedule {
   sifraTerenaDostava: number;
   sifraTerena: number;
@@ -93,11 +101,19 @@ interface DayOption {
   date: string;
 }
 
-interface OrdersListProps {
-  onBack: () => void;
+
+interface TerenDostaveInfo  {
+  sifraTerenaDostava: number;
+  datum_dostave: string;
+  dan_dostave: string;
+  // dodaj ostale svojstva ako ih ima
 }
 
-export function OrdersList({ onBack }: OrdersListProps) {
+// interface OrdersListProps {
+//   onBack: () => void;
+// }
+
+export function OrdersList() {
   // ===== STATE =====
   const [tereniData, setTereniData] = useState<TerenoData[]>([]);
   const [terenGradData, setTerenGradData] = useState<TerenGrad[]>([]);
@@ -107,6 +123,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [kupciLoading, setKupciLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedTerenaSifra, setSelectedTerenaSifra] = useState<number | null>(null);
+  const [selectedTerenInfo, setSelectedTerenInfo] = useState<TerenDostaveInfo | null>(null);
   const [selectedKupac, setSelectedKupac] = useState<Kupac | null>(null);
   const [showKupacModal, setShowKupacModal] = useState(false);
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
@@ -116,19 +133,241 @@ export function OrdersList({ onBack }: OrdersListProps) {
   const [terenGradError, setTerenGradError] = useState<string | null>(null);
   const [kupciError, setKupciError] = useState<string | null>(null);
   const [expandedGrad, setExpandedGrad] = useState<number | null>(null);
-
   const [searchKupac, setSearchKupac] = useState<string>('');
+  const [artikli, setArtikli] = useState<Artikal[]>([]);
+  const [searchArtikli, setSearchArtikli] = useState('');
+
+
+  const [selectedArtiklModal, setSelectedArtiklModal] = useState<Artikal | null>(null);
+  const [novaArtiklUNarudzbi, setNovaArtiklUNarudzbi] = useState<(Artikal & { kolicina: number; napomena: string })[]>([]);
+  const [artiklKolicina, setArtiklKolicina] = useState<number>(1);
+  const [artiklNapomena, setArtiklNapomena] = useState<string>('');
+
+
+
+  const getSelectedTerenInfo = (): TerenDostaveInfo | null => {
+    if (selectedDay === null) return null;
+
+    // uniqueDays već ima: sifraTerenaDostava, day, date
+    const d = uniqueDays.find(x => x.sifraTerenaDostava === selectedDay);
+    if (!d) return null;
+
+    return {
+      sifraTerenaDostava: d.sifraTerenaDostava,
+      datum_dostave: d.date, // već je dd.MM.yyyy
+      dan_dostave: d.day,
+    };
+  };
 
 
   // DODAJ OVAJ RED ISPOD:
   const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
+
+
+
+
+  const handleSelectArtikl = (artikal: Artikal) => {
+    setSelectedArtiklModal(artikal);
+    setArtiklKolicina(1);
+    setArtiklNapomena('');
+    };
   
+
+      const formatPrice = (price: number | string | undefined | null): string => {
+        if (price === null || price === undefined) return '0.00';
+        const numPrice = typeof price === 'number' ? price : parseFloat(String(price));
+        return isNaN(numPrice) ? '0.00' : numPrice.toFixed(2);
+      };
+
+      const getPrice = (price: number | string | undefined | null): number => {
+        if (price === null || price === undefined) return 0;
+        const numPrice = typeof price === 'number' ? price : parseFloat(String(price));
+        return isNaN(numPrice) ? 0 : numPrice;
+      };
+
+
+    // const calculateModalTotalPrice = () => {
+    //   return novaArtiklUNarudzbi.reduce((total, a) => {
+    //   const price = typeof a.mpc === 'number' ? a.mpc : parseFloat(String(a.mpc) || '0');
+    //   return total + (isNaN(price) ? 0 : price * a.kolicina);
+    //       }, 0);
+    // };
+
   const mockSchedule: Record<number, DaySchedule> = {};
+
+
+  // ===== FUNKCIJE VEZAN ZA NARUDZBE  =====
+const handleAddArtiklToModalOrder = () => {
+  if (!selectedArtiklModal || artiklKolicina <= 0) return;
+
+  // Provjeri da li artikal već postoji u OVOJ narudžbi (samo u modalu)
+  const existingIndex = novaArtiklUNarudzbi.findIndex(
+    (a) => a.sifra_proizvoda === selectedArtiklModal.sifra_proizvoda
+  );
+
+  if (existingIndex >= 0) {
+    // Ako postoji, ažuriraj količinu
+    const updatedList = [...novaArtiklUNarudzbi];
+    updatedList[existingIndex] = {
+      ...updatedList[existingIndex],
+      kolicina: updatedList[existingIndex].kolicina + artiklKolicina,
+      napomena: artiklNapomena || updatedList[existingIndex].napomena,
+    };
+    setNovaArtiklUNarudzbi(updatedList);
+  } else {
+    // Ako ne postoji, dodaj novi
+    setNovaArtiklUNarudzbi([
+      ...novaArtiklUNarudzbi,
+      {
+        ...selectedArtiklModal,
+        kolicina: artiklKolicina,
+        napomena: artiklNapomena,
+      },
+    ]);
+  }
+
+  // Resetuj formu
+  setSelectedArtiklModal(null);
+  setArtiklKolicina(1);
+  setArtiklNapomena('');
+};
+
+const handleRemoveArtiklFromModalOrder = (sifraProizvoda: number) => {
+  setNovaArtiklUNarudzbi(
+    novaArtiklUNarudzbi.filter((a) => a.sifra_proizvoda !== sifraProizvoda)
+  );
+};
+
+const handleUpdateModalArtiklKolicina = (sifraProizvoda: number, novaKolicina: number) => {
+  if (novaKolicina <= 0) {
+    handleRemoveArtiklFromModalOrder(sifraProizvoda);
+    return;
+  }
+
+  const updatedList = novaArtiklUNarudzbi.map((a) =>
+    a.sifra_proizvoda === sifraProizvoda ? { ...a, kolicina: novaKolicina } : a
+  );
+  setNovaArtiklUNarudzbi(updatedList);
+};
+
+const calculateModalTotalPrice = () => {
+  return novaArtiklUNarudzbi.reduce(
+    (total, a) => total + a.VPC * a.kolicina,
+    0
+  );
+};
+
+// Funkcija za slanje narudžbe
+const handleSaveNewOrder = async () => {
+  if (!selectedKupac || novaArtiklUNarudzbi.length === 0) {
+    alert('Odaberi kupca i dodaj najmanje jedan proizvod!');
+    return;
+  }
+
+  try {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    // Pripremi podatke za slanje
+    const orderData = {
+      sifraKupca: selectedKupac.sifra_kupca,
+      proizvodi: novaArtiklUNarudzbi.map((a) => ({
+        sifraProizvoda: a.sifra_proizvoda,
+        kolicina: a.kolicina,
+        napomena: a.napomena,
+      })),
+    };
+
+    const response = await fetch(`${apiUrl}/api/narudzbe/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Greška pri spremanju narudžbe');
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('✅ Narudžba uspješno spremljena!');
+      
+      // Resetuj modal
+      setNovaArtiklUNarudzbi([]);
+      setSelectedArtiklModal(null);
+      setArtiklKolicina(1);
+      setArtiklNapomena('');
+      setShowKupacModal(false);
+      setSelectedKupac(null);
+      
+      // Osvježi narudžbe
+      if (selectedDay) {
+        fetchAktivneNarudzbe(selectedDay);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Greška:', error);
+    alert('❌ Greška pri spremanju narudžbe');
+  }
+};
+
+
+  // ===== KRAJ FUNKCIJE VEZAN ZA NARUDZBE =====
 
   // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
   useEffect(() => {
     fetchTerenPoDanima();
   }, []);
+
+
+useEffect(() => {
+  const fetchArtikli = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      
+      const response = await fetch(`${apiUrl}/api/artikli`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Ovo prikuplja JWT token iz cookies
+      });
+
+      if (!response.ok) {
+        console.warn('⚠️ Greška pri učitavanju artikala:', response.status);
+        setArtikli([]);
+        return;
+      }
+
+      const data = await response.json();
+      
+      console.log('📦 Odgovor sa servera:', data);
+      
+      if (data.success && data.data) {
+        setArtikli(data.data);
+        console.log('✅ Artikli uspješno učitani:', data.data.length, 'artikala');
+      } else if (Array.isArray(data)) {
+        // Ako server direktno vraća niz
+        setArtikli(data);
+        console.log('✅ Artikli uspješno učitani:', data.length, 'artikala');
+      } else {
+        console.warn('⚠️ Neočekivan format podataka:', data);
+        setArtikli([]);
+      }
+    } catch (error) {
+      console.error('❌ Greška pri učitavanju artikala:', error);
+      setArtikli([]);
+    }
+  };
+
+  if (showKupacModal) {
+    console.log('📥 Učitavanje artikala...');
+    fetchArtikli();
+  }
+}, [showKupacModal]);
 
   const fetchTerenPoDanima = async () => {
     try {
@@ -156,7 +395,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
           const firstDay = tereniResult.data[0];
           setSelectedDay(firstDay.sifra_terena_dostava);
           setSelectedTerenaSifra(firstDay.sifra_terena);
-          
+
           // Učitaj narudžbe za prvi dan
           if (firstDay.sifra_terena_dostava) {
             fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
@@ -236,7 +475,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
       if (kupciResult.success && kupciResult.data) {
         setKupciData(kupciResult.data);
-        console.log('✅ Kupci učitani:', kupciResult.data);
+       
       }
     } catch (error) {
       console.error('❌ Error fetching kupci:', error);
@@ -275,8 +514,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
       const grupisaneResult = await grupisaneResponse.json();
       const aktivneResult = await aktivneResponse.json();
 
-      console.log('✅ Grupisane narudžbe:', grupisaneResult.data);
-      console.log('✅ Aktivne narudžbe:', aktivneResult.data);
+
 
       // Kombiniraj podatke - grupisane sadrže kupce, aktivne proizvode
       if (grupisaneResult.success && aktivneResult.success) {
@@ -322,7 +560,7 @@ export function OrdersList({ onBack }: OrdersListProps) {
 
         const narudzbe = Array.from(kupciMap.values());
         setNarudzbePoKupcu(narudzbe);
-        console.log('✅ Narudžbe po kupcu formirane:', narudzbe);
+       
       }
     } catch (error) {
       console.error('❌ Error fetching aktivne narudžbe:', error);
@@ -414,11 +652,11 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
     }
   };
 
-  const handleKupacClick = (kupac: Kupac) => {
-    setSelectedKupac(kupac);
-    setShowKupacModal(true);
-  };
-
+    const handleKupacClick = (kupac: Kupac, terenInfo: TerenDostaveInfo) => {
+      setSelectedKupac(kupac);
+      setSelectedTerenInfo(terenInfo); // ← Šifra
+      setShowKupacModal(true);
+    };
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
 
@@ -470,7 +708,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                     <button
                       key={d.sifraTerenaDostava}
                       onClick={() => {
-                        console.log('Sifra narudzbe:', d.sifraTerenaDostava);
+                        // console.log('Sifra narudzbe:', d.sifraTerenaDostava);
                         handleDayClick(d);
                       }}
                       className={`px-3 py-2 rounded-lg whitespace-nowrap text-xs md:text-sm font-medium transition-all ${
@@ -651,7 +889,15 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                               getKupciForGrad(grad.sifra_grada).map((kupac) => (
                                 <button
                                   key={kupac.sifra_kupca}
-                                  onClick={() => handleKupacClick(kupac)}
+                                  onClick={() => {
+                                    
+                                              const terenInfo = getSelectedTerenInfo();
+                                              if (!terenInfo) {
+                                                alert('Odaberi dan prije nego što odabereš kupca!');
+                                                return;
+                                              }
+                                              handleKupacClick(kupac, terenInfo);
+                                     }}
                                   className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left font-medium ${
                                     selectedKupac?.sifra_kupca === kupac.sifra_kupca
                                       ? 'text-white shadow-lg'
@@ -804,7 +1050,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                                   </tr>
                                 ) : (
                                   kupac.proizvodi.map((proizvod, index) => (
-                                    console.log('Proizvod:', proizvod.kolicina),
+                                   // console.log('Proizvod:', proizvod.kolicina),
                                     <tr key={`${kupac.sifra_kupca}-${proizvod.sif}-${index}`} className="hover:bg-gray-50 transition-colors">
                                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                         {proizvod.sif}
@@ -838,81 +1084,467 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
         </div>
       </div>
 
-      {/* ===== MODAL ZA KUPCA ===== */}
-      {showKupacModal && selectedKupac && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold" style={{ color: '#785E9E' }}>
-                Odabrani kupac
-              </h2>
-              <button
-                onClick={() => {
-                  setShowKupacModal(false);
-                  setSelectedKupac(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
+{/* ===== MODAL ZA KUPCA ===== */}
+{showKupacModal && selectedKupac && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-[5px]">
+    <div className="bg-white rounded-xl shadow-2xl w-full h-[calc(100vh-10px)] flex flex-col overflow-hidden">
+      
+      {/* HEADER SA ZAGLAVJEM I PODACIMA */}
+      <div className="border-b-2 p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#785E9E', borderColor: '#8FC74A' }}>
+        <div className="flex justify-start">
+          {/* INFORMATIVNA KARTCA SA PODACIMA */}
+          <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs" style={{ borderColor: '#8FC74A' }}>
+            <div className="space-y-3">
+              {/* DAN */}
+              <div className="rounded-lg p-2" style={{ backgroundColor: '#F5F3FF', borderLeft: '3px solid #8FC74A' }}>
+                <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>DAN DOSTAVE</div>
+                   <div className="text-lg font-bold" style={{ color: '#8FC74A' }}>
+                        {selectedTerenInfo?.dan_dostave} - {selectedTerenInfo?.datum_dostave}
+                  </div>
+                  {/* NOVO: šifra terena */}
+                    <div className="text-xs text-gray-600 mt-1">
+                      Šifra terena:{" "}
+                      <span className="font-semibold text-gray-800">
+                        {selectedTerenInfo?.sifraTerenaDostava}
+                      </span>
+                    </div>
+              </div>
+
+              {/* KUPAC */}
+    
+                  {/* KUPAC */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* ŠIFRA */}
+                    <div>
+                      <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
+                        ŠIFRA KUPCA
+                      </div>
+                      <div className="text-lg font-bold" style={{ color: '#785E9E' }}>
+                        {selectedKupac.sifra_kupca}
+                      </div>
+                    </div>
+
+                    {/* GRAD */}
+                    <div>
+                      <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
+                        GRAD
+                      </div>
+                      <div className="text-gray-700 text-sm">
+                        {selectedKupac.naziv_grada}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NAZIV ISPOD */}
+                  <div>
+                    <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
+                      NAZIV KUPCA
+                    </div>
+                    <div className="text-sm font-semibold text-gray-800">
+                      {selectedKupac.naziv_kupca}
+                    </div>
+                  </div>
+        
+        
+            </div>
+          </div>
+        </div>
+        
+        {/* CLOSE BUTTON */}
+        <button
+          onClick={() => {
+            setShowKupacModal(false);
+            setSelectedKupac(null);
+            setSelectedTerenInfo(null);
+            setNovaArtiklUNarudzbi([]);
+            setSelectedArtiklModal(null);
+          }}
+          className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all flex-shrink-0 mt-1"
+        >
+          <X className="w-5 h-5 text-white" />
+        </button>
+      </div>
+
+      {/* MAIN CONTENT AREA - DVIJE KOLONE */}
+      <div className="flex-1 overflow-hidden flex gap-4 p-4">
+        
+        {/* LIJEVA STRANA - ARTIKLI (30%) */}
+        <div className="w-[30%] flex flex-col border-r-2 pr-4" style={{ borderColor: '#8FC74A' }}>
+          {/* PRETRAGA ARTIKALA */}
+          <div className="mb-4 flex-shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Pretraži artikle..."
+                value={searchArtikli}
+                onChange={(e) => setSearchArtikli(e.target.value)}
+                className="w-full px-3 py-2 pl-10 border-2 rounded-lg focus:outline-none transition-all text-sm"
+                style={{ borderColor: '#8FC74A' }}
+                onFocus={(e) => e.currentTarget.style.borderColor = '#785E9E'}
+                onBlur={(e) => e.currentTarget.style.borderColor = '#8FC74A'}
+              />
+            </div>
+          </div>
+              {/* LISTA ARTIKALA - 2 KOLONE (kartica ~50% širine) */}
+              <div className="flex-1 overflow-y-auto pr-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {artikli
+                    .filter((artikal) =>
+                      artikal.naziv_proizvoda?.toLowerCase().includes(searchArtikli.toLowerCase()) ||
+                      artikal.sifra_proizvoda?.toString().includes(searchArtikli)
+                    )
+                    .map((artikal) => (
+                      <div
+                        key={artikal.sifra_proizvoda}
+                        onClick={() => handleSelectArtikl(artikal)}
+                        className="bg-white border-2 rounded-lg p-2 hover:shadow-md transition-all cursor-pointer"
+                        style={{ borderColor: '#DDD' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#8FC74A')}
+                        onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#DDD')}
+                      >
+                        <div className="flex flex-col gap-2">
+                          {/* Gornji dio */}
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-semibold" style={{ color: '#785E9E' }}>
+                              {artikal.sifra_proizvoda}
+                            </div>
+                            <div className="text-xs font-semibold text-gray-800 truncate">
+                              {artikal.naziv_proizvoda}
+                            </div>
+                            <div className="text-[11px] font-bold mt-1" style={{ color: '#8FC74A' }}>
+                              JM: {artikal.jm}
+                            </div>
+                          </div>
+
+                          {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
+                          <div className="space-y-2 text-xs">
+                            <div className="rounded p-2" style={{ backgroundColor: '#F0F4FF' }}>
+                              <div className="font-semibold" style={{ color: '#785E9E' }}>
+                                VPC
+                              </div>
+                              <div className="font-bold mt-1" style={{ color: '#8FC74A' }}>
+                                {formatPrice(artikal.VPC)} BAM
+                              </div>
+                            </div>
+
+                            <div className="rounded p-2" style={{ backgroundColor: '#F0FFF4' }}>
+                              <div className="font-semibold" style={{ color: '#785E9E' }}>
+                                MPC
+                              </div>
+                              <div className="font-bold mt-1" style={{ color: '#8FC74A' }}>
+                                {formatPrice(artikal.mpc)} BAM
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                  {artikli.filter((a) =>
+                    a.naziv_proizvoda?.toLowerCase().includes(searchArtikli.toLowerCase()) ||
+                    a.sifra_proizvoda?.toString().includes(searchArtikli)
+                  ).length === 0 && (
+                    <div className="col-span-2 text-center text-gray-400 py-8">
+                      <p className="text-sm">Nema pronađenih artikala</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
+         </div>
+
+        {/* DESNA STRANA - SADRŽAJ (70%) */}
+        <div className="flex-1 overflow-y-auto flex flex-col bg-gray-50">
+          {selectedArtiklModal ? (
+            <>
+              {/* FORMA ZA DODAVANJE ARTIKLA U NOVU NARUDŽBU */}
+              <div className="p-4 border-b-2 flex-shrink-0 bg-white" style={{ borderColor: '#8FC74A' }}>
+                <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#F5F3FF', borderLeft: '4px solid #8FC74A' }}>
+                  <h3 className="font-bold text-lg mb-2" style={{ color: '#785E9E' }}>
+                    {selectedArtiklModal.naziv_proizvoda}
+                  </h3>
+                  <div className="space-y-2 text-sm mb-3">
+                    <div>
+                      <span className="font-semibold" style={{ color: '#785E9E' }}>Šifra:</span>
+                      <p className="font-semibold text-gray-700">{selectedArtiklModal.sifra_proizvoda}</p>
+                    </div>
+                    <div>
+                      <span className="font-bold" style={{ color: '#785E9E' }}>Jedinica mjere:</span>
+                      <p className="font-bold text-base" style={{ color: '#8FC74A' }}>{selectedArtiklModal.jm}</p>
+                    </div>
+                    <div>
+                      <span className="font-semibold" style={{ color: '#785E9E' }}>VPC:</span>
+                      <p className="font-semibold" style={{ color: '#8FC74A' }}>
+                        {formatPrice(selectedArtiklModal.VPC)} BAM
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-semibold" style={{ color: '#785E9E' }}>MPC:</span>
+                      <p className="font-semibold" style={{ color: '#8FC74A' }}>
+                        {formatPrice(selectedArtiklModal.mpc)} BAM
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* INPUT POLJA */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: '#785E9E' }}>
+                      Količina ({selectedArtiklModal.jm}) *
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setArtiklKolicina(Math.max(1, artiklKolicina - 1))}
+                        className="px-3 py-2 rounded-lg transition-all font-bold text-white"
+                        style={{ backgroundColor: '#8FC74A' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.1"
+                        value={artiklKolicina}
+                        onChange={(e) => setArtiklKolicina(Math.max(1, parseFloat(e.target.value) || 1))}
+                        className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
+                        style={{ borderColor: '#8FC74A' }}
+                        onFocus={(e) => e.currentTarget.style.borderColor = '#785E9E'}
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#8FC74A'}
+                      />
+                      <button
+                        onClick={() => setArtiklKolicina(artiklKolicina + 1)}
+                        className="px-3 py-2 rounded-lg transition-all font-bold text-white"
+                        style={{ backgroundColor: '#8FC74A' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-2" style={{ color: '#785E9E' }}>
+                      Napomena (opciono)
+                    </label>
+                    <textarea
+                      value={artiklNapomena}
+                      onChange={(e) => setArtiklNapomena(e.target.value)}
+                      placeholder="Unesite napomenu..."
+                      rows={3}
+                      className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none"
+                      style={{ borderColor: '#8FC74A' }}
+                      onFocus={(e) => e.currentTarget.style.borderColor = '#785E9E'}
+                      onBlur={(e) => e.currentTarget.style.borderColor = '#8FC74A'}
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleAddArtiklToModalOrder}
+                      className="flex-1 px-4 py-3 rounded-lg transition-all text-white font-medium"
+                      style={{ backgroundColor: '#8FC74A' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      Dodaj u narudžbu
+                    </button>
+                    <button
+                      onClick={() => setSelectedArtiklModal(null)}
+                      className="flex-1 px-4 py-3 rounded-lg transition-all font-medium border-2"
+                      style={{ color: '#785E9E', borderColor: '#785E9E' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F3FF'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      Otkazi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+
+            {/* LISTA STAVKI U NOVANOJ NARUDŽBI */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {novaArtiklUNarudzbi.length === 0 ? (
+                <div className="text-center text-gray-400 py-12">
+                  <p className="text-sm">Odaberi artikal sa lijeve strane da ga dodaš u narudžbu</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-3">
+                  {novaArtiklUNarudzbi.map((artikal) => (
+                    <div
+                      key={artikal.sifra_proizvoda}
+                      className="bg-white border-2 rounded-lg p-2 hover:shadow-md transition-all flex flex-col"
+                      style={{ borderColor: '#8FC74A' }}
+                    >
+                      {/* HEADER - NAZIV I CLOSE */}
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 text-[11px] truncate">{artikal.naziv_proizvoda}</h4>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            Šifra: <span className="font-bold">{artikal.sifra_proizvoda}</span>
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveArtiklFromModalOrder(artikal.sifra_proizvoda)}
+                          className="p-1 rounded-lg transition-all flex-shrink-0 ml-1"
+                          style={{ backgroundColor: '#FFE5E5' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FFD5D5'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFE5E5'}
+                        >
+                          <Trash2 className="w-3 h-3 text-red-600" />
+                        </button>
+                      </div>
+
+                      {/* JM */}
+                      <div className="text-[10px] font-bold mb-2" style={{ color: '#8FC74A' }}>
+                        JM: {artikal.jm}
+                      </div>
+
+                      {/* CIJENE - VERTIKALNO */}
+                      <div className="space-y-1 mb-2 pb-2 border-b" style={{ borderColor: '#E0E0E0' }}>
+                        <div className="rounded p-1" style={{ backgroundColor: '#F5F3FF' }}>
+                          <span className="text-[10px] font-semibold" style={{ color: '#785E9E' }}>VPC:</span>
+                          <p className="font-bold text-[10px]" style={{ color: '#8FC74A' }}>{formatPrice(artikal.VPC)} BAM</p>
+                        </div>
+                        <div className="rounded p-1" style={{ backgroundColor: '#F0FFF4' }}>
+                          <span className="text-[10px] font-semibold" style={{ color: '#785E9E' }}>MPC:</span>
+                          <p className="font-bold text-[10px]" style={{ color: '#8FC74A' }}>{formatPrice(artikal.mpc)} BAM</p>
+                        </div>
+                      </div>
+
+                      {/* KOLIČINA */}
+                      <div className="mb-2">
+                        <span className="text-[10px] font-semibold" style={{ color: '#785E9E' }}>Količina:</span>
+                        <div className="flex items-center gap-0.5 mt-1">
+                          <button
+                            onClick={() =>
+                              handleUpdateModalArtiklKolicina(artikal.sifra_proizvoda, artikal.kolicina - 1)
+                            }
+                            className="px-1 py-0.5 rounded text-[10px] font-bold text-white"
+                            style={{ backgroundColor: '#8FC74A' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="1"
+                            value={artikal.kolicina}
+                            onChange={(e) =>
+                              handleUpdateModalArtiklKolicina(
+                                artikal.sifra_proizvoda,
+                                parseFloat(e.target.value) || 1
+                              )
+                            }
+                            className="flex-1 px-1 py-0.5 border rounded text-center text-[10px] font-semibold"
+                            style={{ borderColor: '#8FC74A' }}
+                          />
+                          <button
+                            onClick={() =>
+                              handleUpdateModalArtiklKolicina(artikal.sifra_proizvoda, artikal.kolicina + 1)
+                            }
+                            className="px-1 py-0.5 rounded text-[10px] font-bold text-white"
+                            style={{ backgroundColor: '#8FC74A' }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* UKUPNO */}
+                      <div className="rounded-lg p-2 mb-2" style={{ backgroundColor: '#F5F3FF', borderLeft: '3px solid #8FC74A' }}>
+                        <span className="text-[10px] font-semibold" style={{ color: '#785E9E' }}>UKUPNO:</span>
+                        <p className="font-bold text-[11px]" style={{ color: '#8FC74A' }}>
+                          {formatPrice((getPrice(artikal.mpc) * artikal.kolicina))} BAM
+                        </p>
+                      </div>
+
+                      {/* NAPOMENA */}
+                      {artikal.napomena && (
+                        <div className="rounded p-1 text-[10px] mt-auto" style={{ backgroundColor: '#FFFEF0', borderLeft: '3px solid #FFD700' }}>
+                          <p className="text-gray-700 font-semibold">📝</p>
+                          <p className="text-gray-600 mt-0.5 break-words">{artikal.napomena}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4 mb-6">
-              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-                <div className="text-sm text-gray-600 mb-1">Šifra kupca:</div>
-                <div className="text-2xl font-bold" style={{ color: '#785E9E' }}>
-                  {selectedKupac.sifra_kupca}
-                </div>
-              </div>
+               </>
+          )}
+        </div>
+      </div>
 
-              <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
-                <div className="text-sm text-gray-600 mb-1">Naziv kupca:</div>
-                <div className="text-xl font-semibold text-gray-800">
-                  {selectedKupac.naziv_kupca}
+      
+          {/* FOOTER SA DUGMIĆIMA - FIKSNA POZICIJA */}
+          <div className="border-t-2 bg-white p-4 flex gap-3 flex-shrink-0" style={{ borderColor: '#8FC74A' }}>
+            <div className="flex-1 flex gap-3">
+              {/* SUMMARY NA DNU - PROSIRENO */}
+              {novaArtiklUNarudzbi.length > 0 && (
+                <div className="flex-1 rounded-lg p-3" style={{ backgroundColor: '#F5F3FF', borderLeft: '4px solid #8FC74A' }}>
+                  <div className="flex justify-between items-center gap-4">
+                    <div>
+                      <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>Broj stavki:</span>
+                      <span className="font-bold text-lg text-white px-2 py-1 rounded ml-2" style={{ backgroundColor: '#8FC74A' }}>
+                        {novaArtiklUNarudzbi.length}
+                      </span>
+                    </div>
+                    <div className="border-l-2" style={{ borderColor: '#8FC74A' }}></div>
+                    <div>
+                      <span className="text-sm font-semibold" style={{ color: '#785E9E' }}>UKUPNO:</span>
+                      <span className="text-2xl font-bold ml-2" style={{ color: '#8FC74A' }}>
+                        {calculateModalTotalPrice().toFixed(2)} BAM
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
-                <div className="text-sm text-gray-600 mb-1">Grad:</div>
-                <div className="text-lg font-medium text-gray-800">
-                  {selectedKupac.naziv_grada}
-                </div>
-              </div>
-
-              <div className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
-                <div className="text-sm text-gray-600 mb-1">Vrsta kupca:</div>
-                <div className="text-lg font-medium text-gray-800">
-                  {selectedKupac.vrsta_kupca}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
+              {/* DUGMIĆI */}
               <button
-                onClick={() => {
-                  console.log('Odabrani kupac:', selectedKupac);
-                  setShowKupacModal(false);
-                }}
-                className="flex-1 px-4 py-3 rounded-lg transition-all text-white font-medium"
+                onClick={handleSaveNewOrder}
+                className="px-6 py-2 rounded-lg transition-all text-white font-medium"
                 style={{ backgroundColor: '#8FC74A' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7fb83a'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8FC74A'}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.85'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                disabled={novaArtiklUNarudzbi.length === 0}
               >
-                Kreiraj narudžbu
+                Spremi sve
               </button>
+
               <button
                 onClick={() => {
                   setShowKupacModal(false);
                   setSelectedKupac(null);
+                  setNovaArtiklUNarudzbi([]);
+                  setSelectedArtiklModal(null);
                 }}
-                className="flex-1 px-4 py-3 rounded-lg transition-all text-gray-700 font-medium border-2 border-gray-300 hover:bg-gray-50"
+                className="px-6 py-2 rounded-lg transition-all font-medium border-2"
+                style={{ color: '#785E9E', borderColor: '#785E9E' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F3FF'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 Zatvori
               </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+)}
     </div>
   );
 }
