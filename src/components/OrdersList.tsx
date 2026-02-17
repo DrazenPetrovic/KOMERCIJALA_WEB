@@ -1119,11 +1119,10 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
 
 {/* ===== MODAL ZA KUPCA ===== */}
 {showKupacModal && selectedKupac && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-[5px]">
-    <div className="bg-white rounded-xl shadow-2xl w-full h-[calc(100vh-10px)] flex flex-col overflow-hidden">
-      
-      {/* HEADER SA ZAGLAVJEM I PODACIMA */}
-      <div className="border-b-2 p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#785E9E', borderColor: '#8FC74A' }}>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-[5px]">
+    <div className="bg-white rounded-xl shadow-2xl w-full max-h-[95vh] flex flex-col overflow-hidden">
+      {/* HEADER SA ZAGLAVJEM I PODACIMA */}   
+      <div className="border-b-2 p-3 md:p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#785E9E', borderColor: '#8FC74A' }}>
         <div className="flex justify-start">
           {/* INFORMATIVNA KARTCA SA PODACIMA */}
           <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs" style={{ borderColor: '#8FC74A' }}>
@@ -1207,7 +1206,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
       </div>
 
                   {/* MAIN CONTENT AREA - DVIJE KOLONE */}
-   <div className="flex-1 overflow-hidden flex gap-4 p-4" style={{ opacity: selectedVrstaPlacanja ? 1 : 0.5, pointerEvents: selectedVrstaPlacanja ? 'auto' : 'none' }}>
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row gap-3 md:gap-4 p-3 md:p-4" style={{ opacity: selectedVrstaPlacanja ? 1 : 0.5, pointerEvents: selectedVrstaPlacanja ? 'auto' : 'none' }}>
       
         {/* LIJEVA STRANA - ARTIKLI (30%) */}
         <div className="w-[30%] flex flex-col border-r-2 pr-4" style={{ borderColor: '#8FC74A' }}>
@@ -1555,7 +1554,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
           </div>
 
                   {/* FOOTER SA DUGMIĆIMA - FIKSNA POZICIJA */}
-                  <div className="border-t-2 bg-white p-4 flex-shrink-0" style={{ borderColor: '#8FC74A' }}>
+                  <div className="border-t-2 bg-white p-3 md:p-4 flex-shrink-0" style={{ borderColor: '#8FC74A' }}>
                     <div className="flex items-center justify-between gap-4">
                       
                       {/* LIJEVA STRANA - DUGMIĆI */}
