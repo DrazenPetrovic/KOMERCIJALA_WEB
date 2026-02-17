@@ -14,9 +14,57 @@ export const getPartneri = async (sifraRadnika) => {
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
-// export const getPartneri = async () => {
-//   return withConnection(async (connection) => {
-//     const [rows] = await connection.execute('CALL komercijala.pregled_svih_partnera()');
-//     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
-//   });
-// };
+
+
+// ✅ ISPRAVLJENA FUNKCIJA
+export const getPartneriSaADodacima = async () => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.partneri_dodatni_podaci()'
+    );
+    
+    console.log('Rows from procedure:', rows);
+    console.log('Rows length:', rows?.length);
+    
+    // Procedura vraća 2 result seta
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return [];
+    }
+
+    // Prvi result set su partneri
+    const partneriSet = rows[0];
+    
+    // Drugi result set su dodatni podaci
+    const dodatniPodaciSet = rows[1] || [];
+
+    console.log('Partneri:', partneriSet);
+    console.log('Dodatni podaci:', dodatniPodaciSet);
+
+    // Provjeri da li su arraji
+    if (!Array.isArray(partneriSet) || !Array.isArray(dodatniPodaciSet)) {
+      console.error('Partneri ili dodatni podaci nisu arraji');
+      return Array.isArray(partneriSet) ? partneriSet : [];
+    }
+
+    // Kombinuj podatke
+    return partneriSet.map(partner => ({
+      ...partner,
+      dodatniPodaci: dodatniPodaciSet.filter(
+        p => p.sifra_partnera === partner.sifra_partnera
+      )
+    }));
+  });
+};
+
+export const getPartneriDodatniPodaci = async () => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.partneri_dodatni_podaci()'
+    );
+    
+    console.log('Dodatni podaci rows:', rows);
+    
+    return Array.isArray(rows) ? rows : [];
+  });
+};
+
