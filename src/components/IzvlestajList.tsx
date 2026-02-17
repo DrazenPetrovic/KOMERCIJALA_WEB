@@ -196,12 +196,16 @@ export default function IzvlestajList() {
   // };
 
   return (
-    <div className="h-screen w-screen overflow-hidden" style={{ backgroundImage: 'linear-gradient(to bottom right, #ffffff, #ffffff, #f0fdf4)' }}>
+    <div className="h-screen w-full overflow-x-hidden">
+
       <div className="h-full w-full px-4 md:px-6 lg:px-8 py-4">
         
-        <div className="grid gap-6 h-full w-full max-w-7xl ml-0" style={{ gridTemplateColumns: '30% 1fr' }}>
+        <div className="grid gap-6 h-full w-full grid-cols-1 lg:grid-cols-[minmax(280px,30%)_minmax(0,1fr)]">
+
+
           {/* LIJEVA STRANA - LISTA PARTNERA (30%) */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full min-w-0">
+
             <div className="px-6 md:px-8 py-4 md:py-6" style={{ backgroundImage: 'linear-gradient(to right, #785E9E, #6a4f8a)' }}>
               <div className="flex items-center gap-3">
                 <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
@@ -259,7 +263,7 @@ export default function IzvlestajList() {
           </div>
 
           {/* DESNA STRANA - FORMA ZA IZVJEŠTAJ (70%) */}
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full min-w-0 ">
             <div className="px-6 md:px-8 py-4 md:py-6 flex-shrink-0" style={{ backgroundImage: 'linear-gradient(to right, #8FC74A, #7fb83a)' }}>
               <div className="flex items-center gap-3">
                 <FileText className="w-6 h-6 md:w-8 md:h-8 text-white" />
