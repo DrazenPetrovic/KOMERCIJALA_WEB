@@ -291,9 +291,9 @@ try {
       sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
       vrstaPlacanja: selectedVrstaPlacanja,
       proizvodi: novaArtiklUNarudzbi.map((a) => ({
-        sifraProizvoda: a.sifra_proizvoda,
-        kolicina: a.kolicina,
-        napomena: a.napomena,
+      sifraProizvoda: a.sifra_proizvoda,
+      kolicina: a.kolicina,
+      napomena: a.napomena || '',
       })),
     };
 
@@ -1202,20 +1202,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
             
           </div>
         </div>
-        
-        {/* CLOSE BUTTON */}
-        {/* <button
-          onClick={() => {
-            setShowKupacModal(false);
-            setSelectedKupac(null);
-            setSelectedTerenInfo(null);
-            setNovaArtiklUNarudzbi([]);
-            setSelectedArtiklModal(null);
-          }}
-          className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-all flex-shrink-0 mt-1"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button> */}
 
 
       </div>
