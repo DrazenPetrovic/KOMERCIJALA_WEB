@@ -68,3 +68,33 @@ export const getPartneriDodatniPodaci = async () => {
   });
 };
 
+
+// Dodajte:
+
+export const addDodatniPodaci = async (data) => {
+  return withConnection(async (connection) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const [result] = await connection.execute(
+      `CALL komercijala.partneri_dodatni_podaci_unosi(
+        ?, ?, ?, ?, 0, ?
+      )`,
+      [
+        data.sifra_partnera,
+        data.dodatni_podaci_opis,
+        data.dodatni_podaci, // TELEFON
+        data.sifra_radnika,
+        today
+      ]
+    );
+
+    return {
+      sifra_partnera: data.sifra_partnera,
+      dodatni_podaci_opis: data.dodatni_podaci_opis,
+      dodatni_podaci: data.dodatni_podaci,
+      naziv_radnika: data.sifra_radnika,
+      datum_unosa: today
+    };
+  });
+};
+

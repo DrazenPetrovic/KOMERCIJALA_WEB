@@ -22,6 +22,10 @@ interface Partner {
   dodatniPodaci?: DodatniPodaci[];
  
 }
+// OVO JE VEZANO ZA DODAVANJE DODATNIH PODATAKA - opcionalno, može se ukloniti ako se ne koristi
+
+
+
 
 interface PartneriListProps {
   onBack: () => void;
@@ -145,9 +149,72 @@ const fetchDodatniPodaci = async (partneriList: Partner[]) => {
 
 
 
+const [showAddForm, setShowAddForm] = useState(false);
+const [formData, setFormData] = useState({
+  dodatni_podaci_opis: '',
+  dodatni_podaci: '', // TELEFON
+});
+const [submitLoading, setSubmitLoading] = useState(false);
 
+const handleAddDodatniPodaci = async () => {
+  if (!formData.dodatni_podaci_opis.trim() || !formData.dodatni_podaci.trim()) {
+    alert('Popunite oba polja!');
+    return;
+  }
 
+  if (!selectedPartner) return;
 
+  try {
+    setSubmitLoading(true);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    const response = await fetch(`${apiUrl}/api/partneri/dodatni-podaci-unos`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sifra_partnera: selectedPartner.sifra_partnera,
+        dodatni_podaci_opis: formData.dodatni_podaci_opis,
+        dodatni_podaci: formData.dodatni_podaci,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Osvježi podatke
+      const updatedPartner = {
+        ...selectedPartner,
+        dodatniPodaci: [
+          ...(selectedPartner.dodatniPodaci || []),
+          result.data, // Novi unos
+        ],
+      };
+      setSelectedPartner(updatedPartner);
+
+      // Osvježi listu
+      fetchPartneri();
+
+      // Očisti formu
+      setFormData({
+        dodatni_podaci_opis: '',
+        dodatni_podaci: '',
+      });
+      setShowAddForm(false);
+
+      alert('Podaci su uspješno dodani!');
+    } else {
+      alert('Greška: ' + result.error);
+    }
+  } catch (err) {
+    console.error('Greška pri dodavanju:', err);
+    alert('Greška pri dodavanju podataka');
+  } finally {
+    setSubmitLoading(false);
+  }
+};
 
 
 
@@ -356,139 +423,419 @@ const fetchDodatniPodaci = async (partneriList: Partner[]) => {
           </div>
         </div>
       </div>
+// Sada zamijenit modal sa ovim:
 
-      {/* MODAL - DODATNI PODACI */}
-      {showModal && selectedPartner && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* MODAL HEADER */}
-            <div className="px-6 md:px-8 py-6 md:py-8 flex items-center justify-between sticky top-0" style={{ backgroundImage: `linear-gradient(to right, #785E9E, #6a4f8a)` }}>
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f3e8ff' }}>
-                  {isLargeCode(selectedPartner.sifra_partnera) ? (
-                    <span className="text-lg font-bold text-white">★</span>
-                  ) : (
-                    <span className="text-lg font-bold text-white">#</span>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-2xl md:text-3xl font-bold text-white truncate">{selectedPartner.Naziv_partnera}</h2>
-                  <p className="text-white text-opacity-80 mt-1">Šifra: {selectedPartner.sifra_partnera}</p>
-                </div>
-              </div>
-              <button
-                onClick={closeModal}
-                className="text-white hover:opacity-75 transition-opacity flex-shrink-0 ml-4"
-              >
-                <X size={28} />
-              </button>
+{/* MODAL - DODATNI PODACI */}
+{showModal && selectedPartner && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      {/* MODAL HEADER */}
+      <div className="px-6 md:px-8 py-6 md:py-8 flex items-center justify-between sticky top-0" style={{ backgroundImage: `linear-gradient(to right, #785E9E, #6a4f8a)` }}>
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f3e8ff' }}>
+            {isLargeCode(selectedPartner.sifra_partnera) ? (
+              <span className="text-lg font-bold text-white">★</span>
+            ) : (
+              <span className="text-lg font-bold text-white">#</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-2xl md:text-3xl font-bold text-white truncate">{selectedPartner.Naziv_partnera}</h2>
+            <p className="text-white text-opacity-80 mt-1">Šifra: {selectedPartner.sifra_partnera}</p>
+          </div>
+        </div>
+        <button
+          onClick={closeModal}
+          className="text-white hover:opacity-75 transition-opacity flex-shrink-0 ml-4"
+        >
+          <X size={28} />
+        </button>
+      </div>
+
+      {/* MODAL BODY */}
+      <div className="p-6 md:p-8">
+        {/* OSNOVNI PODACI */}
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ color: '#785E9E' }}>Osnovni podaci</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Grad</p>
+              <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_grada || '-'}</p>
             </div>
-
-            {/* MODAL BODY */}
-            <div className="p-6 md:p-8">
-              {/* OSNOVNI PODACI */}
-              <div className="mb-8">
-                <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ color: '#785E9E' }}>Osnovni podaci</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Grad</p>
-                    <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_grada || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Radnik</p>
-                    <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_radnika || '-'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* DODATNI PODACI */}
-              {selectedPartner.dodatniPodaci && selectedPartner.dodatniPodaci.length > 0 ? (
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ color: '#8FC74A' }}>
-                    <FileText className="w-5 h-5" />
-                    Dodatni podaci ({selectedPartner.dodatniPodaci.length})
-                  </h3>
-                  <div className="space-y-4">
-                    {selectedPartner.dodatniPodaci.map((podatak, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-lg border-l-4"
-                        style={{
-                          backgroundColor: '#f0fdf4',
-                          borderColor: '#8FC74A',
-                          borderWidth: '3px',
-                          borderLeft: '4px solid #8FC74A'
-                        }}
-                      >
-                        {/* BROJ UNOSA */}
-                        <div className="mb-3">
-                          <span className="inline-block px-2 py-1 rounded text-xs font-semibold text-white" style={{ backgroundColor: '#8FC74A' }}>
-                            Unos {idx + 1}
-                          </span>
-                        </div>
-
-                        {/* OPIS */}
-                        {podatak.dodatni_podaci_opis && (
-                          <div className="mb-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <FileText className="w-4 h-4" style={{ color: '#785E9E' }} />
-                              <p className="text-xs font-semibold text-gray-500 uppercase">Opis</p>
-                            </div>
-                            <p className="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200">
-                              {podatak.dodatni_podaci_opis}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* TELEFON */}
-                        {podatak.dodatni_podaci && (
-                          <div className="mb-3">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Phone className="w-4 h-4" style={{ color: '#8FC74A' }} />
-                              <p className="text-xs font-semibold text-gray-500 uppercase">Telefon</p>
-                            </div>
-                            <p className="text-sm font-medium text-gray-700 bg-white p-3 rounded border border-gray-200">
-                              {podatak.dodatni_podaci}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* KORISNIK I DATUM */}
-                        <div className="pt-3 border-t border-gray-300 space-y-1">
-                          <p className="text-xs text-gray-600">
-                            <span className="font-semibold">Unesen od:</span> {podatak.naziv_radnika}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(podatak.datum_unosa).toLocaleDateString('sr-RS')} u {new Date(podatak.datum_unosa).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <FileText className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">Nema dodatnih podataka za ovog partnera</p>
-                </div>
-              )}
-            </div>
-
-            {/* MODAL FOOTER */}
-            <div className="px-6 md:px-8 py-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
-              <button
-                onClick={closeModal}
-                className="px-6 py-2 rounded-lg transition-all text-white font-medium"
-                style={{ backgroundColor: '#785E9E' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#785E9E'}
-              >
-                Zatvori
-              </button>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Radnik</p>
+              <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_radnika || '-'}</p>
             </div>
           </div>
         </div>
-      )}
+
+        {/* DODATNI PODACI */}
+        {selectedPartner.dodatniPodaci && selectedPartner.dodatniPodaci.length > 0 ? (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ color: '#8FC74A' }}>
+              <FileText className="w-5 h-5" />
+              Dodatni podaci ({selectedPartner.dodatniPodaci.length})
+            </h3>
+            <div className="space-y-4">
+              {selectedPartner.dodatniPodaci.map((podatak, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-lg border-l-4"
+                  style={{
+                    backgroundColor: '#f0fdf4',
+                    borderColor: '#8FC74A',
+                    borderWidth: '3px',
+                    borderLeft: '4px solid #8FC74A'
+                  }}
+                >
+                  {/* BROJ UNOSA */}
+                  <div className="mb-3">
+                    <span className="inline-block px-2 py-1 rounded text-xs font-semibold text-white" style={{ backgroundColor: '#8FC74A' }}>
+                      Unos {idx + 1}
+                    </span>
+                  </div>
+
+                  {/* OPIS */}
+                  {podatak.dodatni_podaci_opis && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4" style={{ color: '#785E9E' }} />
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Opis</p>
+                      </div>
+                      <p className="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200">
+                        {podatak.dodatni_podaci_opis}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* TELEFON */}
+                  {podatak.dodatni_podaci && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Phone className="w-4 h-4" style={{ color: '#8FC74A' }} />
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Telefon</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 bg-white p-3 rounded border border-gray-200">
+                        {podatak.dodatni_podaci}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* KORISNIK I DATUM */}
+                  <div className="pt-3 border-t border-gray-300 space-y-1">
+                    <p className="text-xs text-gray-600">
+                      <span className="font-semibold">Unesen od:</span> {podatak.naziv_radnika}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(podatak.datum_unosa).toLocaleDateString('sr-RS')} u {new Date(podatak.datum_unosa).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 mb-8">
+            <FileText className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-500 text-sm">Nema dodatnih podataka za ovog partnera</p>
+          </div>
+        )}
+
+        {/* ✅ FORMA ZA DODAVANJE PODATAKA */}
+        {!showAddForm ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full px-6 py-3 rounded-lg transition-all text-white font-medium"
+            style={{ backgroundColor: '#8FC74A' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7ab830'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8FC74A'}
+          >
+            + Dodaj novi unos
+          </button>
+        ) : (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+            <h4 className="text-lg font-bold text-gray-900 mb-4" style={{ color: '#785E9E' }}>Dodaj nove podatke</h4>
+
+            {/* OPIS - Veće tekstualno polje */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Dodatni podaci (opis) *
+              </label>
+              <textarea
+                value={formData.dodatni_podaci_opis}
+                onChange={(e) =>
+                  setFormData({ ...formData, dodatni_podaci_opis: e.target.value })
+                }
+                placeholder="Unesite opis ili dodatne informacije..."
+                rows={4}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            {/* TELEFON - Manje tekstualno polje */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Telefon *
+              </label>
+              <input
+                type="text"
+                value={formData.dodatni_podaci}
+                onChange={(e) =>
+                  setFormData({ ...formData, dodatni_podaci: e.target.value })
+                }
+                placeholder="Unesite telefonski broj..."
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            {/* DUGMIĆI */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowAddForm(false);
+                  setFormData({ dodatni_podaci_opis: '', dodatni_podaci: '' });
+                }}
+                disabled={submitLoading}
+                className="px-6 py-2 rounded-lg transition-all text-gray-700 font-medium border-2 border-gray-300 hover:bg-gray-100"
+              >
+                Otkaži
+              </button>
+              <button
+                onClick={handleAddDodatniPodaci}
+                disabled={submitLoading}
+                className="px-6 py-2 rounded-lg transition-all text-white font-medium"
+                style={{ backgroundColor: '#8FC74A' }}
+                onMouseEnter={(e) => !submitLoading && (e.currentTarget.style.backgroundColor = '#7ab830')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#8FC74A')}
+              >
+                {submitLoading ? 'Sprema se...' : 'Spremi'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL FOOTER */}
+      <div className="px-6 md:px-8 py-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
+        <button
+          onClick={closeModal}
+          className="px-6 py-2 rounded-lg transition-all text-white font-medium"
+          style={{ backgroundColor: '#785E9E' }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#785E9E'}
+        >
+          Zatvori
+        </button>
+      </div>
+    </div>
+  </div>
+)}// Sada zamijenit modal sa ovim:
+
+{/* MODAL - DODATNI PODACI */}
+{showModal && selectedPartner && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={closeModal}>
+    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      {/* MODAL HEADER */}
+      <div className="px-6 md:px-8 py-6 md:py-8 flex items-center justify-between sticky top-0" style={{ backgroundImage: `linear-gradient(to right, #785E9E, #6a4f8a)` }}>
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#f3e8ff' }}>
+            {isLargeCode(selectedPartner.sifra_partnera) ? (
+              <span className="text-lg font-bold text-white">★</span>
+            ) : (
+              <span className="text-lg font-bold text-white">#</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-2xl md:text-3xl font-bold text-white truncate">{selectedPartner.Naziv_partnera}</h2>
+            <p className="text-white text-opacity-80 mt-1">Šifra: {selectedPartner.sifra_partnera}</p>
+          </div>
+        </div>
+        <button
+          onClick={closeModal}
+          className="text-white hover:opacity-75 transition-opacity flex-shrink-0 ml-4"
+        >
+          <X size={28} />
+        </button>
+      </div>
+
+      {/* MODAL BODY */}
+      <div className="p-6 md:p-8">
+        {/* OSNOVNI PODACI */}
+        <div className="mb-8">
+          <h3 className="text-lg font-bold text-gray-900 mb-4" style={{ color: '#785E9E' }}>Osnovni podaci</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Grad</p>
+              <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_grada || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Radnik</p>
+              <p className="text-base font-medium text-gray-900">{selectedPartner.Naziv_radnika || '-'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* DODATNI PODACI */}
+        {selectedPartner.dodatniPodaci && selectedPartner.dodatniPodaci.length > 0 ? (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2" style={{ color: '#8FC74A' }}>
+              <FileText className="w-5 h-5" />
+              Dodatni podaci ({selectedPartner.dodatniPodaci.length})
+            </h3>
+            <div className="space-y-4">
+              {selectedPartner.dodatniPodaci.map((podatak, idx) => (
+                <div
+                  key={idx}
+                  className="p-4 rounded-lg border-l-4"
+                  style={{
+                    backgroundColor: '#f0fdf4',
+                    borderColor: '#8FC74A',
+                    borderWidth: '3px',
+                    borderLeft: '4px solid #8FC74A'
+                  }}
+                >
+                  {/* BROJ UNOSA */}
+                  <div className="mb-3">
+                    <span className="inline-block px-2 py-1 rounded text-xs font-semibold text-white" style={{ backgroundColor: '#8FC74A' }}>
+                      Unos {idx + 1}
+                    </span>
+                  </div>
+
+                  {/* OPIS */}
+                  {podatak.dodatni_podaci_opis && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4" style={{ color: '#785E9E' }} />
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Opis</p>
+                      </div>
+                      <p className="text-sm text-gray-700 bg-white p-3 rounded border border-gray-200">
+                        {podatak.dodatni_podaci_opis}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* TELEFON */}
+                  {podatak.dodatni_podaci && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Phone className="w-4 h-4" style={{ color: '#8FC74A' }} />
+                        <p className="text-xs font-semibold text-gray-500 uppercase">Telefon</p>
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 bg-white p-3 rounded border border-gray-200">
+                        {podatak.dodatni_podaci}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* KORISNIK I DATUM */}
+                  <div className="pt-3 border-t border-gray-300 space-y-1">
+                    <p className="text-xs text-gray-600">
+                      <span className="font-semibold">Unesen od:</span> {podatak.naziv_radnika}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(podatak.datum_unosa).toLocaleDateString('sr-RS')} u {new Date(podatak.datum_unosa).toLocaleTimeString('sr-RS', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 mb-8">
+            <FileText className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+            <p className="text-gray-500 text-sm">Nema dodatnih podataka za ovog partnera</p>
+          </div>
+        )}
+
+        {/* ✅ FORMA ZA DODAVANJE PODATAKA */}
+        {!showAddForm ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full px-6 py-3 rounded-lg transition-all text-white font-medium"
+            style={{ backgroundColor: '#8FC74A' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7ab830'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8FC74A'}
+          >
+            + Dodaj novi unos
+          </button>
+        ) : (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+            <h4 className="text-lg font-bold text-gray-900 mb-4" style={{ color: '#785E9E' }}>Dodaj nove podatke</h4>
+
+            {/* OPIS - Veće tekstualno polje */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Dodatni podaci (opis) *
+              </label>
+              <textarea
+                value={formData.dodatni_podaci_opis}
+                onChange={(e) =>
+                  setFormData({ ...formData, dodatni_podaci_opis: e.target.value })
+                }
+                placeholder="Unesite opis ili dodatne informacije..."
+                rows={4}
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            {/* TELEFON - Manje tekstualno polje */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Telefon *
+              </label>
+              <input
+                type="text"
+                value={formData.dodatni_podaci}
+                onChange={(e) =>
+                  setFormData({ ...formData, dodatni_podaci: e.target.value })
+                }
+                placeholder="Unesite telefonski broj..."
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+              />
+            </div>
+
+            {/* DUGMIĆI */}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setShowAddForm(false);
+                  setFormData({ dodatni_podaci_opis: '', dodatni_podaci: '' });
+                }}
+                disabled={submitLoading}
+                className="px-6 py-2 rounded-lg transition-all text-gray-700 font-medium border-2 border-gray-300 hover:bg-gray-100"
+              >
+                Otkaži
+              </button>
+              <button
+                onClick={handleAddDodatniPodaci}
+                disabled={submitLoading}
+                className="px-6 py-2 rounded-lg transition-all text-white font-medium"
+                style={{ backgroundColor: '#8FC74A' }}
+                onMouseEnter={(e) => !submitLoading && (e.currentTarget.style.backgroundColor = '#7ab830')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#8FC74A')}
+              >
+                {submitLoading ? 'Sprema se...' : 'Spremi'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL FOOTER */}
+      <div className="px-6 md:px-8 py-4 border-t border-gray-200 flex justify-end sticky bottom-0 bg-white">
+        <button
+          onClick={closeModal}
+          className="px-6 py-2 rounded-lg transition-all text-white font-medium"
+          style={{ backgroundColor: '#785E9E' }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#785E9E'}
+        >
+          Zatvori
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

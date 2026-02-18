@@ -29,3 +29,38 @@ export const getPartneriDodatniPodaci = async (req, res) => {
     });
   }
 };
+
+// Dodajte novu funkciju:
+
+export const addDodatniPodaci = async (req, res) => {
+  try {
+    const { sifraRadnika } = req.user;
+    const { sifra_partnera, dodatni_podaci_opis, dodatni_podaci } = req.body;
+
+    if (!sifra_partnera || !dodatni_podaci_opis || !dodatni_podaci) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Svi podaci su obavezni' 
+      });
+    }
+
+    const result = await PartneriService.addDodatniPodaci({
+      sifra_partnera,
+      dodatni_podaci_opis,
+      dodatni_podaci,
+      sifra_radnika: sifraRadnika,
+    });
+
+    return res.json({ 
+      success: true, 
+      data: result,
+      message: 'Podaci su uspješno dodani' 
+    });
+  } catch (error) {
+    console.error('Add dodatni podaci error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Greška pri dodavanju podataka' 
+    });
+  }
+};
