@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3,ChevronUp, ChevronDown  } from 'lucide-react';
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
@@ -8,30 +9,46 @@ import IzvlestajList from './IzvlestajList';
 
 interface DashboardProps {
   username: string;
+  vrstaRadnika: number;
   onLogout: () => void;
 }
 
-type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | null;
 
-export function Dashboard({ username, onLogout }: DashboardProps) {
+
+
+type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'izvestaji2' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | null;
+
+
+export function Dashboard({ username, vrstaRadnika, onLogout }: DashboardProps) {
   const [activeSection, setActiveSection] = useState<MenuSection>(null);
   const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);  // STATE ZA KOLAPS
 
-  const menuItems = [
-    { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
-    { id: 'dugovanja', label: 'Dugovanja', icon: TrendingUp, color: 'bg-red-100 text-red-600' },
-    { id: 'izvestaji', label: 'Izveštaji', icon: BarChart3, color: 'bg-green-100 text-green-600' },
-    { id: 'poslovanje', label: 'Poslovanje', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
-    { id: 'partneri', label: 'Partneri', icon: Users, color: 'bg-orange-100 text-orange-600' },
-    { id: 'dodatni', label: 'Dodatni podaci', icon: Package, color: 'bg-teal-100 text-teal-600' },
-    { id: 'artikli', label: 'Artikli', icon: Book, color: 'bg-indigo-100 text-indigo-600' },
-  ];
+
+const vrsta = Number(vrstaRadnika);
+
+console.log('Dashboard render - vrstaRadnika:', vrstaRadnika, 'parsed vrsta:', vrsta);
+
+const menuItems =
+  vrsta === 1
+    ? [
+        { id: 'izvestaji_admin', label: 'Izveštaji (Admin)', icon: BarChart3, color: 'bg-green-100 text-green-600' },
+      ]
+    : [
+        { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
+        { id: 'dugovanja', label: 'Dugovanja', icon: TrendingUp, color: 'bg-red-100 text-red-600' },
+        { id: 'izvestaji', label: 'Izveštaji', icon: BarChart3, color: 'bg-green-100 text-green-600' },
+        { id: 'poslovanje', label: 'Poslovanje', icon: Briefcase, color: 'bg-purple-100 text-purple-600' },
+        { id: 'partneri', label: 'Partneri', icon: Users, color: 'bg-orange-100 text-orange-600' },
+        { id: 'dodatni', label: 'Dodatni podaci', icon: Package, color: 'bg-teal-100 text-teal-600' },
+        { id: 'artikli', label: 'Artikli', icon: Book, color: 'bg-indigo-100 text-indigo-600' },
+      ];
+
 
   const renderContent = () => {
     if (activeSection === null) return null;
 
     if (activeSection === 'narudzbe') {
-       return <OrdersList onBack={() => setActiveSection(null)} />;
+      return <OrdersList/>;
     }
 
     if (activeSection === 'partneri') {
@@ -47,13 +64,20 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
     }
 
     if (activeSection === 'izvestaji') {
-      return <IzvlestajList onBack={() => setActiveSection(null)} />;
+      return <IzvlestajList/>;
     }
+    if (activeSection === 'izvestaji2') {
+       return <IzvlestajList/>;
+      }
+
+
+
 
     const contentMap: Record<Exclude<MenuSection, null>, string> = {
       narudzbe: 'Pregled narudžbi',
-      dugovanja: 'Pregled dužovanja',
+      dugovanja: 'Pregled dugovanja',
       izvestaji: 'Izveštaji',
+      izvestaji2: 'Izveštaji (napredno)',
       poslovanje: 'Poslovanje',
       partneri: 'Partneri',
       dodatni: 'Dodatni podaci',
@@ -63,8 +87,11 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
     return contentMap[activeSection as Exclude<MenuSection, null>] || 'Sadržaj';
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
+  useEffect(() => {
+    setActiveSection(null);
+  }, [vrstaRadnika]);
+return (
+      <div className="min-h-screen bg-gray-50">
       {/* HEADER + NAV - KOLAPSIBILAN */}
       <div className={`transition-all duration-300 relative ${
         headerCollapsed ? 'max-h-12' : 'max-h-96'
@@ -179,5 +206,4 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
         )}
       </main>
     </div>
-  );
-}
+)};

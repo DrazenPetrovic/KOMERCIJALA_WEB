@@ -29,15 +29,25 @@ export const login = async (username, password) => {
       password,
     ]);
 
-    const sifraRadnika = extractSifraRadnika(rows);
-    if (!sifraRadnika) return { success: false };
+    // const sifraRadnika = extractSifraRadnika(rows);
+    // const vrstaRadnika = rows?.[0]?.[1]?.vrsta || null;
+
+    const row = rows?.[0]?.[0] || null;
+
+    const sifraRadnika = row?.povratna ?? null;
+    const vrstaRadnika = row?.vrsta ?? null;
+
+    //console.log('Login result:', { rows, row, sifraRadnika, vrstaRadnika });
+    console.log('Login result:', { rows, sifraRadnika, vrstaRadnika });
+
+    if (sifraRadnika == null) return { success: false };
 
     const token = jwt.sign(
-      { username, sifraRadnika, loginTime: new Date().toISOString() },
+      { username, sifraRadnika, vrstaRadnika, loginTime: new Date().toISOString() },
       env.JWT_SECRET,
       { expiresIn: '8h' }
     );
 
-    return { success: true, token, user: { username, sifraRadnika } };
+    return { success: true, token, user: { username, sifraRadnika, vrstaRadnika } };
   });
 };

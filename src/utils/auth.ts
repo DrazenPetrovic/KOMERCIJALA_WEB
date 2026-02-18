@@ -3,6 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export interface User {
   username: string;
   sifraRadnika: number;
+  vrstaRadnika: number;
 }
 
 let currentUser: User | null = null;
@@ -26,6 +27,7 @@ export const signIn = async (username: string, password: string) => {
 
     currentUser = data.user;
     localStorage.setItem('user', JSON.stringify(data.user));
+
     return { data: data.user, error: null };
   } catch (error) {
     return { error: new Error('Greška prilikom povezivanja sa serverom'), data: null };
@@ -72,7 +74,7 @@ export const verifyAuth = async (): Promise<User | null> => {
 
     const data = await response.json();
     if (data.authenticated) {
-      const user = { username: data.username, sifraRadnika: data.sifraRadnika };
+    const user = { username: data.username, sifraRadnika: data.sifraRadnika, vrstaRadnika: data.vrstaRadnika };
       currentUser = user;
       localStorage.setItem('user', JSON.stringify(user));
       return user;

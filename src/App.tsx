@@ -6,6 +6,7 @@ import { verifyAuth, signOut } from './utils/auth';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
+  const [vrstaRadnika, setVrstaRadnika] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,6 +14,7 @@ function App() {
       const user = await verifyAuth();
       if (user) {
         setUsername(user.username);
+        setVrstaRadnika(user.vrstaRadnika);
         setIsAuthenticated(true);
       }
       setLoading(false);
@@ -24,6 +26,7 @@ function App() {
     const user = await verifyAuth();
     if (user) {
       setUsername(user.username);
+      setVrstaRadnika(user.vrstaRadnika);
       setIsAuthenticated(true);
     }
   };
@@ -32,6 +35,7 @@ function App() {
     await signOut();
     setIsAuthenticated(false);
     setUsername('');
+    setVrstaRadnika('');
   };
 
   if (loading) {
@@ -39,7 +43,7 @@ function App() {
   }
 
   return isAuthenticated ? (
-    <Dashboard username={username} onLogout={handleLogout} />
+    <Dashboard username={username} vrstaRadnika={vrstaRadnika} onLogout={handleLogout} />
   ) : (
     <LoginPanel onLoginSuccess={handleLoginSuccess} />
   );

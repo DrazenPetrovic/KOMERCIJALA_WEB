@@ -23,8 +23,8 @@ export const getPartneriSaADodacima = async () => {
       'CALL komercijala.partneri_dodatni_podaci()'
     );
     
-    console.log('Rows from procedure:', rows);
-    console.log('Rows length:', rows?.length);
+    //console.log('Rows from procedure:', rows);
+    //console.log('Rows length:', rows?.length);
     
     // Procedura vraća 2 result seta
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -37,8 +37,8 @@ export const getPartneriSaADodacima = async () => {
     // Drugi result set su dodatni podaci
     const dodatniPodaciSet = rows[1] || [];
 
-    console.log('Partneri:', partneriSet);
-    console.log('Dodatni podaci:', dodatniPodaciSet);
+    //console.log('Partneri:', partneriSet);
+    //console.log('Dodatni podaci:', dodatniPodaciSet);
 
     // Provjeri da li su arraji
     if (!Array.isArray(partneriSet) || !Array.isArray(dodatniPodaciSet)) {
@@ -62,7 +62,7 @@ export const getPartneriDodatniPodaci = async () => {
       'CALL komercijala.partneri_dodatni_podaci()'
     );
     
-    console.log('Dodatni podaci rows:', rows);
+    //console.log('Dodatni podaci rows:', rows);
     
     return Array.isArray(rows) ? rows : [];
   });
