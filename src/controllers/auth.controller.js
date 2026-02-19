@@ -68,6 +68,7 @@ export const verify = (req, res) => {
       authenticated: true,
       username: verified.username,
       sifraRadnika: verified.sifraRadnika,
+      vrstaRadnika: verified.vrstaRadnika,
     });
   } catch (error) {
     console.error('Verification error:', error);
