@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useEffect } from 'react';
-import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3,ChevronUp, ChevronDown  } from 'lucide-react';
+import { LogOut, FileText, Briefcase, Users, Book, Package, TrendingUp, CheckCircle, BarChart3, LineChart, ChevronUp, ChevronDown  } from 'lucide-react';
 import PartneriList from './PartneriList';
 import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
@@ -16,7 +16,7 @@ interface DashboardProps {
 
 
 
-type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'izvestaji2' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | null;
+type MenuSection = 'narudzbe' | 'dugovanja' | 'izvestaji' | 'izvestaji2' | 'poslovanje' | 'partneri' | 'dodatni' | 'artikli' | 'izvestaji_admin' | 'analitika' | null;
 
 
 export function Dashboard({ username, vrstaRadnika, onLogout }: DashboardProps) {
@@ -31,6 +31,7 @@ console.log('Dashboard render - vrstaRadnika:', vrstaRadnika, 'parsed vrsta:', v
 const menuItems =
   vrsta === 1
     ? [
+        { id: 'analitika', label: 'Analitika', icon: LineChart, color: 'bg-blue-100 text-blue-600' },
         { id: 'izvestaji_admin', label: 'Izveštaji (Admin)', icon: BarChart3, color: 'bg-green-100 text-green-600' },
       ]
     : [
@@ -82,6 +83,8 @@ const menuItems =
       partneri: 'Partneri',
       dodatni: 'Dodatni podaci',
       artikli: 'Artikli',
+      analitika: 'Analitika',
+      izvestaji_admin: 'Izveštaji (Admin)',
     };
 
     return contentMap[activeSection as Exclude<MenuSection, null>] || 'Sadržaj';

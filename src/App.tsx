@@ -6,7 +6,7 @@ import { verifyAuth, signOut } from './utils/auth';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
-  const [vrstaRadnika, setVrstaRadnika] = useState('');
+  const [vrstaRadnika, setVrstaRadnika] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ function App() {
     await signOut();
     setIsAuthenticated(false);
     setUsername('');
-    setVrstaRadnika('');
+    setVrstaRadnika(0);
   };
 
   if (loading) {
