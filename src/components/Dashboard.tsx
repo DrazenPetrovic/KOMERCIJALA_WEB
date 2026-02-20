@@ -32,7 +32,7 @@ const menuItems =
   vrsta === 1
     ? [
         { id: 'analitika', label: 'Analitika', icon: LineChart, color: 'bg-blue-100 text-blue-600' },
-        { id: 'izvestaji_admin', label: 'Izveštaji (Admin)', icon: BarChart3, color: 'bg-green-100 text-green-600' },
+        { id: 'izvestaji_admin', label: 'Izveštaji', icon: BarChart3, color: 'bg-green-100 text-green-600' },
       ]
     : [
         { id: 'narudzbe', label: 'Narudžbe', icon: FileText, color: 'bg-blue-100 text-blue-600' },
@@ -84,7 +84,7 @@ const menuItems =
       dodatni: 'Dodatni podaci',
       artikli: 'Artikli',
       analitika: 'Analitika',
-      izvestaji_admin: 'Izveštaji (Admin)',
+      izvestaji_admin: 'Administratorski izveštaji',
     };
 
     return contentMap[activeSection as Exclude<MenuSection, null>] || 'Sadržaj';
