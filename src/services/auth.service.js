@@ -2,25 +2,25 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { withConnection } from './db.service.js';
 
-const extractSifraRadnika = (rows) => {
-  const result = rows?.[0];
-  let sifraRadnika = null;
+// const extractSifraRadnika = (rows) => {
+//   const result = rows?.[0];
+//   let sifraRadnika = null;
 
-  if (Array.isArray(result) && result.length > 0) {
-    const firstRow = result[0];
+//   if (Array.isArray(result) && result.length > 0) {
+//     const firstRow = result[0];
 
-    if (typeof firstRow === 'object' && firstRow !== null) {
-      const value = Object.values(firstRow)[0];
-      const numValue = typeof value === 'number' ? value : parseInt(value);
-      if (!isNaN(numValue) && numValue > 0) sifraRadnika = numValue;
-    } else {
-      const numValue = typeof firstRow === 'number' ? firstRow : parseInt(firstRow);
-      if (!isNaN(numValue) && numValue > 0) sifraRadnika = numValue;
-    }
-  }
+//     if (typeof firstRow === 'object' && firstRow !== null) {
+//       const value = Object.values(firstRow)[0];
+//       const numValue = typeof value === 'number' ? value : parseInt(value);
+//       if (!isNaN(numValue) && numValue > 0) sifraRadnika = numValue;
+//     } else {
+//       const numValue = typeof firstRow === 'number' ? firstRow : parseInt(firstRow);
+//       if (!isNaN(numValue) && numValue > 0) sifraRadnika = numValue;
+//     }
+//   }
 
-  return sifraRadnika;
-};
+//   return sifraRadnika;
+// };
 
 export const login = async (username, password) => {
   return withConnection(async (connection) => {
@@ -41,7 +41,8 @@ export const login = async (username, password) => {
     console.log('Login result:', { rows, sifraRadnika, vrstaRadnika });
 
     if (sifraRadnika == null) return { success: false };
-
+    if (sifraRadnika == 0) return { success: false };
+    
     const token = jwt.sign(
       { username, sifraRadnika, vrstaRadnika, loginTime: new Date().toISOString() },
       env.JWT_SECRET,

@@ -6,6 +6,7 @@ import ArtikliList from './ArtikliList';
 import DugovanjaList from './DugovanjaList';
 import { OrdersList } from './OrdersList';
 import IzvlestajList from './IzvlestajList';
+import IzvjestajAdmin from './IzvjestajAdmin';
 
 interface DashboardProps {
   username: string;
@@ -69,6 +70,9 @@ const menuItems =
     }
     if (activeSection === 'izvestaji2') {
        return <IzvlestajList/>;
+      }
+    if (activeSection === 'izvestaji_admin') {
+       return <IzvjestajAdmin/>;
       }
 
 
@@ -191,8 +195,7 @@ return (
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
             <div className="flex items-center gap-4 mb-6 md:mb-8">
-              <CheckCircle className="w-8 h-8 md:w-10 md:h-10" style={{ color: '#8FC74A' }} />
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
+               <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold" style={{ color: '#785E9E' }}>
                 {renderContent()}
               </h2>
             </div>
