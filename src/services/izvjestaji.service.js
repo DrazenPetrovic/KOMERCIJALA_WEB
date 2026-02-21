@@ -43,7 +43,7 @@ export const getIzvjestajiIstorija = async (sifraPartnera) => {
   });
 };
 
-export const getListaKomercijaliti = async () => {
+export const getListaKomercijalisti = async () => {
 
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
@@ -55,3 +55,34 @@ export const getListaKomercijaliti = async () => {
   });
 };
 
+export const getIzvjestajiPoslednji= async () => {
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.pregled_izvjestaja_skraceno()'
+    );
+ 
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+   
+  });
+};
+
+export const getIzvjestajipoDatumu = async (pocetniDatum, krajnjiDatum) => {
+  // Provjera da li su parametri prosleđeni
+  if (pocetniDatum === undefined || pocetniDatum === null) {
+    throw new Error('pocetniDatum parametar je obavezan');
+  }
+  if (krajnjiDatum === undefined || krajnjiDatum === null) {
+    throw new Error('krajnjiDatum parametar je obavezan');
+  }
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.pregled_izvjestaja_po_datumu(?, ?)', 
+      [pocetniDatum, krajnjiDatum]
+    );
+ 
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+   
+  });
+};

@@ -50,28 +50,16 @@ export const getPartnerReports = async (req, res) => {
   }
 };
 
-
-// export const getPartnerReports = async (req, res) => {
-//   try {
-//     const { sifraPartnera } = req.params;
-
-//     if (!sifraPartnera) {
-//       return res.status(400).json({ 
-//         success: false, 
-//         error: 'Nedostaje šifra partnera' 
-//       });
-//     }
-
-//     const data = await IzvjestajiService.getPartnerReports(sifraPartnera);
-//     return res.json({ success: true, data, count: data.length });
-//   } catch (error) {
-//     console.error('Greška pri učitavanju izvještaja:', error);
-//     return res.status(500).json({ 
-//       success: false, 
-//       error: 'Greška pri učitavanju izvještaja' 
-//     });
-//   }
-// };
-
-
-
+export const getListaKomercijalisti = async (req, res) => {
+  try {
+    const data = await IzvjestajiService.getListaKomercijalisti();
+    console.log('Lista komercijalista:', data);
+    return res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Greška pri učitavanju liste komercijalista:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Greška pri učitavanju liste komercijalista' 
+    });
+  }
+};

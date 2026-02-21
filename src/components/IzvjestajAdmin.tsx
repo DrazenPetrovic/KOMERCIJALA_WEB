@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { Calendar, Filter, Sparkles, TrendingUp, TrendingDown, User, AlertCircle } from 'lucide-react';
 
 // Mock tipovi podataka
@@ -10,6 +10,14 @@ interface Report {
   total: number;
   category: string;
 }
+
+interface Komercijalist {
+  sifra_radnika: number;
+  naziv_radnika: string;
+}
+
+
+
 
 // Mock podaci
 const mockReports: Report[] = [
@@ -40,7 +48,36 @@ const IzvjestajAdmin: React.FC = () => {
   );
 
   // Izvuci jedinstvene radnike
-  const workers = Array.from(new Set(mockReports.map(r => r.worker)));
+ // const workers = Array.from(new Set(mockReports.map(r => r.worker)));
+  const [dateMode, setDateMode] = useState<'day' | 'range'>('day');
+  const [komercijalisti, setKomercijalisti] = useState<Komercijalist[]>([]);
+
+
+  
+
+
+    useEffect(() => {
+      const fetchKomercijalisti = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+          const res = await fetch(`${apiUrl}/api/izvjestaji/komerc`, {
+            credentials: 'include'
+          });
+
+          const json = await res.json();
+
+          if (json.success) {
+            setKomercijalisti(json.data);
+          }
+        } catch (err) {
+          console.error('Greška pri učitavanju komercijalista:', err);
+        }
+      };
+
+      fetchKomercijalisti();
+    }, []);
+
 
   // Funkcija za formatiranje datuma
   const formatDate = (dateString: string): string => {
@@ -52,12 +89,21 @@ const IzvjestajAdmin: React.FC = () => {
   const applyFilters = () => {
     let filtered = mockReports;
 
-    // Filter po datumu ili range
-    if (dateRangeStart && dateRangeEnd) {
-      filtered = filtered.filter(r => r.date >= dateRangeStart && r.date <= dateRangeEnd);
-    } else if (selectedDate) {
-      filtered = filtered.filter(r => r.date === selectedDate);
-    }
+      // Filter po datumu (tab logika)
+      if (dateMode === 'range') {
+        if (dateRangeStart && dateRangeEnd) {
+          filtered = filtered.filter(r => r.date >= dateRangeStart && r.date <= dateRangeEnd);
+        } else {
+          // Ako je izabran "Period", ali nisu oba datuma unesena, vrati prazno
+          filtered = [];
+        }
+      } else {
+        if (selectedDate) {
+          filtered = filtered.filter(r => r.date === selectedDate);
+        } else {
+          filtered = [];
+        }
+      }
 
     // Filter po radniku
     if (selectedWorker) {
@@ -111,74 +157,119 @@ const IzvjestajAdmin: React.FC = () => {
             <Filter className="w-4 h-4 text-gray-600" />
             <h3 className="text-sm md:text-base font-semibold text-gray-900">Filteri</h3>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {/* Single Date */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                <Calendar className="w-3 h-3 inline mr-1" />
-                Datum
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setDateRangeStart('');
-                  setDateRangeEnd('');
-                }}
-                className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-              />
+
+          {/* Tabovi za datume + poseban filter za radnika */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-2.5">
+            {/* DATUMI (tabovi) */}
+            <div className="lg:col-span-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="w-4 h-4 text-gray-600" />
+                <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateMode('day');
+                      setSelectedDate(selectedDate || '2026-02-20');
+                      setDateRangeStart('');
+                      setDateRangeEnd('');
+                    }}
+                    className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors ${
+                      dateMode === 'day'
+                        ? 'bg-white shadow-sm text-gray-900'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Po danu
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateMode('range');
+                      setSelectedDate('');
+                      // ne brišem postojeći range da korisnik ne izgubi unos
+                    }}
+                    className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors ${
+                      dateMode === 'range'
+                        ? 'bg-white shadow-sm text-gray-900'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Period
+                  </button>
+                </div>
+              </div>
+
+              {dateMode === 'day' ? (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Datum
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setDateRangeStart('');
+                      setDateRangeEnd('');
+                    }}
+                    className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Od Datuma
+                    </label>
+                    <input
+                      type="date"
+                      value={dateRangeStart}
+                      onChange={(e) => {
+                        setDateRangeStart(e.target.value);
+                        setSelectedDate('');
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Do Datuma
+                    </label>
+                    <input
+                      type="date"
+                      value={dateRangeEnd}
+                      onChange={(e) => {
+                        setDateRangeEnd(e.target.value);
+                        setSelectedDate('');
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Date Range Start */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Od Datuma
-              </label>
-              <input
-                type="date"
-                value={dateRangeStart}
-                onChange={(e) => {
-                  setDateRangeStart(e.target.value);
-                  setSelectedDate('');
-                }}
-                className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-              />
-            </div>
-
-            {/* Date Range End */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Do Datuma
-              </label>
-              <input
-                type="date"
-                value={dateRangeEnd}
-                onChange={(e) => {
-                  setDateRangeEnd(e.target.value);
-                  setSelectedDate('');
-                }}
-                className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-              />
-            </div>
-
-            {/* Worker Filter */}
-            <div>
+            {/* RADNIK (van tabova) */}
+            <div className="flex flex-col justify-end h-full">
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 <User className="w-3 h-3 inline mr-1" />
-                Radnik
+                Komercijalisti
               </label>
-              <select
-                value={selectedWorker}
-                onChange={(e) => setSelectedWorker(e.target.value)}
-                className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-              >
-                <option value="">Svi radnici</option>
-                {workers.map(worker => (
-                  <option key={worker} value={worker}>{worker}</option>
-                ))}
-              </select>
+                  <select
+                    value={selectedWorker}
+                    onChange={(e) => setSelectedWorker(e.target.value)}
+                    className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
+                  >
+                    <option value="">Svi komercijalisti</option>
+
+                    {komercijalisti.map(k => (
+                      <option key={k.sifra_radnika} value={k.naziv_radnika}>
+                        {k.naziv_radnika}
+                      </option>
+                    ))}
+                  </select>
             </div>
           </div>
 
