@@ -25,27 +25,6 @@ export const savePartnerReport = async (sifraRadnika, sifraPartnera, podaci) => 
   });
 };
 
-// export const getPartnerReports = async (sifraPartnera) => {
-//   return withConnection(async (connection) => {
-//     const query = `
-//       SELECT 
-//         p.sifra_tabele,
-//         p.sifra_radnika,
-//         p.sifra_partnera,
-//         p.datum_razgovora,
-//         p.podaci,
-//         p.poslano_emailom
-//       FROM komercijala.podaci_o_partneru_teren_novi p
-//       WHERE p.sifra_partnera = ?
-//       ORDER BY p.datum_razgovora DESC
-//     `;
-    
-//     const [rows] = await connection.execute(query, [sifraPartnera]);
-//     return rows;
-//   });
-// };
-
-
 export const getIzvjestajiIstorija = async (sifraPartnera) => {
   // Provjera da li je parametar prosleđen
   if (sifraPartnera === undefined || sifraPartnera === null) {
@@ -63,3 +42,16 @@ export const getIzvjestajiIstorija = async (sifraPartnera) => {
    
   });
 };
+
+export const getListaKomercijaliti = async () => {
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.radnici_pregled_komercijalista()'
+    );
+ 
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+   
+  });
+};
+
