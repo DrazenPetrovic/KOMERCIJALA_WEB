@@ -53,13 +53,27 @@ export const getPartnerReports = async (req, res) => {
 export const getListaKomercijalisti = async (req, res) => {
   try {
     const data = await IzvjestajiService.getListaKomercijalisti();
-    console.log('Lista komercijalista:', data);
+    // console.log('Lista komercijalista:', data);
     return res.json({ success: true, data, count: data.length });
   } catch (error) {
     console.error('Greška pri učitavanju liste komercijalista:', error);
     return res.status(500).json({ 
       success: false, 
       error: 'Greška pri učitavanju liste komercijalista' 
+    });
+  }
+};
+
+export const getIzvjestajiPoslednji = async (req, res) => {
+  try {
+    const data = await IzvjestajiService.getIzvjestajiPoslednji();
+    console.log('Poslednji izvještaji:', data);
+    return res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Greška pri učitavanju posljednjih izvještaja:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Greška pri učitavanju posljednjih izvještaja' 
     });
   }
 };

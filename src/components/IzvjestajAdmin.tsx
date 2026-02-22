@@ -1,7 +1,6 @@
-import React, { useState, useEffect} from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Filter, Sparkles, TrendingUp, TrendingDown, User, AlertCircle } from 'lucide-react';
 
-// Mock tipovi podataka
 interface Report {
   id: number;
   date: string;
@@ -16,24 +15,22 @@ interface Komercijalist {
   naziv_radnika: string;
 }
 
-
-
-
-// Mock podaci
-const mockReports: Report[] = [
-  { id: 1, date: '2026-02-20', worker: 'Marko Marković', items: 15, total: 2450.00, category: 'Prodaja' },
-  { id: 2, date: '2026-02-20', worker: 'Ana Anić', items: 22, total: 3890.50, category: 'Prodaja' },
-  { id: 3, date: '2026-02-20', worker: 'Petar Petrović', items: 8, total: 1250.00, category: 'Nabavka' },
-  { id: 4, date: '2026-02-19', worker: 'Marko Marković', items: 12, total: 1850.00, category: 'Prodaja' },
-  { id: 5, date: '2026-02-19', worker: 'Jelena Jelić', items: 18, total: 2980.00, category: 'Prodaja' },
-];
+interface IzvjestajRow {
+  sifra_radnika: number;
+  naziv_radnika: string;
+  sifra_partnera: number;
+  naziv_partnera: string;
+  datum_razgovora: string;
+  podaci_razgovora: string;
+}
 
 const mockAIAnalysis = {
-  summary: "Prodaja danas pokazuje pozitivan trend sa povećanjem od 15% u odnosu na prošli dan. Ana Anić je postigla najbolje rezultate.",
+  summary:
+    'Prodaja danas pokazuje pozitivan trend sa povećanjem od 15% u odnosu na prošli dan. Ana Anić je postigla najbolje rezultate.',
   highlights: [
     { type: 'positive', text: 'Prosječna vrijednost transakcije: 2,130.00 KM' },
     { type: 'positive', text: 'Ukupno stavki obrađeno: 45' },
-    { type: 'warning', text: 'Nabavka ispod očekivanog nivoa' },
+    { type: 'warning', text: 'Nabavka ispod očekivanog nivoa' }
   ],
   trend: 'up' as const
 };
@@ -43,89 +40,209 @@ const IzvjestajAdmin: React.FC = () => {
   const [dateRangeStart, setDateRangeStart] = useState<string>('');
   const [dateRangeEnd, setDateRangeEnd] = useState<string>('');
   const [selectedWorker, setSelectedWorker] = useState<string>('');
-  const [filteredReports, setFilteredReports] = useState<Report[]>(
-    mockReports.filter(r => r.date === '2026-02-20')
-  );
+  const [izvjestaji, setIzvjestaji] = useState<IzvjestajRow[]>([]);
+  const [loadingIzvjestaji, setLoadingIzvjestaji] = useState(false);
 
-  // Izvuci jedinstvene radnike
- // const workers = Array.from(new Set(mockReports.map(r => r.worker)));
+  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [dateMode, setDateMode] = useState<'day' | 'range'>('day');
   const [komercijalisti, setKomercijalisti] = useState<Komercijalist[]>([]);
+  const [cardRows, setCardRows] = useState<IzvjestajRow[]>([]);
 
 
-  
-
-
-    useEffect(() => {
-      const fetchKomercijalisti = async () => {
-        try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-          const res = await fetch(`${apiUrl}/api/izvjestaji/komerc`, {
-            credentials: 'include'
-          });
-
-          const json = await res.json();
-
-          if (json.success) {
-            setKomercijalisti(json.data);
-          }
-        } catch (err) {
-          console.error('Greška pri učitavanju komercijalista:', err);
-        }
-      };
-
-      fetchKomercijalisti();
-    }, []);
-
-
-  // Funkcija za formatiranje datuma
-  const formatDate = (dateString: string): string => {
-    const [year, month, day] = dateString.split('-');
-    return `${day}.${month}.${year}`;
-  };
-
-  // Funkcija za filtriranje
-  const applyFilters = () => {
-    let filtered = mockReports;
-
-      // Filter po datumu (tab logika)
-      if (dateMode === 'range') {
-        if (dateRangeStart && dateRangeEnd) {
-          filtered = filtered.filter(r => r.date >= dateRangeStart && r.date <= dateRangeEnd);
-        } else {
-          // Ako je izabran "Period", ali nisu oba datuma unesena, vrati prazno
-          filtered = [];
-        }
-      } else {
-        if (selectedDate) {
-          filtered = filtered.filter(r => r.date === selectedDate);
-        } else {
-          filtered = [];
-        }
+  useEffect(() => {
+    const fetchKomercijalisti = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${apiUrl}/api/izvjestaji/komercijalisti`, { credentials: 'include' });
+        const json = await res.json();
+        if (json.success) setKomercijalisti(json.data);
+      } catch (err) {
+        console.error('Greška pri učitavanju komercijalista:', err);
       }
+    };
 
-    // Filter po radniku
-    if (selectedWorker) {
-      filtered = filtered.filter(r => r.worker === selectedWorker);
+    const fetchIzvjestajiPoslednji = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        setLoadingIzvjestaji(true);
+
+        const res = await fetch(`${apiUrl}/api/izvjestaji/izvjestaj-poslednji`, {
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+
+        if (json.success) {
+          const data: IzvjestajRow[] = json.data || [];
+          setIzvjestaji(data);
+
+          const firstDate = data?.[0]?.datum_razgovora?.slice(0, 10);
+          console.log('Prvi datum iz izvještaja:', firstDate);
+          console.log('Prvi datum iz izvještaja:', data?.[0]?.datum_razgovora);
+
+          // if (firstDate) setSelectedDate(firstDate);
+          
+          if (firstDate) {
+            setSelectedDate(firstDate);
+            const baseInit = data.filter(r => r.datum_razgovora.slice(0, 10) === firstDate);
+            setCardRows(baseInit);
+            buildDetaljiTable(baseInit, formatDate(firstDate));
+          } else {
+            setCardRows([]);
+            setFilteredReports([]);
+          }
+
+
+
+          // inicijalno napuni tabelu
+          applyFiltersWithData(data, {
+            dateMode: 'day',
+            selectedDate: firstDate || '2026-02-20',
+            dateRangeStart: '',
+            dateRangeEnd: '',
+            selectedWorker: ''
+          });
+        } else {
+          setIzvjestaji([]);
+          setFilteredReports([]);
+        }
+      } catch (e) {
+        console.error('Greška izvjestaji poslednji:', e);
+        setIzvjestaji([]);
+        setFilteredReports([]);
+      } finally {
+        setLoadingIzvjestaji(false);
+      }
+    };
+
+    fetchKomercijalisti();
+    fetchIzvjestajiPoslednji();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+          const formatDate = (input?: string): string => {
+            if (!input) return '';
+            const datePart = input.includes('T') ? input.split('T')[0] : input; // YYYY-MM-DD
+            const [y, m, d] = datePart.split('-');
+            if (!y || !m || !d) return input;
+            return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+          };
+
+        const formatRangeLabel = (start?: string, end?: string): string => {
+      if (!start || !end) return '';
+      return `${formatDate(start)} - ${formatDate(end)}`;
+
+          };
+
+  const buildDetaljiTable = (rows: IzvjestajRow[], dateLabel: string) => {
+    const map = new Map<number, { worker: string; items: number }>();
+
+    for (const r of rows) {
+      const key = r.sifra_radnika;
+      if (!map.has(key)) map.set(key, { worker: r.naziv_radnika, items: 1 });
+      else map.get(key)!.items += 1;
     }
 
-    setFilteredReports(filtered);
+    const table: Report[] = Array.from(map.entries()).map(([id, v]) => ({
+      id,
+      date: dateLabel,
+      worker: v.worker,
+      items: v.items,
+      total: 0,
+      category: ''
+    }));
+
+    table.sort((a, b) => b.items - a.items);
+    setFilteredReports(table);
   };
 
+  const applyFiltersWithData = (
+    data: IzvjestajRow[],
+    params: {
+      dateMode: 'day' | 'range';
+      selectedDate: string;
+      dateRangeStart: string;
+      dateRangeEnd: string;
+      selectedWorker: string;
+    }
+  ) => {
+    let base = [...data];
+
+    // filter po datumu / periodu
+    let dateLabel = '';
+    if (params.dateMode === 'range') {
+      if (params.dateRangeStart && params.dateRangeEnd) {
+        base = base.filter(r => {
+          const d = r.datum_razgovora.slice(0, 10);
+          return d >= params.dateRangeStart && d <= params.dateRangeEnd;
+        });
+        dateLabel = `${params.dateRangeStart} - ${params.dateRangeEnd}`;
+      } else {
+        base = [];
+        dateLabel = '';
+      }
+    } else {
+      if (params.selectedDate) {
+        base = base.filter(r => r.datum_razgovora.slice(0, 10) === params.selectedDate);
+        dateLabel = params.selectedDate;
+      } else {
+        base = [];
+        dateLabel = '';
+      }
+    }
+
+    // filter po radniku (OVDJE stvarno utiče)
+      if (selectedWorker) {
+        base = base.filter(r => r.naziv_radnika === selectedWorker);
+      }
+
+      // kartice: konkretni redovi iz baze (partneri + podaci_razgovora)
+      setCardRows(base);
+
+    buildDetaljiTable(base, dateLabel);
+  };
+
+  const applyFilters = () => {
+          let base = [...izvjestaji];
+  let dateLabel = '';
+
+  if (dateMode === 'range') {
+    if (dateRangeStart && dateRangeEnd) {
+      base = base.filter(r => {
+        const d = r.datum_razgovora.slice(0, 10);
+        return d >= dateRangeStart && d <= dateRangeEnd;
+      });
+      dateLabel = formatRangeLabel(dateRangeStart, dateRangeEnd);
+    } else {
+      base = [];
+      dateLabel = '';
+    }
+  } else {
+    if (selectedDate) {
+      base = base.filter(r => r.datum_razgovora.slice(0, 10) === selectedDate);
+      dateLabel = formatDate(selectedDate); // <- dd.MM.yyyy
+    } else {
+      base = [];
+      dateLabel = '';
+    }
+  }
+
+  // VAŽNO: ako NE želiš da filter radnika utiče na "Detalji Izvještaja", OBRIŠI ova 3 reda:
+  // if (selectedWorker) {
+  //   base = base.filter(r => r.naziv_radnika === selectedWorker);
+  // }
+
+  buildDetaljiTable(base, dateLabel);
+};
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">
       <div className="max-w-7xl mx-auto space-y-3">
-       
-        {/* AI Analiza - Prominentna Sekcija */}
         <div className="bg-gradient-to-br from-[#785E9E] to-[#5d4a7a] rounded-lg shadow-lg p-3 md:p-4 text-white">
           <div className="flex items-start gap-2 mb-2">
             <Sparkles className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
             <div className="flex-1">
               <h2 className="text-base md:text-lg font-bold mb-1">AI Analiza</h2>
-              <p className="text-purple-100 text-xs md:text-sm leading-relaxed">
-                {mockAIAnalysis.summary}
-              </p>
+              <p className="text-purple-100 text-xs md:text-sm leading-relaxed">{mockAIAnalysis.summary}</p>
             </div>
             {mockAIAnalysis.trend === 'up' ? (
               <TrendingUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
@@ -133,14 +250,14 @@ const IzvjestajAdmin: React.FC = () => {
               <TrendingDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
             )}
           </div>
-          
+
           <div className="space-y-1.5 mt-2">
             {mockAIAnalysis.highlights.map((highlight, idx) => (
-              <div 
-                key={idx} 
+              <div
+                key={idx}
                 className={`flex items-center gap-2 p-2 rounded-lg text-xs md:text-sm ${
-                  highlight.type === 'positive' 
-                    ? 'bg-white/20 border border-white/30' 
+                  highlight.type === 'positive'
+                    ? 'bg-white/20 border border-white/30'
                     : 'bg-orange-400/30 border border-orange-300/50'
                 }`}
               >
@@ -151,16 +268,13 @@ const IzvjestajAdmin: React.FC = () => {
           </div>
         </div>
 
-        {/* Filteri */}
         <div className="bg-white rounded-lg shadow-sm p-3 md:p-4">
           <div className="flex items-center gap-2 mb-3">
             <Filter className="w-4 h-4 text-gray-600" />
             <h3 className="text-sm md:text-base font-semibold text-gray-900">Filteri</h3>
           </div>
 
-          {/* Tabovi za datume + poseban filter za radnika */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-2.5">
-            {/* DATUMI (tabovi) */}
             <div className="lg:col-span-3">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-4 h-4 text-gray-600" />
@@ -174,9 +288,7 @@ const IzvjestajAdmin: React.FC = () => {
                       setDateRangeEnd('');
                     }}
                     className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors ${
-                      dateMode === 'day'
-                        ? 'bg-white shadow-sm text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900'
+                      dateMode === 'day' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     Po danu
@@ -187,12 +299,9 @@ const IzvjestajAdmin: React.FC = () => {
                     onClick={() => {
                       setDateMode('range');
                       setSelectedDate('');
-                      // ne brišem postojeći range da korisnik ne izgubi unos
                     }}
                     className={`px-3 py-1.5 text-xs md:text-sm rounded-md transition-colors ${
-                      dateMode === 'range'
-                        ? 'bg-white shadow-sm text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900'
+                      dateMode === 'range' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
                     Period
@@ -202,9 +311,7 @@ const IzvjestajAdmin: React.FC = () => {
 
               {dateMode === 'day' ? (
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Datum
-                  </label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Datum</label>
                   <input
                     type="date"
                     value={selectedDate}
@@ -219,9 +326,7 @@ const IzvjestajAdmin: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Od Datuma
-                    </label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Od Datuma</label>
                     <input
                       type="date"
                       value={dateRangeStart}
@@ -234,9 +339,7 @@ const IzvjestajAdmin: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Do Datuma
-                    </label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Do Datuma</label>
                     <input
                       type="date"
                       value={dateRangeEnd}
@@ -251,115 +354,106 @@ const IzvjestajAdmin: React.FC = () => {
               )}
             </div>
 
-            {/* RADNIK (van tabova) */}
             <div className="flex flex-col justify-end h-full">
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 <User className="w-3 h-3 inline mr-1" />
                 Komercijalisti
               </label>
-                  <select
-                    value={selectedWorker}
-                    onChange={(e) => setSelectedWorker(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-                  >
-                    <option value="">Svi komercijalisti</option>
 
-                    {komercijalisti.map(k => (
-                      <option key={k.sifra_radnika} value={k.naziv_radnika}>
-                        {k.naziv_radnika}
-                      </option>
-                    ))}
-                  </select>
+              <select
+                value={selectedWorker}
+                onChange={(e) => setSelectedWorker(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
+              >
+                <option value="">Svi komercijalisti</option>
+                {komercijalisti.map(k => (
+                  <option key={k.sifra_radnika} value={k.naziv_radnika}>
+                    {k.naziv_radnika}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
           <button
             onClick={applyFilters}
             className="mt-2.5 w-full md:w-auto px-4 py-1.5 text-xs md:text-sm bg-[#785E9E] text-white rounded-lg hover:bg-[#6b5088] transition-colors font-medium"
+            disabled={loadingIzvjestaji}
           >
-            Primijeni Filtere
+            {loadingIzvjestaji ? 'Učitavanje...' : 'Primijeni Filtere'}
           </button>
         </div>
 
-        {/* Tabela Izvještaja */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-3 md:p-4 border-b border-gray-200">
-            <h3 className="text-sm md:text-base font-semibold text-gray-900">
-              Detalji Izvještaja
-            </h3>
-          </div>
+          {/* Izabrali ste izvještaj */}
 
-          {/* Mobile View - Cards */}
-          <div className="md:hidden divide-y divide-gray-200">
-            {filteredReports.length === 0 ? (
-              <div className="p-6 text-center text-gray-500 text-xs">
-                Nema izvještaja za odabrane filtere
+            <div className="bg-white rounded-lg shadow-sm p-3 md:p-4 border border-[#785E9E]/20">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="text-sm md:text-base font-semibold text-gray-900">
+                  Izabrali ste izvještaj
+                </h3>
+
+                <span className="text-[11px] md:text-xs font-medium px-2 py-1 rounded-full bg-[#785E9E]/10 text-[#5d4a7a] border border-[#785E9E]/20">
+                  Detalji iz baze
+                </span>
               </div>
-            ) : (
-              filteredReports.map((report) => (
-                <div key={report.id} className="p-3 space-y-1.5">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-gray-900 text-xs">{report.worker}</p>
-                      <p className="text-xs text-gray-600">{formatDate(report.date)}</p>
-                    </div>
-                    <span className="px-2 py-0.5 bg-[#785E9E]/10 text-[#785E9E] text-xs rounded-full font-medium">
-                      {report.items} izvještaja
-                    </span>
-                  </div>
+
+              {cardRows.length === 0 ? (
+                <div className="text-gray-500 text-xs md:text-sm">
+                  Nema podataka za odabrane filtere.
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {cardRows.map((r, idx) => (
+                    <div
+                      key={`${r.sifra_partnera}-${r.datum_razgovora}-${idx}`}
+                      className="
+                        rounded-xl border border-gray-200 bg-white p-3
+                        shadow-[0_1px_0_rgba(0,0,0,0.03)]
+                        hover:border-[#785E9E]/40 hover:shadow-md
+                        transition
+                      "
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2 min-w-0">
+                          {/* akcent traka */}
+                          <div className="mt-0.5 h-5 w-1 rounded-full bg-gradient-to-b from-[#785E9E] to-[#5d4a7a] flex-shrink-0" />
 
-          {/* Desktop View - Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Datum
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Radnik
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Broj Izvještaja
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredReports.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-3 py-4 text-center text-gray-500 text-xs">
-                      Nema izvještaja za odabrane filtere
-                    </td>
-                  </tr>
-                ) : (
-                  filteredReports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-900">
-                        {formatDate(report.date)}
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <User className="w-3 h-3 text-gray-400 mr-1.5" />
-                          <span className="text-xs font-medium text-gray-900">
-                            {report.worker}
-                          </span>
+                          {/* Partner (gore lijevo) - u boji */}
+                          <div className="min-w-0">
+                            <div
+                              className="inline-flex items-center gap-2 max-w-full px-2 py-1 rounded-lg
+                                        bg-[#785E9E]/10 border border-[#785E9E]/20"
+                            >
+                              <span className="text-xs md:text-sm font-semibold text-[#5d4a7a] truncate">
+                                {r.sifra_partnera} {r.naziv_partnera}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-3 py-2.5 whitespace-nowrap text-xs text-gray-900">
-                        {report.items}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
 
+                        {/* Datum (gore desno) - u boji */}
+                        <div className="text-[11px] md:text-xs font-semibold whitespace-nowrap text-[#5d4a7a] bg-[#785E9E]/10 border border-[#785E9E]/20 px-2 py-0.5 rounded-full">
+                          {formatDate(r.datum_razgovora)}
+                        </div>
+                      </div>
+
+                      {/* Poruka (crna) */}
+                      <div className="mt-2 text-xs md:text-sm text-gray-900 whitespace-pre-wrap break-words">
+                        {r.podaci_razgovora}
+                      </div>
+
+                      {/* Footer: dole desno radnik - u boji */}
+                      <div className="mt-3 flex justify-end">
+                        <div className="text-[11px] md:text-xs font-semibold text-[#785E9E]">
+                          {r.naziv_radnika}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
       </div>
     </div>
   );
