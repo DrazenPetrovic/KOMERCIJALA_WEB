@@ -115,24 +115,46 @@ const IzvjestajAdmin: React.FC = () => {
       }
     };
 
+        const fetchIzvjestajiByDate = async (start: string, end: string): Promise<IzvjestajRow[]> => {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+        const res = await fetch(`${apiUrl}/api/izvjestaji/datum/${start}/${end}`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json?.error || 'Greška pri učitavanju izvještaja');
+        }
+
+        return (json.data || []) as IzvjestajRow[];
+      };
+
+
+
+
+
+
     fetchKomercijalisti();
     fetchIzvjestajiPoslednji();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-          const formatDate = (input?: string): string => {
+      const formatDate = (input?: string): string => {
             if (!input) return '';
             const datePart = input.includes('T') ? input.split('T')[0] : input; // YYYY-MM-DD
             const [y, m, d] = datePart.split('-');
             if (!y || !m || !d) return input;
             return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
-          };
+      };
 
-        const formatRangeLabel = (start?: string, end?: string): string => {
+      const formatRangeLabel = (start?: string, end?: string): string => {
       if (!start || !end) return '';
       return `${formatDate(start)} - ${formatDate(end)}`;
 
-          };
+      };
 
   const buildDetaljiTable = (rows: IzvjestajRow[], dateLabel: string) => {
     const map = new Map<number, { worker: string; items: number }>();
@@ -176,7 +198,7 @@ const IzvjestajAdmin: React.FC = () => {
           const d = r.datum_razgovora.slice(0, 10);
           return d >= params.dateRangeStart && d <= params.dateRangeEnd;
         });
-        dateLabel = `${params.dateRangeStart} - ${params.dateRangeEnd}`;
+        dateLabel = formatRangeLabel(params.dateRangeStart, params.dateRangeEnd);
       } else {
         base = [];
         dateLabel = '';
@@ -184,7 +206,7 @@ const IzvjestajAdmin: React.FC = () => {
     } else {
       if (params.selectedDate) {
         base = base.filter(r => r.datum_razgovora.slice(0, 10) === params.selectedDate);
-        dateLabel = params.selectedDate;
+        dateLabel = formatDate(params.selectedDate);
       } else {
         base = [];
         dateLabel = '';
@@ -197,42 +219,9 @@ const IzvjestajAdmin: React.FC = () => {
       }
 
       // kartice: konkretni redovi iz baze (partneri + podaci_razgovora)
-setCardRows(base);
-
-buildDetaljiTable(base, dateLabel);
+      setCardRows(base);
+      buildDetaljiTable(base, dateLabel);
   };
-
-//   const applyFilters = () => {
-//           let base = [...izvjestaji];
-//           let dateLabel = '';
-
-//   if (dateMode === 'range') {
-//     if (dateRangeStart && dateRangeEnd) {
-//       base = base.filter(r => {
-//         const d = r.datum_razgovora.slice(0, 10);
-//         return d >= dateRangeStart && d <= dateRangeEnd;
-//       });
-//       dateLabel = formatRangeLabel(dateRangeStart, dateRangeEnd);
-//     } else {
-//       base = [];
-//       dateLabel = '';
-//     }
-//   } else {
-//     if (selectedDate) {
-//       base = base.filter(r => r.datum_razgovora.slice(0, 10) === selectedDate);
-//       dateLabel = formatDate(selectedDate); // <- dd.MM.yyyy
-//     } else {
-//       base = [];
-//       dateLabel = '';
-//     }
-//   }
-//   // VAŽNO: ako NE želiš da filter radnika utiče na "Detalji Izvještaja", OBRIŠI ova 3 reda:
-//   if (selectedWorker) {
-//     base = base.filter(r => r.naziv_radnika === selectedWorker);
-//   }
-//   setCardRows(base);
-//   buildDetaljiTable(base, dateLabel);
-// };
 
   const applyFilters = () => {
     applyFiltersWithData(izvjestaji, {

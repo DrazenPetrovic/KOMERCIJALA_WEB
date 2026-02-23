@@ -77,3 +77,25 @@ export const getIzvjestajiPoslednji = async (req, res) => {
     });
   }
 };
+
+export const getIzvjestajiDatum = async (req, res) => {
+  try {
+    const { p_start_date, p_end_date } = req.params;
+
+    if (!p_start_date || !p_end_date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Nedostaju datumi' 
+      });
+    }
+
+    const data = await IzvjestajiService.getIzvjestajipoDatumu(p_start_date, p_end_date);
+    return res.json({ success: true, data, count: data.length });
+  } catch (error) {
+    console.error('Greška pri učitavanju izvještaja:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Greška pri učitavanju izvještaja' 
+    });
+  }
+};
