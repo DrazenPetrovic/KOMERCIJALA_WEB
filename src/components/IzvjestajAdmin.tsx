@@ -191,49 +191,59 @@ const IzvjestajAdmin: React.FC = () => {
       }
     }
 
-    // filter po radniku (OVDJE stvarno utiče)
-      if (selectedWorker) {
-        base = base.filter(r => r.naziv_radnika === selectedWorker);
+      // filter po radniku (OVDJE stvarno utiče)
+      if (params.selectedWorker) {
+        base = base.filter(r => r.naziv_radnika === params.selectedWorker);
       }
 
       // kartice: konkretni redovi iz baze (partneri + podaci_razgovora)
-      setCardRows(base);
+setCardRows(base);
 
-    buildDetaljiTable(base, dateLabel);
+buildDetaljiTable(base, dateLabel);
   };
 
+//   const applyFilters = () => {
+//           let base = [...izvjestaji];
+//           let dateLabel = '';
+
+//   if (dateMode === 'range') {
+//     if (dateRangeStart && dateRangeEnd) {
+//       base = base.filter(r => {
+//         const d = r.datum_razgovora.slice(0, 10);
+//         return d >= dateRangeStart && d <= dateRangeEnd;
+//       });
+//       dateLabel = formatRangeLabel(dateRangeStart, dateRangeEnd);
+//     } else {
+//       base = [];
+//       dateLabel = '';
+//     }
+//   } else {
+//     if (selectedDate) {
+//       base = base.filter(r => r.datum_razgovora.slice(0, 10) === selectedDate);
+//       dateLabel = formatDate(selectedDate); // <- dd.MM.yyyy
+//     } else {
+//       base = [];
+//       dateLabel = '';
+//     }
+//   }
+//   // VAŽNO: ako NE želiš da filter radnika utiče na "Detalji Izvještaja", OBRIŠI ova 3 reda:
+//   if (selectedWorker) {
+//     base = base.filter(r => r.naziv_radnika === selectedWorker);
+//   }
+//   setCardRows(base);
+//   buildDetaljiTable(base, dateLabel);
+// };
+
   const applyFilters = () => {
-          let base = [...izvjestaji];
-  let dateLabel = '';
+    applyFiltersWithData(izvjestaji, {
+      dateMode,
+      selectedDate,
+      dateRangeStart,
+      dateRangeEnd,
+      selectedWorker
+    });
+  };
 
-  if (dateMode === 'range') {
-    if (dateRangeStart && dateRangeEnd) {
-      base = base.filter(r => {
-        const d = r.datum_razgovora.slice(0, 10);
-        return d >= dateRangeStart && d <= dateRangeEnd;
-      });
-      dateLabel = formatRangeLabel(dateRangeStart, dateRangeEnd);
-    } else {
-      base = [];
-      dateLabel = '';
-    }
-  } else {
-    if (selectedDate) {
-      base = base.filter(r => r.datum_razgovora.slice(0, 10) === selectedDate);
-      dateLabel = formatDate(selectedDate); // <- dd.MM.yyyy
-    } else {
-      base = [];
-      dateLabel = '';
-    }
-  }
-
-  // VAŽNO: ako NE želiš da filter radnika utiče na "Detalji Izvještaja", OBRIŠI ova 3 reda:
-  // if (selectedWorker) {
-  //   base = base.filter(r => r.naziv_radnika === selectedWorker);
-  // }
-
-  buildDetaljiTable(base, dateLabel);
-};
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">
       <div className="max-w-7xl mx-auto space-y-3">
@@ -387,16 +397,6 @@ const IzvjestajAdmin: React.FC = () => {
           {/* Izabrali ste izvještaj */}
 
             <div className="bg-white rounded-lg shadow-sm p-3 md:p-4 border border-[#785E9E]/20">
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h3 className="text-sm md:text-base font-semibold text-gray-900">
-                  Izabrali ste izvještaj
-                </h3>
-
-                <span className="text-[11px] md:text-xs font-medium px-2 py-1 rounded-full bg-[#785E9E]/10 text-[#5d4a7a] border border-[#785E9E]/20">
-                  Detalji iz baze
-                </span>
-              </div>
-
               {cardRows.length === 0 ? (
                 <div className="text-gray-500 text-xs md:text-sm">
                   Nema podataka za odabrane filtere.
@@ -407,48 +407,52 @@ const IzvjestajAdmin: React.FC = () => {
                     <div
                       key={`${r.sifra_partnera}-${r.datum_razgovora}-${idx}`}
                       className="
-                        rounded-xl border border-gray-200 bg-white p-3
+                        rounded-xl border border-gray-200 bg-white
+                        px-3 pb-3 pt-‚7
                         shadow-[0_1px_0_rgba(0,0,0,0.03)]
                         hover:border-[#785E9E]/40 hover:shadow-md
                         transition
+                        flex flex-col
+                        h-full
                       "
                     >
                       {/* Header */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-2 min-w-0">
-                          {/* akcent traka */}
-                          <div className="mt-0.5 h-5 w-1 rounded-full bg-gradient-to-b from-[#785E9E] to-[#5d4a7a] flex-shrink-0" />
+                        <div className="flex items-center justify-between gap-2 leading-none">
+                          <div className="flex items-center gap-2 min-w-0 leading-none">
 
-                          {/* Partner (gore lijevo) - u boji */}
-                          <div className="min-w-0">
-                            <div
-                              className="inline-flex items-center gap-2 max-w-full px-2 py-1 rounded-lg
-                                        bg-[#785E9E]/10 border border-[#785E9E]/20"
-                            >
-                              <span className="text-xs md:text-sm font-semibold text-[#5d4a7a] truncate">
-                                {r.sifra_partnera} {r.naziv_partnera}
-                              </span>
+                            {/* Partner (gore lijevo) */}
+                            <div className="min-w-0">
+                              <div
+                                className="inline-flex items-center gap-2 max-w-full px-2 py-1 rounded-lg
+                                          bg-[#785E9E]/10 border border-[#785E9E]/20"
+                              >
+                                <span className="text-xs md:text-sm font-semibold text-[#5d4a7a] truncate">
+                                  {r.sifra_partnera} {r.naziv_partnera}
+                                </span>
+                              </div>
                             </div>
+
+                          </div>
+
+                          {/* Datum (gore desno) */}
+                          <div className="text-[11px] md:text-xs font-semibold whitespace-nowrap
+                                          text-[#5d4a7a] bg-[#785E9E]/10 border border-[#785E9E]/20
+                                          px-2 py-0.5 rounded-full">
+                            {formatDate(r.datum_razgovora)}
                           </div>
                         </div>
 
-                        {/* Datum (gore desno) - u boji */}
-                        <div className="text-[11px] md:text-xs font-semibold whitespace-nowrap text-[#5d4a7a] bg-[#785E9E]/10 border border-[#785E9E]/20 px-2 py-0.5 rounded-full">
-                          {formatDate(r.datum_razgovora)}
-                        </div>
-                      </div>
-
                       {/* Poruka (crna) */}
-                      <div className="mt-2 text-xs md:text-sm text-gray-900 whitespace-pre-wrap break-words">
+                      <div className="mt-2 flex-1 text-xs md:text-sm text-gray-900 whitespace-pre-wrap break-words">
                         {r.podaci_razgovora}
                       </div>
 
                       {/* Footer: dole desno radnik - u boji */}
-                      <div className="mt-3 flex justify-end">
-                        <div className="text-[11px] md:text-xs font-semibold text-[#785E9E]">
-                          {r.naziv_radnika}
+                        <div className="mt-2 flex justify-end">
+                          <div className="text-[11px] md:text-xs font-semibold text-[#785E9E]">
+                            {r.naziv_radnika}
+                          </div>
                         </div>
-                      </div>
                     </div>
                   ))}
                 </div>
