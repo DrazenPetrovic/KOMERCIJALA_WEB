@@ -200,7 +200,8 @@ return (
                 {renderContent()}
               </h2>
             </div>
-            <p className="text-gray-600 text-base md:text-lg lg:text-xl">
+            
+            {/* <p className="text-gray-600 text-base md:text-lg lg:text-xl">
               Izabrali ste: <span className="font-semibold" style={{ color: '#785E9E' }}>
                 {menuItems.find(m => m.id === activeSection)?.label}
               </span>
@@ -208,7 +209,7 @@ return (
             <div className="mt-8 md:mt-10 p-8 md:p-10 lg:p-12 bg-gray-50 rounded-2xl border-2 border-dashed text-center text-gray-600 text-base md:text-lg lg:text-xl"
               style={{ borderColor: '#785E9E33' }}>
               Sadržaj sekcije će biti prikazan ovdje
-            </div>
+            </div> */}
           </div>
         )}
       </main>
