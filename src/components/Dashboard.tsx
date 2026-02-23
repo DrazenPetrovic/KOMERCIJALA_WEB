@@ -28,6 +28,7 @@ export function Dashboard({ username, vrstaRadnika, onLogout }: DashboardProps) 
 const vrsta = Number(vrstaRadnika);
 
 console.log('Dashboard render - vrstaRadnika:', vrstaRadnika, 'parsed vrsta:', vrsta);
+console.log('Dashboard render - vrstaRadnika:-');
 
 const menuItems =
   vrsta === 1
