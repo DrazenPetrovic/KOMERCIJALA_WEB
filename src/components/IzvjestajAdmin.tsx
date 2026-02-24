@@ -49,6 +49,24 @@ const IzvjestajAdmin: React.FC = () => {
   const [cardRows, setCardRows] = useState<IzvjestajRow[]>([]);
 
 
+    const fetchIzvjestajiByDate = async (start: string, end: string): Promise<IzvjestajRow[]> => {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+      const res = await fetch(`${apiUrl}/api/izvjestaji/izvjestaj-datum/${start}/${end}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json?.error || 'Greška pri učitavanju izvještaja');
+      }
+
+      return (json.data || []) as IzvjestajRow[];
+    };
+
+
   useEffect(() => {
     const fetchKomercijalisti = async () => {
       try {
@@ -114,28 +132,6 @@ const IzvjestajAdmin: React.FC = () => {
         setLoadingIzvjestaji(false);
       }
     };
-
-        const fetchIzvjestajiByDate = async (start: string, end: string): Promise<IzvjestajRow[]> => {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-        const res = await fetch(`${apiUrl}/api/izvjestaji/datum/${start}/${end}`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
-        });
-
-        const json = await res.json();
-        if (!res.ok || !json.success) {
-          throw new Error(json?.error || 'Greška pri učitavanju izvještaja');
-        }
-
-        return (json.data || []) as IzvjestajRow[];
-      };
-
-
-
-
-
 
     fetchKomercijalisti();
     fetchIzvjestajiPoslednji();
@@ -223,15 +219,77 @@ const IzvjestajAdmin: React.FC = () => {
       buildDetaljiTable(base, dateLabel);
   };
 
-  const applyFilters = () => {
-    applyFiltersWithData(izvjestaji, {
-      dateMode,
-      selectedDate,
-      dateRangeStart,
-      dateRangeEnd,
-      selectedWorker
-    });
-  };
+  // const applyFilters = () => {
+  //   applyFiltersWithData(izvjestaji, {
+  //     dateMode,
+  //     selectedDate,
+  //     dateRangeStart,
+  //     dateRangeEnd,
+  //     selectedWorker
+  //   });
+  // };
+
+      const applyFilters = async () => {
+        try {
+          setLoadingIzvjestaji(true);
+
+          let start = '';
+          let end = '';
+
+          if (dateMode === 'day') {
+            if (!selectedDate) {
+              applyFiltersWithData([], {
+                dateMode,
+                selectedDate,
+                dateRangeStart,
+                dateRangeEnd,
+                selectedWorker
+              });
+              return;
+            }
+            start = selectedDate;
+            end = selectedDate; // isti dan
+          } else {
+            if (!dateRangeStart || !dateRangeEnd) {
+              applyFiltersWithData([], {
+                dateMode,
+                selectedDate,
+                dateRangeStart,
+                dateRangeEnd,
+                selectedWorker
+              });
+              return;
+            }
+            start = dateRangeStart;
+            end = dateRangeEnd;
+          }
+
+          const data = await fetchIzvjestajiByDate(start, end);
+
+          // opcionalno: da state "izvjestaji" bude uvijek zadnje učitano
+          setIzvjestaji(data);
+
+          applyFiltersWithData(data, {
+            dateMode,
+            selectedDate,
+            dateRangeStart,
+            dateRangeEnd,
+            selectedWorker
+          });
+        } catch (e) {
+          console.error('Greška pri primjeni filtera:', e);
+          applyFiltersWithData([], {
+            dateMode,
+            selectedDate,
+            dateRangeStart,
+            dateRangeEnd,
+            selectedWorker
+          });
+        } finally {
+          setLoadingIzvjestaji(false);
+        }
+      };
+
 
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">

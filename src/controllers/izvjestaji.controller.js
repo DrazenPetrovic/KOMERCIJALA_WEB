@@ -67,7 +67,6 @@ export const getListaKomercijalisti = async (req, res) => {
 export const getIzvjestajiPoslednji = async (req, res) => {
   try {
     const data = await IzvjestajiService.getIzvjestajiPoslednji();
-    console.log('Poslednji izvještaji:', data);
     return res.json({ success: true, data, count: data.length });
   } catch (error) {
     console.error('Greška pri učitavanju posljednjih izvještaja:', error);
