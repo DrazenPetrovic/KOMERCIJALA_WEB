@@ -1,6 +1,20 @@
-
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Edit2, Trash2, Loader, Search } from 'lucide-react';
+
+
+type RecentProduct = {
+  sifra: string;
+  naziv: string;
+};
+
+const MOCK_RECENT_PRODUCTS: RecentProduct[] = [
+  { sifra: "101001", naziv: "Hljeb bijeli 500g" },
+  { sifra: "203445", naziv: "Mlijeko 2.8% 1L" },
+  { sifra: "330120", naziv: "Jogurt 180g" },
+  { sifra: "440009", naziv: "Šećer 1kg" },
+  { sifra: "550771", naziv: "Ulje suncokretovo 1L" },
+];
+
 
 // Prag za šifru kupca - ako je šifra veća od ovog broja, prikazuje se simbol
 const CUSTOMER_CODE_THRESHOLD = 10000;
@@ -136,14 +150,25 @@ export function OrdersList() {
   const [searchKupac, setSearchKupac] = useState<string>('');
   const [artikli, setArtikli] = useState<Artikal[]>([]);
   const [searchArtikli, setSearchArtikli] = useState('');
-
-
   const [selectedArtiklModal, setSelectedArtiklModal] = useState<Artikal | null>(null);
   const [novaArtiklUNarudzbi, setNovaArtiklUNarudzbi] = useState<(Artikal & { kolicina: number; napomena: string })[]>([]);
   const [artiklKolicina, setArtiklKolicina] = useState<number>(1);
   const [artiklNapomena, setArtiklNapomena] = useState<string>('');
-
   const [selectedVrstaPlacanja, setSelectedVrstaPlacanja] = useState<number | null>(null);
+
+  const handleRecentProductClick = (p: RecentProduct) => {
+    // TODO: ovdje kasnije pozovi tvoju postojeću funkciju koja dodaje stavku u narudžbu
+    // npr: addOrderItem({ sifra: p.sifra, naziv: p.naziv, kolicina: 1, ... })
+    console.log("Kliknut raniji proizvod:", p);
+
+    // privremeno (ako imaš state za unos pretrage ili selekcije artikla, ovdje ga setuj)
+    // setSelectedArticleCode(p.sifra)
+    // setSelectedArticleName(p.naziv)
+  };
+
+
+
+
 
   const getSelectedTerenInfo = (): TerenDostaveInfo | null => {
     if (selectedDay === null) return null;
@@ -1122,10 +1147,14 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-[5px]">
     <div className="bg-white rounded-xl shadow-2xl w-full max-h-[95vh] flex flex-col overflow-hidden">
       {/* HEADER SA ZAGLAVJEM I PODACIMA */}   
-      <div className="border-b-2 p-3 md:p-4 flex items-start justify-between gap-4" style={{ backgroundColor: '#785E9E', borderColor: '#8FC74A' }}>
-        <div className="flex justify-start">
+      <div className="border-b-2 p-3 md:p-4 flex items-start justify-between gap-4" 
+      style={{ backgroundColor: '#785E9E', borderColor: '#8FC74A' }}>
+       {/* OVO JE NOVO: wrapper koji drži 2 kartice jednu pored druge */}
+          <div className="flex items-start gap-4 flex-wrap w-full">
           {/* INFORMATIVNA KARTCA SA PODACIMA */}
-          <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs" style={{ borderColor: '#8FC74A' }}>
+          <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs"
+          style={{ borderColor: '#8FC74A' }}>
+          {/* --- ovdje ostaje sav tvoj postojeći sadržaj kartice --- */}
             <div className="space-y-3">
               {/* DAN */}
               <div className="rounded-lg p-2" style={{ backgroundColor: '#F5F3FF', borderLeft: '3px solid #8FC74A' }}>
@@ -1175,11 +1204,10 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                     <div className="text-sm font-semibold text-gray-800">
                       {selectedKupac.naziv_kupca}
                     </div>
-                  </div>
-        
-        
+                  </div>        
             </div>
            <div style={{ borderTop: '1px solid #E0E0E0', margin: '0.5rem 0' }}></div>
+
               <div className="flex gap-2 flex-wrap">
                       {getVrstePaymentaZaKupca(selectedKupac?.sifra_kupca || 0).map((vrsta) => (
                         <button
@@ -1197,12 +1225,33 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                           {vrsta.naziv}
                         </button>
                       ))}
-                    </div>
-            
-          </div>
+                </div>
+            </div>
+                {/* 2) NOVA KARTICA: Ranije uzimani proizvodi */}
+            <div className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[360px]"
+              style={{ borderColor: '#8FC74A' }}>
+              <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
+                RANIJE UZIMANI PROIZVODI
+              </div>
+
+              {/* Ovdje ide grid sa malim klikabilnim pravougaonicima */}
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* privremeno mock, kasnije baza */}
+                {MOCK_RECENT_PRODUCTS.map((p) => (
+                  <button
+                    key={p.sifra}
+                    type="button"
+                    onClick={() => handleRecentProductClick(p)}
+                    className="text-left rounded-lg border p-2 hover:shadow-sm transition-all"
+                    style={{ borderColor: '#E7E7E7' }}
+                  >
+                    <div className="text-[11px] text-gray-500">Šifra: {p.sifra}</div>
+                    <div className="text-sm font-semibold text-gray-800 leading-snug">{p.naziv}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
         </div>
-
-
       </div>
 
                   {/* MAIN CONTENT AREA - DVIJE KOLONE */}
@@ -1299,8 +1348,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                   )}
                 </div>
               </div>
-
-
          </div>
 
         {/* DESNA STRANA - SADRŽAJ (70%) */}

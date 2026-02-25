@@ -17,7 +17,22 @@ export const getAktivneNarudzbeGrupisano = async (req, res) => {
   }
 };
 
+export const getRanijeUzimano = async (req, res) => {
+  try {
+    const sifraPartnera = req.query.sifraPartnera || req.params.sifraPartnera;
+    if (!sifraPartnera) {
+      return res.status(400).json({ success: false, error: 'Sifra partnera je obavezna' });
+    }
 
+    const nazivPartnera = req.query.nazivPartnera || req.params.nazivPartnera;
+
+    const ranijeUzimano = await NarudzbeService.getRanijeUzimano(sifraPartnera, nazivPartnera);
+    return res.json({ success: true, data: ranijeUzimano, count: ranijeUzimano.length });
+  } catch (error) {
+    console.error('Pregled ranije uzimanih narudžbi error:', error);
+    return res.status(500).json({ success: false, error: 'Greška pri učitavanju ranije uzimanih narudžbi' });
+  }
+};
 
 export const getAktivneNarudzbe = async (req, res) => {
   try {
