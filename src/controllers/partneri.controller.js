@@ -20,7 +20,7 @@ export const getPartneriDodatniPodaci = async (req, res) => {
       data: partneri, 
       count: partneri.length 
     });
-    console.log('Partneri sa dodatnim podacima:', partneri);
+
   } catch (error) {
     console.error('Pregled partnera dodatni podaci error:', error);
     return res.status(500).json({ 

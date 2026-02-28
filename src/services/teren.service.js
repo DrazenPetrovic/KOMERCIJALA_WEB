@@ -10,7 +10,7 @@ export const getTerenGrad = async () => {
 export const getTerenPoDanima = async () => {
   return withConnection(async (connection) => {
     const [rows] = await connection.execute('CALL komercijala.pregled_aktivnih_terena_po_danima()');
-    console.log('getTerenPoDanima rows:', rows);
+    // console.log('getTerenPoDanima rows:', rows);
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
@@ -28,7 +28,7 @@ export const getTerenKupci = async () => {
         naziv_grada: k.Naziv_grada,
         vrsta_kupca: k.vrsta
       }));
-      console.log('✅ MAPANI KUPCI:', kupci);
+      // console.log('✅ MAPANI KUPCI:', kupci);
       return kupci;
     }
     return [];

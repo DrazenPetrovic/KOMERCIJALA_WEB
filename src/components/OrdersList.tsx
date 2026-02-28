@@ -7,13 +7,7 @@ type RecentProduct = {
   naziv: string;
 };
 
-const MOCK_RECENT_PRODUCTS: RecentProduct[] = [
-  { sifra: "101001", naziv: "Hljeb bijeli 500g" },
-  { sifra: "203445", naziv: "Mlijeko 2.8% 1L" },
-  { sifra: "330120", naziv: "Jogurt 180g" },
-  { sifra: "440009", naziv: "Šećer 1kg" },
-  { sifra: "550771", naziv: "Ulje suncokretovo 1L" },
-];
+
 
 
 // Prag za šifru kupca - ako je šifra veća od ovog broja, prikazuje se simbol
@@ -155,19 +149,51 @@ export function OrdersList() {
   const [artiklKolicina, setArtiklKolicina] = useState<number>(1);
   const [artiklNapomena, setArtiklNapomena] = useState<string>('');
   const [selectedVrstaPlacanja, setSelectedVrstaPlacanja] = useState<number | null>(null);
+  const [recentProducts, setRecentProducts] = useState<RecentProduct[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
+  const [recentError, setRecentError] = useState<string | null>(null);
+  const [recentExpanded, setRecentExpanded] = useState(false);
+  const RECENT_PREVIEW_COUNT = 4;
+  const totalRecent = recentProducts.length;
+  const visibleRecent = recentExpanded
+  ? recentProducts
+  : recentProducts.slice(0, RECENT_PREVIEW_COUNT);
+  const canExpand = totalRecent > RECENT_PREVIEW_COUNT;
+  const [seenRecent, setSeenRecent] = useState<Set<string>>(new Set());
+
+
+
 
   const handleRecentProductClick = (p: RecentProduct) => {
-    // TODO: ovdje kasnije pozovi tvoju postojeću funkciju koja dodaje stavku u narudžbu
-    // npr: addOrderItem({ sifra: p.sifra, naziv: p.naziv, kolicina: 1, ... })
-    console.log("Kliknut raniji proizvod:", p);
+            if (!selectedVrstaPlacanja) {
+              alert('⚠️ Prvo odaberi vrstu plaćanja!');
+              return;
+            }
 
-    // privremeno (ako imaš state za unos pretrage ili selekcije artikla, ovdje ga setuj)
-    // setSelectedArticleCode(p.sifra)
-    // setSelectedArticleName(p.naziv)
+            // označi kao "prošao"
+            setSeenRecent((prev) => {
+              const next = new Set(prev);
+              next.add(String(p.sifra));
+              return next;
+            });
+
+            const sifraNum = Number(p.sifra);
+            const found = artikli.find((a) => Number(a.sifra_proizvoda) === sifraNum);
+
+            if (!found) {
+              alert(`⚠️ Artikal (${p.sifra}) nije pronađen u listi artikala. Osveži listu artikala.`);
+              return;
+            }
+
+            handleSelectArtikl(found);
   };
 
 
-
+  const handleSelectArtikl = (artikal: Artikal) => {
+    setSelectedArtiklModal(artikal);
+    setArtiklKolicina(1);
+    setArtiklNapomena('');
+    };
 
 
   const getSelectedTerenInfo = (): TerenDostaveInfo | null => {
@@ -191,11 +217,7 @@ export function OrdersList() {
 
 
 
-  const handleSelectArtikl = (artikal: Artikal) => {
-    setSelectedArtiklModal(artikal);
-    setArtiklKolicina(1);
-    setArtiklNapomena('');
-    };
+
   
 
       const formatPrice = (price: number | string | undefined | null): string => {
@@ -296,219 +318,219 @@ const calculateModalTotalPrice = () => {
   );
 };
 
-// Funkcija za slanje narudžbe
-const handleSaveNewOrder = async () => {
-  if (!selectedKupac || novaArtiklUNarudzbi.length === 0) {
-    alert('Odaberi kupca i dodaj najmanje jedan proizvod!');
-    return;
-  }
-  if (!selectedVrstaPlacanja) {
-    alert('❌ OBAVEZNO odaberi vrstu plaćanja!');
-    return;
-  }
+        // Funkcija za slanje narudžbe
+    const handleSaveNewOrder = async () => {
+          if (!selectedKupac || novaArtiklUNarudzbi.length === 0) {
+            alert('Odaberi kupca i dodaj najmanje jedan proizvod!');
+            return;
+          }
+          if (!selectedVrstaPlacanja) {
+            alert('❌ OBAVEZNO odaberi vrstu plaćanja!');
+            return;
+          }
 
-try {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-    
-    // ✅ PRIPREMI PODATKE
-    const orderData = {
-      sifraKupca: selectedKupac.sifra_kupca,
-      sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
-      vrstaPlacanja: selectedVrstaPlacanja,
-      proizvodi: novaArtiklUNarudzbi.map((a) => ({
-      sifraProizvoda: a.sifra_proizvoda,
-      kolicina: a.kolicina,
-      napomena: a.napomena || '',
-      })),
-    };
+         try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            
+            // ✅ PRIPREMI PODATKE
+            const orderData = {
+              sifraKupca: selectedKupac.sifra_kupca,
+              sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
+              vrstaPlacanja: selectedVrstaPlacanja,
+              proizvodi: novaArtiklUNarudzbi.map((a) => ({
+              sifraProizvoda: a.sifra_proizvoda,
+              kolicina: a.kolicina,
+              napomena: a.napomena || '',
+              })),
+            };
 
-    console.log('📤 Šaljem narudžbu:', orderData);
+            console.log('📤 Šaljem narudžbu:', orderData);
 
-    // ✅ POST ZAHTJEV
-    const response = await fetch(`${apiUrl}/api/narudzbe/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(orderData),
-    });
+            // ✅ POST ZAHTJEV
+            const response = await fetch(`${apiUrl}/api/narudzbe/create`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify(orderData),
+            });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-    const result = await response.json();
-    
-    // ✅ PROVJERI REZULTAT
-    if (result.success) {
-      alert('✅ Narudžba uspješno spremljena!');
-      
-      // RESETUJ SVE STATE-ove
-      setNovaArtiklUNarudzbi([]);
-      setSelectedArtiklModal(null);
-      setArtiklKolicina(1);
-      setArtiklNapomena('');
-      setShowKupacModal(false);
-      setSelectedKupac(null);
-      setSelectedVrstaPlacanja(null);
-      setSelectedTerenInfo(null);
-      setSearchArtikli('');
-      
-      // OSVJEŽI NARUDŽBE
-      if (selectedDay) {
-        fetchAktivneNarudzbe(selectedDay);
-      }
-    } else {
-      alert('❌ ' + (result.error || result.message || 'Greška pri spremanju narudžbe'));
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ Greška:', errorMessage);
-    alert('❌ Greška pri spremanju narudžbe: ' + errorMessage);
+            const result = await response.json();
+            
+            // ✅ PROVJERI REZULTAT
+            if (result.success) {
+              alert('✅ Narudžba uspješno spremljena!');
+              
+              // RESETUJ SVE STATE-ove
+              setNovaArtiklUNarudzbi([]);
+              setSelectedArtiklModal(null);
+              setArtiklKolicina(1);
+              setArtiklNapomena('');
+              setShowKupacModal(false);
+              setSelectedKupac(null);
+              setSelectedVrstaPlacanja(null);
+              setSelectedTerenInfo(null);
+              setSearchArtikli('');
+              
+              // OSVJEŽI NARUDŽBE
+              if (selectedDay) {
+                fetchAktivneNarudzbe(selectedDay);
+              }
+            } else {
+              alert('❌ ' + (result.error || result.message || 'Greška pri spremanju narudžbe'));
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('❌ Greška:', errorMessage);
+            alert('❌ Greška pri spremanju narudžbe: ' + errorMessage);
 
-  }
-};
-
-
-
-
+          }
+        };
   // ===== KRAJ FUNKCIJE VEZAN ZA NARUDZBE =====
 
   // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
-  useEffect(() => {
-    fetchTerenPoDanima();
-  }, []);
+    useEffect(() => {
+      fetchTerenPoDanima();
+    }, []);
+
+    useEffect(() => {
+      setSeenRecent(new Set());
+    }, [selectedKupac?.sifra_kupca]);
 
 
-useEffect(() => {
-  const fetchArtikli = async () => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      
-      const response = await fetch(`${apiUrl}/api/artikli`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Ovo prikuplja JWT token iz cookies
-      });
+    useEffect(() => {
+      const fetchArtikli = async () => {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          
+          const response = await fetch(`${apiUrl}/api/artikli`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Ovo prikuplja JWT token iz cookies
+          });
 
-      if (!response.ok) {
-        console.warn('⚠️ Greška pri učitavanju artikala:', response.status);
-        setArtikli([]);
-        return;
+          if (!response.ok) {
+            console.warn('⚠️ Greška pri učitavanju artikala:', response.status);
+            setArtikli([]);
+            return;
+          }
+
+          const data = await response.json();
+          
+          // console.log('📦 Odgovor sa servera:', data);
+          
+          if (data.success && data.data) {
+            setArtikli(data.data);
+            // console.log('✅ Artikli uspješno učitani:', data.data.length, 'artikala');
+          } else if (Array.isArray(data)) {
+            // Ako server direktno vraća niz
+            setArtikli(data);
+            // console.log('✅ Artikli uspješno učitani:', data.length, 'artikala');
+          } else {
+            console.warn('⚠️ Neočekivan format podataka:', data);
+            setArtikli([]);
+          }
+        } catch (error) {
+          console.error('❌ Greška pri učitavanju artikala:', error);
+          setArtikli([]);
+        }
+      };
+
+      if (showKupacModal) {
+        console.log('📥 Učitavanje artikala...');
+        fetchArtikli();
       }
-
-      const data = await response.json();
-      
-      console.log('📦 Odgovor sa servera:', data);
-      
-      if (data.success && data.data) {
-        setArtikli(data.data);
-        console.log('✅ Artikli uspješno učitani:', data.data.length, 'artikala');
-      } else if (Array.isArray(data)) {
-        // Ako server direktno vraća niz
-        setArtikli(data);
-        console.log('✅ Artikli uspješno učitani:', data.length, 'artikala');
-      } else {
-        console.warn('⚠️ Neočekivan format podataka:', data);
-        setArtikli([]);
-      }
-    } catch (error) {
-      console.error('❌ Greška pri učitavanju artikala:', error);
-      setArtikli([]);
-    }
-  };
-
-  if (showKupacModal) {
-    console.log('📥 Učitavanje artikala...');
-    fetchArtikli();
-  }
 }, [showKupacModal]);
 
-  const fetchTerenPoDanima = async () => {
-    try {
-      setLoading(true);
+    const fetchTerenPoDanima = async () => {
+      try {
+        setLoading(true);
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/teren/terena-po-danima`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${apiUrl}/api/teren/terena-po-danima`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
 
-      const tereniResult = await response.json();
+        const tereniResult = await response.json();
 
-      if (tereniResult.success && tereniResult.data) {
-        setTereniData(tereniResult.data);
-        //console.log('✅ Tereni po danima učitani:', tereniResult.data);
+        if (tereniResult.success && tereniResult.data) {
+          setTereniData(tereniResult.data);
+          //console.log('✅ Tereni po danima učitani:', tereniResult.data);
 
-        if (tereniResult.data.length > 0) {
-          const firstDay = tereniResult.data[0];
-          setSelectedDay(firstDay.sifra_terena_dostava);
-          setSelectedTerenaSifra(firstDay.sifra_terena);
+          if (tereniResult.data.length > 0) {
+            const firstDay = tereniResult.data[0];
+            setSelectedDay(firstDay.sifra_terena_dostava);
+            setSelectedTerenaSifra(firstDay.sifra_terena);
 
-          // Učitaj narudžbe za prvi dan
-          if (firstDay.sifra_terena_dostava) {
-            fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
+            // Učitaj narudžbe za prvi dan
+            if (firstDay.sifra_terena_dostava) {
+              fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
+            }
           }
         }
+      } catch (error) {
+        console.error('❌ Greška pri učitavanju terena:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ Greška pri učitavanju terena:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   // ===== SEKUNDARNA PROCEDURA - TEREN GRAD =====
-  useEffect(() => {
-    fetchTerenGrad();
-  }, []);
+    useEffect(() => {
+      fetchTerenGrad();
+    }, []);
 
-  const fetchTerenGrad = async () => {
-    try {
-      setTerenGradLoading(true);
-      setTerenGradError(null);
+      const fetchTerenGrad = async () => {
+        try {
+          setTerenGradLoading(true);
+          setTerenGradError(null);
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/teren/teren-grad`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+          const response = await fetch(`${apiUrl}/api/teren/teren-grad`, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
 
-      if (!response.ok) {
-        console.warn('⚠️ Greška pri učitavanju teren-grad');
-        setTerenGradError('Gradovi se nisu mogli učitati');
-        return;
-      }
+          if (!response.ok) {
+            console.warn('⚠️ Greška pri učitavanju teren-grad');
+            setTerenGradError('Gradovi se nisu mogli učitati');
+            return;
+          }
 
-      const terenGradResult = await response.json();
+          const terenGradResult = await response.json();
 
-      if (terenGradResult.success && terenGradResult.data) {
-        setTerenGradData(terenGradResult.data);
-        //console.log('✅ Teren-grad učitan:', terenGradResult.data);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching teren-grad:', error);
-      setTerenGradError('Greška pri učitavanju gradova');
-    } finally {
-      setTerenGradLoading(false);
-    }
-  };
+          if (terenGradResult.success && terenGradResult.data) {
+            setTerenGradData(terenGradResult.data);
+            //console.log('✅ Teren-grad učitan:', terenGradResult.data);
+          }
+        } catch (error) {
+          console.error('❌ Error fetching teren-grad:', error);
+          setTerenGradError('Greška pri učitavanju gradova');
+        } finally {
+          setTerenGradLoading(false);
+        }
+      };
 
   // ===== TERĆA PROCEDURA - KUPCI =====
-  useEffect(() => {
-    fetchTerenKupci();
-  }, []);
+    useEffect(() => {
+      fetchTerenKupci();
+    }, []);
 
   const fetchTerenKupci = async () => {
     try {
@@ -542,6 +564,19 @@ useEffect(() => {
       setKupciLoading(false);
     }
   };
+
+
+  useEffect(() => {
+  if (showKupacModal && selectedKupac?.sifra_kupca) {
+    fetchRanijeUzimano(selectedKupac.sifra_kupca, selectedKupac.naziv_kupca);
+  } else {
+    setRecentProducts([]);
+    setRecentError(null);
+  }
+
+
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [showKupacModal, selectedKupac?.sifra_kupca]);
 
   // ===== ČETVRTA PROCEDURA - AKTIVNE NARUDŽBE PO TERENU =====
   const fetchAktivneNarudzbe = async (sifraTerena: number) => {
@@ -627,6 +662,62 @@ useEffect(() => {
     }
   };
 
+
+const fetchRanijeUzimano = async (sifraPartnera: number, nazivPartnera?: string) => {
+  try {
+    setRecentLoading(true);
+    setRecentError(null);
+
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+    const params = new URLSearchParams();
+    params.set('sifraPartnera', String(sifraPartnera));
+    if (nazivPartnera) params.set('nazivPartnera', nazivPartnera);
+    console.log(`📥 Učitavanje ranije uzimanih proizvoda za kupca ${sifraPartnera} - ${nazivPartnera}...`);
+
+    const res = await fetch(`${apiUrl}/api/narudzbe/ranije-uzimano?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json?.success) {
+      throw new Error(json?.error || `HTTP greška: ${res.status}`);
+    }
+
+    // IMPORTANT: uskladi nazive polja sa onim što procedura vraća.
+    // Tipično: sifra_proizvoda / naziv_proizvoda (ili slicno).
+    const mapped: RecentProduct[] = (json.data || []).map((row: any) => ({
+      sifra: String(
+        row?.sifra ??
+          row?.sifra_proizvoda ??
+          row?.sifra_artikla ??
+          row?.sif ??
+          ''
+      ),
+      naziv: String(
+        row?.naziv ??
+          row?.naziv_proizvoda ??
+          row?.naziv_artikla ??
+          row?.naziv_pro ??
+          ''
+      ),
+    }))
+    .filter((p: RecentProduct) => p.sifra || p.naziv);
+
+    setRecentProducts(mapped);
+  } catch (e: any) {
+    console.error('fetchRanijeUzimano error:', e);
+    setRecentError(e?.message || 'Greška pri učitavanju ranije uzimanih proizvoda');
+    setRecentProducts([]);
+  } finally {
+    setRecentLoading(false);
+  }
+};
+
+
   // ===== FILTRIRAJUĆE FUNKCIJE =====
   const getGradesForSelectedTeren = (): TerenGrad[] => {
     if (!selectedTerenaSifra) return [];
@@ -670,51 +761,55 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
 
   const currentSchedule = selectedDay ? mockSchedule[selectedDay] : undefined;
 
-  // ===== HANDLER FUNKCIJE =====
-  const toggleCity = (cityId: string) => {
-    const newExpanded = new Set(expandedCities);
-    if (newExpanded.has(cityId)) {
-      newExpanded.delete(cityId);
-    } else {
-      newExpanded.add(cityId);
-    }
-    setExpandedCities(newExpanded);
-  };
+    // ===== HANDLER FUNKCIJE =====
+    const toggleCity = (cityId: string) => {
+      const newExpanded = new Set(expandedCities);
+      if (newExpanded.has(cityId)) {
+        newExpanded.delete(cityId);
+      } else {
+        newExpanded.add(cityId);
+      }
+      setExpandedCities(newExpanded);
+    };
 
-  const handleDayClick = (day: DayOption) => {
-    setSelectedDay(day.sifraTerenaDostava);
-    setSelectedTerenaSifra(day.sifraTerena);
-    setExpandedGrad(null);
-    setSelectedKupac(null);
-    setShowKupacModal(false);
-    setExpandedCities(new Set());
-    setSelectedCustomer(null);
-    setSearchKupac('');
-    
-    // Učitaj aktivne narudžbe za odabrani teren
-    if (day.sifraTerena) {
-      console.log(`📅 Odabran dan: ${day.day} (${day.date}), šifra terena: ${day.sifraTerenaDostava}`);
-      fetchAktivneNarudzbe(day.sifraTerenaDostava);
-    }
-  };
-
-  const handleGradClick = (grad: TerenGrad) => {
-    if (expandedGrad === grad.sifra_grada) {
+    const handleDayClick = (day: DayOption) => {
+      setSelectedDay(day.sifraTerenaDostava);
+      setSelectedTerenaSifra(day.sifraTerena);
       setExpandedGrad(null);
       setSelectedKupac(null);
       setShowKupacModal(false);
-    } else {
-      setExpandedGrad(grad.sifra_grada);
-      setSelectedKupac(null);
-      setShowKupacModal(false);
-    }
-  };
+      setExpandedCities(new Set());
+      setSelectedCustomer(null);
+      setSearchKupac('');
+      
+      // Učitaj aktivne narudžbe za odabrani teren
+      if (day.sifraTerena) {
+        console.log(`📅 Odabran dan: ${day.day} (${day.date}), šifra terena: ${day.sifraTerenaDostava}`);
+        fetchAktivneNarudzbe(day.sifraTerenaDostava);
+      }
+    };
+
+    const handleGradClick = (grad: TerenGrad) => {
+      if (expandedGrad === grad.sifra_grada) {
+        setExpandedGrad(null);
+        setSelectedKupac(null);
+        setShowKupacModal(false);
+      } else {
+        setExpandedGrad(grad.sifra_grada);
+        setSelectedKupac(null);
+        setShowKupacModal(false);
+      }
+    };
 
     const handleKupacClick = (kupac: Kupac, terenInfo: TerenDostaveInfo) => {
       setSelectedKupac(kupac);
       setSelectedTerenInfo(terenInfo); // ← Šifra
       setShowKupacModal(true);
     };
+
+
+
+
   return (
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
 
@@ -1152,8 +1247,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
        {/* OVO JE NOVO: wrapper koji drži 2 kartice jednu pored druge */}
           <div className="flex items-start gap-4 flex-wrap w-full">
           {/* INFORMATIVNA KARTCA SA PODACIMA */}
-          <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs"
-          style={{ borderColor: '#8FC74A' }}>
+          <div className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs" style={{ borderColor: '#8FC74A' }}>
           {/* --- ovdje ostaje sav tvoj postojeći sadržaj kartice --- */}
             <div className="space-y-3">
               {/* DAN */}
@@ -1172,8 +1266,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
               </div>
 
               {/* KUPAC */}
-    
-                  {/* KUPAC */}
                   <div className="grid grid-cols-2 gap-2">
                     {/* ŠIFRA */}
                     <div>
@@ -1184,7 +1276,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                         {selectedKupac.sifra_kupca}
                       </div>
                     </div>
-
                     {/* GRAD */}
                     <div>
                       <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
@@ -1206,9 +1297,9 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                     </div>
                   </div>        
             </div>
-           <div style={{ borderTop: '1px solid #E0E0E0', margin: '0.5rem 0' }}></div>
 
-              <div className="flex gap-2 flex-wrap">
+            <div style={{ borderTop: '1px solid #E0E0E0', margin: '0.5rem 0' }}></div>
+             <div className="flex gap-2 flex-wrap">
                       {getVrstePaymentaZaKupca(selectedKupac?.sifra_kupca || 0).map((vrsta) => (
                         <button
                           key={vrsta.kod}
@@ -1228,30 +1319,94 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                 </div>
             </div>
                 {/* 2) NOVA KARTICA: Ranije uzimani proizvodi */}
-            <div className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[360px]"
-              style={{ borderColor: '#8FC74A' }}>
-              <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
-                RANIJE UZIMANI PROIZVODI
-              </div>
+              <div className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[360px] relative" style={{ borderColor: '#8FC74A' }}>
+                {/* Header: label + ukupno */}
+                  <div className="flex items-start justify-between gap-2">
+                      {/* Lijevo: label + (ukupno) */}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs font-semibold" style={{ color: '#785E9E' }}>
+                          RANIJE UZIMANI PROIZVODI
+                        </div>
 
-              {/* Ovdje ide grid sa malim klikabilnim pravougaonicima */}
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* privremeno mock, kasnije baza */}
-                {MOCK_RECENT_PRODUCTS.map((p) => (
-                  <button
-                    key={p.sifra}
-                    type="button"
-                    onClick={() => handleRecentProductClick(p)}
-                    className="text-left rounded-lg border p-2 hover:shadow-sm transition-all"
-                    style={{ borderColor: '#E7E7E7' }}
-                  >
-                    <div className="text-[11px] text-gray-500">Šifra: {p.sifra}</div>
-                    <div className="text-sm font-semibold text-gray-800 leading-snug">{p.naziv}</div>
-                  </button>
-                ))}
+                        <div
+                          className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: '#F5F3FF', color: '#785E9E' }}
+                          title="Ukupan broj ranije uzimanih proizvoda"
+                        >
+                          {totalRecent}
+                        </div>
+                      </div>
+
+                      {/* Desno gore: strelica */}
+                      {canExpand && (
+                        <button
+                          type="button"
+                          onClick={() => setRecentExpanded((v) => !v)}
+                          className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
+                          style={{ borderColor: '#E7E7E7', color: '#785E9E' }}
+                          title={recentExpanded ? 'Prikaži manje' : 'Prikaži sve'}
+                        >
+                          {recentExpanded ? '▲' : '▼'}
+                        </button>
+                      )}
+                    </div>
+
+                {/* Sadržaj */}
+                <div className="mt-2">
+                  {recentLoading && (
+                    <div className="text-xs text-gray-600">Učitavam...</div>
+                  )}
+
+                  {recentError && (
+                    <div className="text-xs text-red-600">Greška: {recentError}</div>
+                  )}
+
+                  {!recentLoading && !recentError && totalRecent === 0 && (
+                    <div className="text-xs text-gray-500">Nema ranije uzimanih proizvoda.</div>
+                  )}
+
+                  {/* Grid - prikazuje samo visibleRecent */}
+                <div className={`mt-2 ${recentExpanded ? 'max-h-[360px] overflow-y-auto pr-1' : ''}`}>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {visibleRecent.map((p) => {
+                       const isSelected =Number(selectedArtiklModal?.sifra_proizvoda) === Number(p.sifra);
+                        const isSeen = seenRecent.has(String(p.sifra));
+
+                    return (
+                      <div
+                        key={`${p.sifra}-${p.naziv}`}
+                        onClick={() => {
+                          if (!selectedVrstaPlacanja) {
+                          alert('⚠️ Prvo odaberi vrstu plaćanja!');
+                          return;
+                          }
+                        handleRecentProductClick(p);
+                        }}
+                        className={`relative text-left rounded-lg border-2 p-2 transition-all ${selectedVrstaPlacanja ? 
+                          'cursor-pointer' : 'opacity-50 cursor-not-allowed'} ${isSelected ? 'shadow-md' : 'hover:shadow-sm'}`}
+                        style={{borderColor: isSelected ? '#8FC74A' : '#E7E7E7',backgroundColor: isSelected ? '#F0FFF4' : 'white',}}
+                        title={!selectedVrstaPlacanja ? 'Prvo izaberite vrstu plaćanja' : undefined}>
+                            {/* KVAČICA */}
+                       {isSeen && (
+                          <div
+                            className="absolute top-1 right-2 text-sm font-bold"
+                            style={{ color: '#8FC74A' }}
+                            title="Pregledano"
+                             >
+                               ✓
+                           </div>
+                          )}
+                      <div className="text-[11px] text-gray-500">Šifra: {p.sifra}</div>
+                      <div className="text-sm font-semibold text-gray-800 leading-snug">{p.naziv}</div>
+                    </div>
+                  );
+                  })}
+
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-        </div>
+          </div>
       </div>
 
                   {/* MAIN CONTENT AREA - DVIJE KOLONE */}
@@ -1313,7 +1468,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                               JM: {artikal.jm}
                             </div>
                           </div>
-
                           {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
                           <div className="space-y-2 text-xs">
                             <div className="rounded p-2" style={{ backgroundColor: '#F0F4FF' }}>
@@ -1324,7 +1478,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                                 {formatPrice(artikal.VPC)} BAM
                               </div>
                             </div>
-
                             <div className="rounded p-2" style={{ backgroundColor: '#F0FFF4' }}>
                               <div className="font-semibold" style={{ color: '#785E9E' }}>
                                 MPC
@@ -1356,7 +1509,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
             <>
               {/* FORMA ZA DODAVANJE ARTIKLA U NOVU NARUDŽBU */}
               <div className="p-4 border-b-2 flex-shrink-0 bg-white" style={{ borderColor: '#8FC74A' }}>
-                <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: '#F5F3FF', borderLeft: '4px solid #8FC74A' }}>
+                <div className="rounded-lg p-2 mb-2" style={{ backgroundColor: '#F5F3FF', borderLeft: '4px solid #8FC74A' }}>
                   <h3 className="font-bold text-lg mb-2" style={{ color: '#785E9E' }}>
                     {selectedArtiklModal.naziv_proizvoda}
                   </h3>
@@ -1385,7 +1538,6 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                             {formatPrice(selectedArtiklModal.VPC)} BAM
                           </p>
                         </div>
-
                         {/* MPC */}
                         <div>
                           <span className="font-semibold" style={{ color: '#785E9E' }}>MPC:</span>
@@ -1393,11 +1545,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                             {formatPrice(selectedArtiklModal.mpc)} BAM
                           </p>
                         </div>
-
                       </div>
-
-
-
                 </div>
 
                 {/* INPUT POLJA */}
@@ -1407,15 +1555,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                       Količina ({selectedArtiklModal.jm}) *
                     </label>
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setArtiklKolicina(Math.max(1, artiklKolicina - 1))}
-                        className="px-3 py-2 rounded-lg transition-all font-bold text-white"
-                        style={{ backgroundColor: '#8FC74A' }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      >
-                        −
-                      </button>
+
                       <input
                         type="number"
                         min="1"
@@ -1425,17 +1565,8 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                         className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
                         style={{ borderColor: '#8FC74A' }}
                         onFocus={(e) => e.currentTarget.style.borderColor = '#785E9E'}
-                        onBlur={(e) => e.currentTarget.style.borderColor = '#8FC74A'}
-                      />
-                      <button
-                        onClick={() => setArtiklKolicina(artiklKolicina + 1)}
-                        className="px-3 py-2 rounded-lg transition-all font-bold text-white"
-                        style={{ backgroundColor: '#8FC74A' }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      >
-                        +
-                      </button>
+                        onBlur={(e) => e.currentTarget.style.borderColor = '#8FC74A'} />
+
                     </div>
                   </div>
 
@@ -1447,7 +1578,7 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                       value={artiklNapomena}
                       onChange={(e) => setArtiklNapomena(e.target.value)}
                       placeholder="Unesite napomenu..."
-                      rows={3}
+                      rows={2}
                       className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none"
                       style={{ borderColor: '#8FC74A' }}
                       onFocus={(e) => e.currentTarget.style.borderColor = '#785E9E'}
@@ -1658,10 +1789,9 @@ const getKupciForGrad = (sifraGrada: number): Kupac[] => {
                       )}
                     </div>
                   </div>
-
         </div>
       </div>
-)}
+    )}
     </div>
   );
 }
