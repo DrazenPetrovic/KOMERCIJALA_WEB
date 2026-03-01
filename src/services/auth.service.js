@@ -37,8 +37,8 @@ export const login = async (username, password) => {
     const sifraRadnika = row?.povratna ?? null;
     const vrstaRadnika = row?.vrsta ?? null;
 
-    console.log('Login result:', { rows, row, sifraRadnika, vrstaRadnika });
-    console.log('Login result:', { rows, sifraRadnika, vrstaRadnika });
+    // console.log('Login result:', { rows, row, sifraRadnika, vrstaRadnika });
+    // console.log('Login result:', { rows, sifraRadnika, vrstaRadnika });
 
     if (sifraRadnika == null) return { success: false };
     if (sifraRadnika == 0) return { success: false };

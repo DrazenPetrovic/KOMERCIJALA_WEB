@@ -29,7 +29,7 @@ export const getRanijeUzimano = async (req, res) => {
     const nazivPartnera = req.query.nazivPartnera || req.params.nazivPartnera;
 
     const ranijeUzimano = await NarudzbeService.getRanijeUzimano(sifraPartnera, nazivPartnera);
-    console.log('Ranije uzimano:', ranijeUzimano);
+    // console.log('Ranije uzimano:', ranijeUzimano);
     return res.json({ success: true, data: ranijeUzimano, count: ranijeUzimano.length });
   } catch (error) {
     console.error('Pregled ranije uzimanih narudžbi error:', error);
