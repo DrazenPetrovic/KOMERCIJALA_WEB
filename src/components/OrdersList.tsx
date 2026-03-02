@@ -173,6 +173,51 @@ export function OrdersList() {
   const canExpand = totalRecent > RECENT_PREVIEW_COUNT;
   const [seenRecent, setSeenRecent] = useState<Set<string>>(new Set());
 
+  const [aiText, setAiText] = useState<string>("");
+  const [aiExpanded, setAiExpanded] = useState<boolean>(false);
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const fetchAiAnaliza = async () => {
+    if (!selectedKupac) return;
+
+    try {
+      setAiLoading(true);
+      setAiError(null);
+
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+      const res = await fetch(`${apiUrl}/api/ai/kupac-analiza`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          sifraKupca: selectedKupac.sifra_kupca,
+          nazivKupca: selectedKupac.naziv_kupca,
+          // opcionalno:
+          vrstaPlacanjaNaziv: selectedVrstaPlacanja
+            ? String(selectedVrstaPlacanja)
+            : null,
+          trenutnaNarudzba: novaArtiklUNarudzbi,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || "AI analiza nije uspjela.");
+      }
+
+      setAiText(String(data.text || ""));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      setAiError(e?.message || "Greška pri AI analizi.");
+      setAiText("");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleRecentProductClick = (p: RecentProduct) => {
     if (!selectedVrstaPlacanja) {
       alert("⚠️ Prvo odaberi vrstu plaćanja!");
@@ -406,6 +451,13 @@ export function OrdersList() {
   // ===== KRAJ FUNKCIJE VEZAN ZA NARUDZBE =====
 
   // ===== GLAVNA PROCEDURA - TERENI PO DANIMA =====
+  useEffect(() => {
+    // reset AI prikaza kad se promijeni kupac
+    setAiText("");
+    setAiError(null);
+    setAiExpanded(false);
+  }, [selectedKupac?.sifra_kupca]);
+
   useEffect(() => {
     fetchTerenPoDanima();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1610,19 +1662,46 @@ export function OrdersList() {
                 </div>
 
                 <div
-                  className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[360px] h-full flex flex-col"
+                  className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[720px] h-full flex flex-col"
                   style={{ borderColor: "#8FC74A" }}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
                     <div
                       className="text-xs font-semibold"
                       style={{ color: "#785E9E" }}
                     >
-                      AI ANALIZA KUPCA
+                      AI ANALIZA
                     </div>
 
-                    {/* placeholder za status kasnije */}
-                    <div className="text-[11px] text-gray-500">(uskoro)</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={fetchAiAnaliza}
+                        disabled={!selectedKupac || aiLoading}
+                        className="px-3 py-1 rounded-md text-xs font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: "#8FC74A" }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.opacity = "0.85")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.opacity = "1")
+                        }
+                        title="Generiši AI analizu"
+                      >
+                        {aiLoading ? "..." : "GENERISI"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiExpanded((v) => !v)}
+                        className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
+                        style={{ borderColor: "#E7E7E7", color: "#785E9E" }}
+                        title={aiExpanded ? "Smanji" : "Proširi"}
+                      >
+                        {aiExpanded ? "▲" : "▼"}
+                      </button>
+                    </div>
                   </div>
 
                   <div
@@ -1632,20 +1711,21 @@ export function OrdersList() {
                     }}
                   />
 
-                  {/* sadržaj koji ne smije povećati visinu kartice */}
-                  <div className="flex-1 overflow-y-auto">
-                    <div
-                      className="rounded-lg p-2 text-sm text-gray-700 leading-relaxed"
-                      style={{ backgroundColor: "#F5F3FF" }}
-                    >
-                      Ovdje će AI model kasnije upisivati analizu za izabranog
-                      kupca:
-                      <ul className="list-disc ml-5 mt-2 text-xs text-gray-600 space-y-1">
-                        <li>istorija kupovine / trend</li>
-                        <li>preporuke proizvoda</li>
-                        <li>napomene za komercijalistu</li>
-                      </ul>
+                  {/* Error */}
+                  {aiError && (
+                    <div className="mb-2 text-[11px] text-red-600">
+                      {aiError}
                     </div>
+                  )}
+
+                  {/* Tekst polje */}
+                  <div
+                    className={`rounded-lg p-2 text-sm whitespace-pre-wrap overflow-y-auto ${
+                      aiExpanded ? "max-h-[520px]" : "max-h-[220px]"
+                    }`}
+                    style={{ backgroundColor: "#F5F3FF", color: "#374151" }}
+                  >
+                    {aiText?.trim() ? aiText : "POGLEDAJ AI ANALIZU"}
                   </div>
                 </div>
               </div>

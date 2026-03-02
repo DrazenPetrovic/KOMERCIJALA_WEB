@@ -1,18 +1,41 @@
-import * as aiService from "../services/ai.service.js";
+import * as AiService from "../services/ai.service.js";
 
-// export const getAktivneNarudzbeGrupisano = async (req, res) => {
-//   try {
-//     const sifraTerena = r‚
-// žćeq.query.sifraTerena || req.params.sifraTerena;
+export const kupacAnaliza = async (req, res) => {
+  try {
+    const {
+      sifraKupca,
+      nazivKupca,
+      grad,
+      vrstaPlacanjaNaziv,
+      trenutnaNarudzba,
+    } = req.body || {};
 
-//     if (!sifraTerena) {
-//       return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });
-//     }
+    if (!sifraKupca || !nazivKupca) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          error: "sifraKupca i nazivKupca su obavezni.",
+        });
+    }
 
-//     const narudzbeGrupisane = await NarudzbeService.getAktivneNarudzbeGrupisano(sifraTerena);
-//     return res.json({ success: true, data: narudzbeGrupisane, count: narudzbeGrupisane.length });
-//   } catch (error) {
-//     console.error('Pregled grupisanih narudžbi error:', error);
-//     return res.status(500).json({ success: false, error: 'Greška pri učitavanju narudžbi' });
-//   }
-// };
+    const ctx = await AiService.buildKupacContext({ sifraKupca, nazivKupca });
+
+    const text = await AiService.generateKupacAnaliza({
+      sifraKupca,
+      nazivKupca,
+      grad,
+      vrstaPlacanjaNaziv,
+      ranijeUzimano: ctx.ranijeUzimano,
+      izvjestaji: ctx.izvjestaji,
+      trenutnaNarudzba: Array.isArray(trenutnaNarudzba) ? trenutnaNarudzba : [],
+    });
+
+    return res.json({ success: true, text });
+  } catch (e) {
+    console.error("AI kupacAnaliza error:", e);
+    return res
+      .status(500)
+      .json({ success: false, error: "Greška pri generisanju AI analize." });
+  }
+};
