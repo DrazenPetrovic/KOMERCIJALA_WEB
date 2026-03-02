@@ -2,7 +2,8 @@ import * as aiService from "../services/ai.service.js";
 
 // export const getAktivneNarudzbeGrupisano = async (req, res) => {
 //   try {
-//     const sifraTerena = req.query.sifraTerena || req.params.sifraTerena;
+//     const sifraTerena = r‚
+// žćeq.query.sifraTerena || req.params.sifraTerena;
 
 //     if (!sifraTerena) {
 //       return res.status(400).json({ success: false, error: 'Sifra terena je obavezna' });

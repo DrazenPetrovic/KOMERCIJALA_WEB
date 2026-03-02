@@ -1,31 +1,34 @@
-import { useState } from 'react';
-import { signIn } from '../utils/auth';
+import { useState } from "react";
+import { signIn } from "../utils/auth";
 
 interface LoginPanelProps {
   onLoginSuccess: () => void;
 }
 
 export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const { error: signInError } = await signIn(username.trim(), password.trim());
+      const { error: signInError } = await signIn(
+        username.trim(),
+        password.trim(),
+      );
 
       if (signInError) {
-        setError(signInError.message || 'Pogrešno korisničko ime ili lozinka');
+        setError(signInError.message || "Pogrešno korisničko ime ili lozinka");
       } else {
         onLoginSuccess();
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error("Login error:", err);
       const errorMsg = err instanceof Error ? err.message : String(err);
       setError(`Greška: ${errorMsg}`);
     } finally {
@@ -45,7 +48,7 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
+                  target.style.display = "none";
                   const parent = target.parentElement;
                   if (parent) {
                     parent.innerHTML = `<div class="bg-[#785E9E] p-5 md:p-6 rounded-full"><svg class="w-10 h-10 md:w-12 md:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg></div>`;
@@ -55,45 +58,69 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
             </div>
           </div>
 
-
-          <form onSubmit={handleLogin} className="space-y-5 md:space-y-6">
+          <form
+            onSubmit={handleLogin}
+            autoComplete="on"
+            className="space-y-5 md:space-y-6"
+          >
             <div>
-              <label className="block text-base md:text-lg font-medium text-gray-700 mb-3">
+              <label
+                htmlFor="username"
+                className="block text-base md:text-lg font-medium text-gray-700 mb-3"
+              >
+                {" "}
                 Korisničko ime
               </label>
               <input
+                id="username"
+                name="username"
                 type="text"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Unesite korisničko ime"
                 className="w-full px-5 py-4 md:px-6 md:py-5 text-base md:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 transition"
-                style={{
-                  '--tw-ring-color': '#785E9E',
-                  borderColor: 'rgb(209 213 219)'
-                } as React.CSSProperties}
-                onFocus={(e) => e.target.style.borderColor = '#785E9E'}
-                onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                style={
+                  {
+                    "--tw-ring-color": "#785E9E",
+                    borderColor: "rgb(209 213 219)",
+                  } as React.CSSProperties
+                }
+                onFocus={(e) => (e.target.style.borderColor = "#785E9E")}
+                onBlur={(e) =>
+                  (e.target.style.borderColor = "rgb(209 213 219)")
+                }
                 required
               />
             </div>
 
             <div>
-              <label className="block text-base md:text-lg font-medium text-gray-700 mb-3">
+              <label
+                htmlFor="password"
+                className="block text-base md:text-lg font-medium text-gray-700 mb-3"
+              >
+                {" "}
                 Lozinka
               </label>
               <input
                 type="password"
+                id="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Unesite lozinku"
                 autoComplete="current-password"
                 className="w-full px-5 py-4 md:px-6 md:py-5 text-base md:text-lg border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 transition"
-                style={{
-                  '--tw-ring-color': '#785E9E',
-                  borderColor: 'rgb(209 213 219)'
-                } as React.CSSProperties}
-                onFocus={(e) => e.target.style.borderColor = '#785E9E'}
-                onBlur={(e) => e.target.style.borderColor = 'rgb(209 213 219)'}
+                style={
+                  {
+                    "--tw-ring-color": "#785E9E",
+                    borderColor: "rgb(209 213 219)",
+                  } as React.CSSProperties
+                }
+                onFocus={(e) => (e.target.style.borderColor = "#785E9E")}
+                onBlur={(e) =>
+                  (e.target.style.borderColor = "rgb(209 213 219)")
+                }
                 required
               />
             </div>
@@ -109,14 +136,31 @@ export function LoginPanel({ onLoginSuccess }: LoginPanelProps) {
               disabled={loading}
               className="w-full text-white font-semibold py-4 md:py-5 text-lg md:text-xl rounded-xl transition-all transform active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
               style={{
-                backgroundColor: '#785E9E',
+                backgroundColor: "#785E9E",
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#785E9E'}
-              onMouseDown={(e) => e.currentTarget.style.backgroundColor = '#5c4176'}
-              onMouseUp={(e) => e.currentTarget.style.backgroundColor = '#6a4f8a'}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = "#6a4f8a")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "#785E9E")
+              }
+              onMouseDown={(e) =>
+                (e.currentTarget.style.backgroundColor = "#5c4176")
+              }
+              onMouseUp={(e) =>
+                (e.currentTarget.style.backgroundColor = "#6a4f8a")
+              }
             >
-              {loading ? 'Prijava u toku...' : 'Prijava'}
+              {loading ? "Prijava u toku..." : "Prijava"}
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={alert.bind(null, "Passkey prijava nije implementirana")}
+              className="w-full border-2 border-[#785E9E] text-[#785E9E] font-semibold py-4 md:py-5 text-lg md:text-xl rounded-xl transition disabled:opacity-50"
+            >
+              Prijava preko Passkey
             </button>
           </form>
         </div>
