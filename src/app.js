@@ -13,7 +13,7 @@ import uplateRoutes from "./routes/uplate.routes.js";
 import narudzbeRoutes from "./routes/narudzbe.routes.js";
 import izvjestajiRoutes from "./routes/izvjestaji.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
-
+import poslovanjeRoutes from "./routes/poslovanje.routes.js";
 export const createApp = () => {
   const app = express();
 
@@ -36,6 +36,6 @@ export const createApp = () => {
   app.use("/api/narudzbe", narudzbeRoutes);
   app.use("/api/izvjestaji", izvjestajiRoutes);
   app.use("/api/ai", aiRoutes);
-
+  app.use("/api/poslovanje", poslovanjeRoutes);
   return app;
 };
