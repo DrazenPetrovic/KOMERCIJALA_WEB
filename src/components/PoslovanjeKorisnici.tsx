@@ -37,6 +37,13 @@ type CombinedRow = {
   naplata: number;
 };
 
+type QuarterlyRow = {
+  key: string; // YYYY-QN (npr 2026-Q1)
+  period: string; // Q1 2026
+  izdani: number;
+  naplata: number;
+};
+
 const COLOR_ISSUED = "#2563EB"; // blue
 const COLOR_PAID = "#F97316"; // orange
 
@@ -54,11 +61,50 @@ const MONTHS = [
   "NOV",
   "DEC",
 ];
+const getQuarter = (month1to12: number) => Math.floor((month1to12 - 1) / 3) + 1;
+
+const aggregateQuarterlyFromMonths = (
+  monthsDesc: CombinedRow[],
+): QuarterlyRow[] => {
+  // monthsDesc je DESC (najnovije->najstarije), zadržaćemo DESC i za kvartale
+  const map = new Map<string, QuarterlyRow>();
+
+  for (const m of monthsDesc) {
+    const monthIdx = MONTHS.indexOf(m.mjesec) + 1; // 1-12
+    const q = getQuarter(monthIdx);
+    const key = `${m.godina}-Q${q}`;
+
+    const existing = map.get(key);
+    if (existing) {
+      existing.izdani += m.izdani;
+      existing.naplata += m.naplata;
+    } else {
+      map.set(key, {
+        key,
+        period: `Q${q} ${m.godina}`,
+        izdani: m.izdani,
+        naplata: m.naplata,
+      });
+    }
+  }
+
+  // zadrži DESC: veći ključ (npr 2026-Q1) treba biti prije
+  return Array.from(map.values()).sort((a, b) => (a.key > b.key ? -1 : 1));
+};
+
+const getCurrentYearMonth = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month1to12 = now.getMonth() + 1; // JS: 0-11
+  return { year, month1to12 };
+};
 
 const toNumber = (v: unknown) => {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+
+const format2 = (v: unknown) => toNumber(v).toFixed(2);
 
 const formatKey = (mjesec: number, godina: number) =>
   `${godina}-${String(mjesec).padStart(2, "0")}`;
@@ -96,6 +142,8 @@ export default function PoslovanjeKorisnici() {
 
   const [izdani, setIzdani] = useState<IzdaniRow[]>([]);
   const [naplata, setNaplata] = useState<NaplataRow[]>([]);
+
+  const [viewMode, setViewMode] = useState<"monthly" | "quarterly">("monthly");
 
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -153,7 +201,14 @@ export default function PoslovanjeKorisnici() {
     // RANGE: MAR 2023 -> MAR 2026 inclusive = 37 mjeseci,
     // ali ti želiš MART 2026 -> MART 2023. (descending)
     // Ako baš želiš TAČNO 36 mjeseci, reci pa ćemo skratiti (npr. APR 2023 -> MAR 2026).
-    const monthsAsc = createMonthsFromToInclusive(2023, 3, 2026, 3);
+    const { year: endYear, month1to12: endMonth } = getCurrentYearMonth();
+    const startYear = endYear - 3; // cijele 3 prethodne godine + tekuća do trenutnog mjeseca
+    const monthsAsc = createMonthsFromToInclusive(
+      startYear,
+      1,
+      endYear,
+      endMonth,
+    );
 
     // seed with 0s
     const map = new Map<string, CombinedRow>();
@@ -190,19 +245,52 @@ export default function PoslovanjeKorisnici() {
     return Array.from(map.values()).sort((a, b) => (a.key > b.key ? -1 : 1));
   }, [izdani, naplata]);
 
+  const quarterlyDesc = useMemo(
+    () => aggregateQuarterlyFromMonths(combinedDesc),
+    [combinedDesc],
+  );
+  const tableData = viewMode === "quarterly" ? quarterlyDesc : combinedDesc;
+
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">
       {/* full width (no max-w) */}
       <div className="w-full mx-auto space-y-3">
         <div className="bg-white rounded-lg shadow-sm p-3 md:p-4 border border-gray-200">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="text-sm md:text-base font-semibold text-gray-900">
-                Poslovanje
-              </h2>
-              <div className="text-xs text-gray-500">
-                Izdani računi vs Naplata računa (MART 2026 → MART 2023)
-              </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode("monthly")}
+                className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-colors ${
+                  viewMode === "monthly"
+                    ? "text-white"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
+                style={
+                  viewMode === "monthly"
+                    ? { backgroundColor: "#785E9E" }
+                    : { backgroundColor: "transparent" }
+                }
+              >
+                MJESEČNO
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode("quarterly")}
+                className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-colors ${
+                  viewMode === "quarterly"
+                    ? "text-white"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
+                style={
+                  viewMode === "quarterly"
+                    ? { backgroundColor: "#5d4a7a" }
+                    : { backgroundColor: "transparent" }
+                }
+              >
+                KVARTALNO
+              </button>
             </div>
 
             <div className="text-xs text-gray-500">
@@ -222,8 +310,8 @@ export default function PoslovanjeKorisnici() {
             - lg+: side-by-side
         */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-          {/* Tabela: full width on mobile, 4/12 on desktop */}
-          <div className="lg:col-span-4 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          {/* Tabela: full width on mobile, 2/12 on desktop */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-3 border-b flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-900">Tabela</div>
               <div className="text-xs text-gray-500">
@@ -234,52 +322,80 @@ export default function PoslovanjeKorisnici() {
             <div className="max-h-[60vh] lg:max-h-[75vh] overflow-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-gray-50 border-b">
-                  <tr className="text-left">
-                    <th className="p-2">Mjesec</th>
-                    <th className="p-2">Godina</th>
-                    <th className="p-2">Izdani</th>
-                    <th className="p-2">Naplata</th>
-                  </tr>
+                  {viewMode === "monthly" ? (
+                    <tr className="text-left">
+                      <th className="p-2">Mjesec</th>
+                      <th className="p-2">Godina</th>
+                      <th className="p-2">Izdani</th>
+                      <th className="p-2">Naplata</th>
+                    </tr>
+                  ) : (
+                    <tr className="text-left">
+                      <th className="p-2">Kvartal</th>
+                      <th className="p-2">Izdani</th>
+                      <th className="p-2">Naplata</th>
+                    </tr>
+                  )}
                 </thead>
                 <tbody>
-                  {combinedDesc.map((r) => (
-                    <tr
-                      key={r.key}
-                      className="border-b last:border-b-0 hover:bg-gray-50"
-                    >
-                      <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
-                        {r.mjesec}
-                      </td>
-                      <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
-                        {r.godina}
-                      </td>
-                      <td
-                        className="p-2 whitespace-nowrap"
-                        style={{ color: COLOR_ISSUED }}
-                      >
-                        {r.izdani}
-                      </td>
-                      <td
-                        className="p-2 whitespace-nowrap"
-                        style={{ color: COLOR_PAID }}
-                      >
-                        {r.naplata}
-                      </td>
-                    </tr>
-                  ))}
+                  {viewMode === "monthly"
+                    ? combinedDesc.map((r) => (
+                        <tr
+                          key={r.key}
+                          className="border-b last:border-b-0 hover:bg-gray-50"
+                        >
+                          <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
+                            {r.mjesec}
+                          </td>
+                          <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
+                            {r.godina}
+                          </td>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_ISSUED }}
+                          >
+                            {toNumber(r.izdani).toFixed(2)}
+                          </td>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_PAID }}
+                          >
+                            {toNumber(r.naplata).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                    : quarterlyDesc.map((q) => (
+                        <tr
+                          key={q.key}
+                          className="border-b last:border-b-0 hover:bg-gray-50"
+                        >
+                          <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
+                            {q.period}
+                          </td>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_ISSUED }}
+                          >
+                            {toNumber(q.izdani).toFixed(2)}
+                          </td>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_PAID }}
+                          >
+                            {toNumber(q.naplata).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Grafikon: full width on mobile, 8/12 on desktop */}
-          <div className="lg:col-span-8 bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Grafikon: full width on mobile, 10/12 on desktop */}
+          <div className="lg:col-span-10 bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 border-b flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-900">
                 Grafikon
-              </div>
-              <div className="text-xs text-gray-500">
-                Lijevo: MART 2026 • Desno: MART 2023
               </div>
             </div>
 
@@ -288,34 +404,48 @@ export default function PoslovanjeKorisnici() {
                 <ResponsiveContainer width="100%" height="100%">
                   {/* Data is descending, so X axis will naturally go: left newest, right oldest */}
                   <LineChart
-                    data={combinedDesc}
+                    data={
+                      viewMode === "quarterly" ? quarterlyDesc : combinedDesc
+                    }
                     margin={{ top: 10, right: 20, bottom: 10, left: 10 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
 
-                    <XAxis
-                      dataKey="key"
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(key: string) => {
-                        const [y, mm] = key.split("-");
-                        const monthIdx = Number(mm) - 1;
-                        return `${MONTHS[monthIdx]} ${y}`;
-                      }}
-                      interval={2}
-                      height={40}
-                    />
+                    {viewMode === "monthly" ? (
+                      <XAxis
+                        dataKey="key"
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(key: string) => {
+                          const [y, mm] = key.split("-");
+                          const monthIdx = Number(mm) - 1;
+                          return `${MONTHS[monthIdx]} ${y}`;
+                        }}
+                        interval={2}
+                        height={40}
+                      />
+                    ) : (
+                      <XAxis
+                        dataKey="period"
+                        tick={{ fontSize: 11 }}
+                        interval={0}
+                        height={40}
+                      />
+                    )}
 
                     <YAxis tick={{ fontSize: 12 }} />
 
                     <Tooltip
                       labelFormatter={(key) => {
-                        const [y, mm] = String(key).split("-");
-                        const monthIdx = Number(mm) - 1;
-                        return `${MONTHS[monthIdx]} ${y}`;
+                        if (viewMode === "monthly") {
+                          const [y, mm] = String(key).split("-");
+                          const monthIdx = Number(mm) - 1;
+                          return `${MONTHS[monthIdx]} ${y}`;
+                        }
+                        return String(key);
                       }}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={(value: any, name: any) => [
-                        toNumber(value),
+                        format2(value),
                         name,
                       ]}
                     />
@@ -328,7 +458,12 @@ export default function PoslovanjeKorisnici() {
                       name="Izdani računi"
                       stroke={COLOR_ISSUED}
                       strokeWidth={2.5}
-                      dot={false}
+                      dot={{
+                        r: 3,
+                        stroke: "#000000",
+                        fill: "#000000",
+                        strokeWidth: 0,
+                      }}
                     />
                     <Line
                       type="monotone"
@@ -336,21 +471,15 @@ export default function PoslovanjeKorisnici() {
                       name="Naplata"
                       stroke={COLOR_PAID}
                       strokeWidth={2.5}
-                      dot={false}
+                      dot={{
+                        r: 3,
+                        stroke: "#000000",
+                        fill: "#000000",
+                        strokeWidth: 0,
+                      }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
-
-              <div className="mt-2 text-[11px] text-gray-500">
-                X-osa je namjerno “unazad”: lijevo najnoviji mjesec, desno
-                najstariji.
-              </div>
-
-              <div className="mt-1 text-[11px] text-amber-700">
-                Napomena: MART 2026 → MART 2023 je 37 mjeseci. Ako želiš
-                striktno 36 mjeseci, reci da li da izbacim MART 2023 ili MART
-                2026.
               </div>
             </div>
           </div>

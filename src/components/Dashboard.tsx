@@ -282,7 +282,11 @@ export function Dashboard({
         ) : activeSection === "narudzbe" ||
           activeSection === "partneri" ||
           activeSection === "artikli" ||
-          activeSection === "dugovanja" ? (
+          activeSection === "dugovanja" ||
+          activeSection === "poslovanje" ||
+          activeSection === "izvestaji" ||
+          activeSection === "izvestaji2" ||
+          activeSection === "izvestaji_admin" ? (
           renderContent()
         ) : (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10">
