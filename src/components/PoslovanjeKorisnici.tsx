@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -249,7 +249,8 @@ export default function PoslovanjeKorisnici() {
     () => aggregateQuarterlyFromMonths(combinedDesc),
     [combinedDesc],
   );
-  const tableData = viewMode === "quarterly" ? quarterlyDesc : combinedDesc;
+
+  // const tableData = viewMode === "quarterly" ? quarterlyDesc : combinedDesc;
 
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">
