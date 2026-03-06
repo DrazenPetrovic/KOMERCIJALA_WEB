@@ -1,20 +1,5 @@
 import { withConnection } from "./db.service.js";
 
-function getPartnerCode(d) {
-  return d.sifra_kup || d.sifra_kup_z;
-}
-
-// Assuming the existing mappings are in place
-const exampleMapping = data.map((d) => ({
-  ...d,
-  sifra_kup: getPartnerCode(d),
-  // Keep other existing mappings intact
-}));
-
-// Filter usage updated to reflect the new partner code key
-const filteredData = exampleMapping.filter((d) => {
-  return d.sifra_kup === someValue; // Replace 'someValue' with the actual filter condition
-});
 export const getDugovanja = async (sifraRadnika) => {
   return withConnection(async (connection) => {
     const [results] = await connection.execute(
@@ -32,14 +17,14 @@ export const getDugovanja = async (sifraRadnika) => {
     const dugovanja = raw
       .filter(
         (d) =>
-          d.sifra_kup_z &&
+          d.sifra_kup &&
           d.sifra_kup_z > 0 &&
-          d.Naziv_partnera &&
-          d.Naziv_partnera.trim() !== "",
+          d.naziv_partnera &&
+          d.naziv_partnera.trim() !== "",
       )
       .map((d) => ({
         sifra: d.sifra_kup_z || 0,
-        naziv_partnera: d.Naziv_partnera || "",
+        naziv_partnera: d.naziv_partnera || "",
         ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
         dug_preko_24: parseFloat(d.Dug_dvadesetcetiri) || 0,
         dug_preko_30: parseFloat(d.Dug_trideset) || 0,
@@ -71,3 +56,19 @@ export const getDugovanja = async (sifraRadnika) => {
     return { dugovanja, stats };
   });
 };
+
+// function getPartnerCode(d) {
+//   return d.sifra_kup || d.sifra_kup_z;
+// }
+
+// // Assuming the existing mappings are in place
+// const exampleMapping = data.map((d) => ({
+//   ...d,
+//   sifra_kup: getPartnerCode(d),
+//   // Keep other existing mappings intact
+// }));
+
+// // Filter usage updated to reflect the new partner code key
+// const filteredData = exampleMapping.filter((d) => {
+//   return d.sifra_kup === someValue; // Replace 'someValue' with the actual filter condition
+// });
