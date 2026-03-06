@@ -6,7 +6,7 @@ export const getDugovanja = async (req, res) => {
     const { dugovanja, stats } =
       await DugovanjaService.getDugovanja(sifraRadnika);
 
-    console.log("Dugovanja retrieved successfully:", dugovanja);
+    //console.log("Dugovanja retrieved successfully:", dugovanja);
     return res.json({
       success: true,
       data: dugovanja,

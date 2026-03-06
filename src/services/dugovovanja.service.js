@@ -15,25 +15,35 @@ export const getDugovanja = async (sifraRadnika) => {
         : [];
 
     const dugovanja = raw
-      .filter(
-        (d) =>
-          d.sifra_kup &&
-          d.sifra_kup_z > 0 &&
-          d.naziv_partnera &&
-          d.naziv_partnera.trim() !== "",
-      )
-      .map((d) => ({
-        sifra: d.sifra_kup_z || 0,
-        naziv_partnera: d.naziv_partnera || "",
-        ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
-        dug_preko_24: parseFloat(d.Dug_dvadesetcetiri) || 0,
-        dug_preko_30: parseFloat(d.Dug_trideset) || 0,
-        dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
-        dug_preko_120: parseFloat(d.Dug_stodvadeset) || 0,
-        najstariji_racun: d.Najstariji_racun
-          ? new Date(d.Najstariji_racun).toLocaleDateString("sr-RS")
-          : "-",
-      }));
+      .filter((d) => {
+        const sifra = Number(d.sifra_kup ?? d.sifra_kup_z);
+        const naziv = (d.naziv_partnera ?? d.Naziv_partnera ?? "").toString();
+        return sifra > 0 && naziv.trim() !== "";
+      })
+      .map((d) => {
+        const sifra = Number(d.sifra_kup ?? d.sifra_kup_z) || 0;
+        const naziv_partnera = (
+          d.naziv_partnera ??
+          d.Naziv_partnera ??
+          ""
+        ).toString();
+
+        return {
+          sifra,
+          naziv_partnera,
+          ukupan_dug: parseFloat(d.Ukupan_dug) || 0,
+          dug_preko_24: parseFloat(d.Dug_dvadesetcetiri) || 0,
+          dug_preko_30: parseFloat(d.Dug_trideset) || 0,
+          dug_preko_60: parseFloat(d.Dug_sezdeset) || 0,
+          dug_preko_120: parseFloat(d.Dug_stodvadeset) || 0,
+
+          // VRATI ISO string da frontend formatira pouzdano
+          // (tvoj formatDate() očekuje date string)
+          najstariji_racun: d.Najstariji_racun
+            ? new Date(d.Najstariji_racun).toISOString()
+            : "",
+        };
+      });
 
     const stats = dugovanja.reduce(
       (acc, d) => {
@@ -56,19 +66,3 @@ export const getDugovanja = async (sifraRadnika) => {
     return { dugovanja, stats };
   });
 };
-
-// function getPartnerCode(d) {
-//   return d.sifra_kup || d.sifra_kup_z;
-// }
-
-// // Assuming the existing mappings are in place
-// const exampleMapping = data.map((d) => ({
-//   ...d,
-//   sifra_kup: getPartnerCode(d),
-//   // Keep other existing mappings intact
-// }));
-
-// // Filter usage updated to reflect the new partner code key
-// const filteredData = exampleMapping.filter((d) => {
-//   return d.sifra_kup === someValue; // Replace 'someValue' with the actual filter condition
-// });
