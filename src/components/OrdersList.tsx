@@ -1542,124 +1542,6 @@ export function OrdersList() {
                     ))}
                   </div>
                 </div>
-                {/* 2) NOVA KARTICA: Ranije uzimani proizvodi */}
-                <div
-                  className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[360px] relative"
-                  style={{ borderColor: "#8FC74A" }}
-                >
-                  {/* Header: label + ukupno */}
-                  <div className="flex items-start justify-between gap-2">
-                    {/* Lijevo: label + (ukupno) */}
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="text-xs font-semibold"
-                        style={{ color: "#785E9E" }}
-                      >
-                        RANIJE UZIMANI PROIZVODI
-                      </div>
-
-                      <div
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: "#F5F3FF", color: "#785E9E" }}
-                        title="Ukupan broj ranije uzimanih proizvoda"
-                      >
-                        {totalRecent}
-                      </div>
-                    </div>
-
-                    {/* Desno gore: strelica */}
-                    {canExpand && (
-                      <button
-                        type="button"
-                        onClick={() => setRecentExpanded((v) => !v)}
-                        className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
-                        style={{ borderColor: "#E7E7E7", color: "#785E9E" }}
-                        title={recentExpanded ? "Prikaži manje" : "Prikaži sve"}
-                      >
-                        {recentExpanded ? "▲" : "▼"}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Sadržaj */}
-                  <div className="mt-2">
-                    {recentLoading && (
-                      <div className="text-xs text-gray-600">Učitavam...</div>
-                    )}
-
-                    {recentError && (
-                      <div className="text-xs text-red-600">
-                        Greška: {recentError}
-                      </div>
-                    )}
-
-                    {!recentLoading && !recentError && totalRecent === 0 && (
-                      <div className="text-xs text-gray-500">
-                        Nema ranije uzimanih proizvoda.
-                      </div>
-                    )}
-
-                    {/* Grid - prikazuje samo visibleRecent */}
-                    <div
-                      className={`mt-2 ${recentExpanded ? "max-h-[360px] overflow-y-auto pr-1" : ""}`}
-                    >
-                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {visibleRecent.map((p) => {
-                          const isSelected =
-                            Number(selectedArtiklModal?.sifra_proizvoda) ===
-                            Number(p.sifra);
-                          const isSeen = seenRecent.has(String(p.sifra));
-
-                          return (
-                            <div
-                              key={`${p.sifra}-${p.naziv}`}
-                              onClick={() => {
-                                if (!selectedVrstaPlacanja) {
-                                  alert("⚠️ Prvo odaberi vrstu plaćanja!");
-                                  return;
-                                }
-                                handleRecentProductClick(p);
-                              }}
-                              className={`relative text-left rounded-lg border-2 p-2 transition-all ${
-                                selectedVrstaPlacanja
-                                  ? "cursor-pointer"
-                                  : "opacity-50 cursor-not-allowed"
-                              } ${isSelected ? "shadow-md" : "hover:shadow-sm"}`}
-                              style={{
-                                borderColor: isSelected ? "#8FC74A" : "#E7E7E7",
-                                backgroundColor: isSelected
-                                  ? "#F0FFF4"
-                                  : "white",
-                              }}
-                              title={
-                                !selectedVrstaPlacanja
-                                  ? "Prvo izaberite vrstu plaćanja"
-                                  : undefined
-                              }
-                            >
-                              {/* KVAČICA */}
-                              {isSeen && (
-                                <div
-                                  className="absolute top-1 right-2 text-sm font-bold"
-                                  style={{ color: "#8FC74A" }}
-                                  title="Pregledano"
-                                >
-                                  ✓
-                                </div>
-                              )}
-                              <div className="text-[11px] text-gray-500">
-                                Šifra: {p.sifra}
-                              </div>
-                              <div className="text-sm font-semibold text-gray-800 leading-snug">
-                                {p.naziv}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
                 <div
                   className="bg-white rounded-lg p-3 border-2 shadow-sm w-full sm:w-[720px] h-full flex flex-col"
@@ -1873,6 +1755,161 @@ export function OrdersList() {
 
               {/* DESNA STRANA - SADRŽAJ (70%) */}
               <div className="flex-1 overflow-y-auto flex flex-col bg-gray-50">
+                {/* RANIJE UZIMANI PROIZVODI - premješteno ovdje + tabelarni pregled */}
+                <div
+                  className="mb-3 bg-white rounded-lg p-3 border-2 shadow-sm"
+                  style={{ borderColor: "#8FC74A" }}
+                >
+                  {/* Header: label + ukupno + expand */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="text-xs font-semibold"
+                        style={{ color: "#785E9E" }}
+                      >
+                        RANIJE UZIMANI PROIZVODI
+                      </div>
+
+                      <div
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: "#F5F3FF", color: "#785E9E" }}
+                        title="Ukupan broj ranije uzimanih proizvoda"
+                      >
+                        {totalRecent}
+                      </div>
+                    </div>
+
+                    {canExpand && (
+                      <button
+                        type="button"
+                        onClick={() => setRecentExpanded((v) => !v)}
+                        className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
+                        style={{ borderColor: "#E7E7E7", color: "#785E9E" }}
+                        title={recentExpanded ? "Prikaži manje" : "Prikaži sve"}
+                      >
+                        {recentExpanded ? "▲" : "▼"}
+                      </button>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: "1px solid #E0E0E0",
+                      margin: "0.5rem 0",
+                    }}
+                  />
+
+                  {/* Sadržaj */}
+                  <div>
+                    {recentLoading && (
+                      <div className="text-xs text-gray-600">Učitavam...</div>
+                    )}
+
+                    {recentError && (
+                      <div className="text-xs text-red-600">
+                        Greška: {recentError}
+                      </div>
+                    )}
+
+                    {!recentLoading && !recentError && totalRecent === 0 && (
+                      <div className="text-xs text-gray-500">
+                        Nema ranije uzimanih proizvoda.
+                      </div>
+                    )}
+
+                    {!recentLoading && !recentError && totalRecent > 0 && (
+                      <div
+                        className={
+                          recentExpanded
+                            ? "max-h-[240px] overflow-y-auto pr-1"
+                            : ""
+                        }
+                      >
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr
+                              className="text-left"
+                              style={{ color: "#785E9E" }}
+                            >
+                              <th className="py-1 pr-2 w-[90px]">ŠIFRA</th>
+                              <th className="py-1 pr-2">NAZIV</th>
+                              <th className="py-1 w-[60px] text-right">
+                                STATUS
+                              </th>
+                            </tr>
+                          </thead>
+
+                          <tbody>
+                            {visibleRecent.map((p) => {
+                              const isSelected =
+                                Number(selectedArtiklModal?.sifra_proizvoda) ===
+                                Number(p.sifra);
+                              const isSeen = seenRecent.has(String(p.sifra));
+
+                              return (
+                                <tr
+                                  key={`${p.sifra}-${p.naziv}`}
+                                  onClick={() => {
+                                    if (!selectedVrstaPlacanja) {
+                                      alert("⚠️ Prvo odaberi vrstu plaćanja!");
+                                      return;
+                                    }
+                                    handleRecentProductClick(p);
+                                  }}
+                                  className={`border-t cursor-pointer ${
+                                    !selectedVrstaPlacanja ? "opacity-50" : ""
+                                  } ${isSelected ? "bg-green-50" : "hover:bg-gray-50"}`}
+                                  style={{
+                                    borderTopColor: "#E7E7E7",
+                                    outline: isSelected
+                                      ? "2px solid #8FC74A"
+                                      : "none",
+                                    outlineOffset: "-2px",
+                                  }}
+                                  title={
+                                    !selectedVrstaPlacanja
+                                      ? "Prvo izaberite vrstu plaćanja"
+                                      : "Klikni za odabir artikla"
+                                  }
+                                >
+                                  <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
+                                    {p.sifra}
+                                  </td>
+
+                                  <td className="py-2 pr-2 text-gray-800">
+                                    {/* malo manji tekst i clamp da štedi prostor */}
+                                    <div className="line-clamp-2">
+                                      {p.naziv}
+                                    </div>
+                                  </td>
+
+                                  <td className="py-2 text-right">
+                                    {isSeen ? (
+                                      <span
+                                        className="font-bold"
+                                        style={{ color: "#8FC74A" }}
+                                        title="Pregledano"
+                                      >
+                                        ✓
+                                      </span>
+                                    ) : (
+                                      <span
+                                        className="text-gray-400"
+                                        title="Nije pregledano"
+                                      >
+                                        –
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 {selectedArtiklModal ? (
                   <>
                     {/* FORMA ZA DODAVANJE ARTIKLA U NOVU NARUDŽBU */}
