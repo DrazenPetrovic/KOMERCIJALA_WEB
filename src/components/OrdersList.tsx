@@ -1430,83 +1430,76 @@ export function OrdersList() {
             >
               {/* OVO JE NOVO: wrapper koji drži 3 kartice jednu pored druge            <div className="flex items-start gap-4 flex-wrap w-full"> */}
               <div className="flex items-stretch gap-4 flex-wrap w-full">
-                {/* INFORMATIVNA KARTCA SA PODACIMA */}
+                {/* INFORMATIVNA KARTCA SA PODACIMA (JOŠ KOMPAKTNIJE) */}
                 <div
-                  className="bg-white rounded-lg p-3 border-2 shadow-sm max-w-xs"
+                  className="bg-white rounded-md p-2 border-2 shadow-sm max-w-[240px]"
                   style={{ borderColor: "#8FC74A" }}
                 >
-                  {/* --- ovdje ostaje sav tvoj postojeći sadržaj kartice --- */}
-                  <div className="space-y-3">
+                  {/* manji razmaci globalno */}
+                  <div className="space-y-1">
                     {/* DAN */}
                     <div
-                      className="rounded-lg p-2"
+                      className="rounded-md px-2 py-1"
                       style={{
                         backgroundColor: "#F5F3FF",
                         borderLeft: "3px solid #8FC74A",
                       }}
                     >
                       <div
-                        className="text-xs font-semibold"
-                        style={{ color: "#785E9E" }}
-                      >
-                        DAN DOSTAVE
-                      </div>
-                      <div
-                        className="text-lg font-bold"
+                        className="text-sm font-bold leading-tight"
                         style={{ color: "#8FC74A" }}
                       >
                         {selectedTerenInfo?.dan_dostave} -{" "}
                         {selectedTerenInfo?.datum_dostave}
                       </div>
-                      {/* NOVO: šifra terena */}
-                      <div className="text-xs text-gray-600 mt-1">
-                        Šifra terena:{" "}
-                        <span className="font-semibold text-gray-800">
-                          {selectedTerenInfo?.sifraTerenaDostava}
-                        </span>
+
+                      {/* Šifra terena: NE VIDLJIVO, ali ostaje u DOM-u */}
+                      <div className="sr-only">
+                        Šifra terena: {selectedTerenInfo?.sifraTerenaDostava}
                       </div>
                     </div>
 
-                    {/* KUPAC */}
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* ŠIFRA + GRAD (pomjereno bliže datumu: mt-0, minimal padding) */}
+                    <div className="grid grid-cols-2 gap-2 mt-0">
                       {/* ŠIFRA */}
-                      <div>
+                      <div className="-mt-0.5">
                         <div
-                          className="text-xs font-semibold"
+                          className="text-[10px] font-semibold leading-none"
                           style={{ color: "#785E9E" }}
                         >
-                          ŠIFRA KUPCA
+                          ŠIFRA
                         </div>
                         <div
-                          className="text-lg font-bold"
+                          className="text-sm font-bold leading-tight"
                           style={{ color: "#785E9E" }}
                         >
                           {selectedKupac.sifra_kupca}
                         </div>
                       </div>
+
                       {/* GRAD */}
-                      <div>
+                      <div className="-mt-0.5">
                         <div
-                          className="text-xs font-semibold"
+                          className="text-[10px] font-semibold leading-none"
                           style={{ color: "#785E9E" }}
                         >
                           GRAD
                         </div>
-                        <div className="text-gray-700 text-sm">
+                        <div className="text-[11px] text-gray-700 leading-tight">
                           {selectedKupac.naziv_grada}
                         </div>
                       </div>
                     </div>
 
-                    {/* NAZIV ISPOD */}
-                    <div>
+                    {/* KUPAC naziv (još bliže šifri: -mt-1 i leading-tight) */}
+                    <div className="-mt-1">
                       <div
-                        className="text-xs font-semibold"
+                        className="text-[10px] font-semibold leading-none"
                         style={{ color: "#785E9E" }}
                       >
-                        NAZIV KUPCA
+                        KUPAC
                       </div>
-                      <div className="text-sm font-semibold text-gray-800">
+                      <div className="text-[11px] font-semibold text-gray-800 leading-tight">
                         {selectedKupac.naziv_kupca}
                       </div>
                     </div>
@@ -1515,19 +1508,21 @@ export function OrdersList() {
                   <div
                     style={{
                       borderTop: "1px solid #E0E0E0",
-                      margin: "0.5rem 0",
+                      margin: "0.35rem 0",
                     }}
-                  ></div>
-                  <div className="flex gap-2 flex-wrap">
+                  />
+
+                  {/* VRSTE PLAĆANJA */}
+                  <div className="flex gap-1 flex-wrap">
                     {getVrstePaymentaZaKupca(
                       selectedKupac?.sifra_kupca || 0,
                     ).map((vrsta) => (
                       <button
                         key={vrsta.kod}
                         onClick={() => setSelectedVrstaPlacanja(vrsta.kod)}
-                        className={`px-3 py-1 rounded-lg font-semibold text-sm transition-all ${
+                        className={`px-2 py-0.5 rounded-md font-semibold text-[11px] leading-tight transition-all ${
                           selectedVrstaPlacanja === vrsta.kod
-                            ? "text-white shadow-lg scale-105"
+                            ? "text-white shadow scale-[1.02]"
                             : "text-gray-700 bg-gray-100 hover:bg-gray-200"
                         }`}
                         style={{
@@ -1623,7 +1618,7 @@ export function OrdersList() {
             >
               {/* LIJEVA STRANA - ARTIKLI (30%) */}
               <div
-                className="w-[30%] flex flex-col border-r-2 pr-4"
+                className="w-full md:w-[30%] flex flex-col border-r-2 pr-4"
                 style={{ borderColor: "#8FC74A" }}
               >
                 {/* PRETRAGA ARTIKALA */}
@@ -1755,161 +1750,6 @@ export function OrdersList() {
 
               {/* DESNA STRANA - SADRŽAJ (70%) */}
               <div className="flex-1 overflow-y-auto flex flex-col bg-gray-50">
-                {/* RANIJE UZIMANI PROIZVODI - premješteno ovdje + tabelarni pregled */}
-                <div
-                  className="mb-3 bg-white rounded-lg p-3 border-2 shadow-sm"
-                  style={{ borderColor: "#8FC74A" }}
-                >
-                  {/* Header: label + ukupno + expand */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="text-xs font-semibold"
-                        style={{ color: "#785E9E" }}
-                      >
-                        RANIJE UZIMANI PROIZVODI
-                      </div>
-
-                      <div
-                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: "#F5F3FF", color: "#785E9E" }}
-                        title="Ukupan broj ranije uzimanih proizvoda"
-                      >
-                        {totalRecent}
-                      </div>
-                    </div>
-
-                    {canExpand && (
-                      <button
-                        type="button"
-                        onClick={() => setRecentExpanded((v) => !v)}
-                        className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
-                        style={{ borderColor: "#E7E7E7", color: "#785E9E" }}
-                        title={recentExpanded ? "Prikaži manje" : "Prikaži sve"}
-                      >
-                        {recentExpanded ? "▲" : "▼"}
-                      </button>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: "1px solid #E0E0E0",
-                      margin: "0.5rem 0",
-                    }}
-                  />
-
-                  {/* Sadržaj */}
-                  <div>
-                    {recentLoading && (
-                      <div className="text-xs text-gray-600">Učitavam...</div>
-                    )}
-
-                    {recentError && (
-                      <div className="text-xs text-red-600">
-                        Greška: {recentError}
-                      </div>
-                    )}
-
-                    {!recentLoading && !recentError && totalRecent === 0 && (
-                      <div className="text-xs text-gray-500">
-                        Nema ranije uzimanih proizvoda.
-                      </div>
-                    )}
-
-                    {!recentLoading && !recentError && totalRecent > 0 && (
-                      <div
-                        className={
-                          recentExpanded
-                            ? "max-h-[240px] overflow-y-auto pr-1"
-                            : ""
-                        }
-                      >
-                        <table className="w-full text-xs">
-                          <thead>
-                            <tr
-                              className="text-left"
-                              style={{ color: "#785E9E" }}
-                            >
-                              <th className="py-1 pr-2 w-[90px]">ŠIFRA</th>
-                              <th className="py-1 pr-2">NAZIV</th>
-                              <th className="py-1 w-[60px] text-right">
-                                STATUS
-                              </th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {visibleRecent.map((p) => {
-                              const isSelected =
-                                Number(selectedArtiklModal?.sifra_proizvoda) ===
-                                Number(p.sifra);
-                              const isSeen = seenRecent.has(String(p.sifra));
-
-                              return (
-                                <tr
-                                  key={`${p.sifra}-${p.naziv}`}
-                                  onClick={() => {
-                                    if (!selectedVrstaPlacanja) {
-                                      alert("⚠️ Prvo odaberi vrstu plaćanja!");
-                                      return;
-                                    }
-                                    handleRecentProductClick(p);
-                                  }}
-                                  className={`border-t cursor-pointer ${
-                                    !selectedVrstaPlacanja ? "opacity-50" : ""
-                                  } ${isSelected ? "bg-green-50" : "hover:bg-gray-50"}`}
-                                  style={{
-                                    borderTopColor: "#E7E7E7",
-                                    outline: isSelected
-                                      ? "2px solid #8FC74A"
-                                      : "none",
-                                    outlineOffset: "-2px",
-                                  }}
-                                  title={
-                                    !selectedVrstaPlacanja
-                                      ? "Prvo izaberite vrstu plaćanja"
-                                      : "Klikni za odabir artikla"
-                                  }
-                                >
-                                  <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
-                                    {p.sifra}
-                                  </td>
-
-                                  <td className="py-2 pr-2 text-gray-800">
-                                    {/* malo manji tekst i clamp da štedi prostor */}
-                                    <div className="line-clamp-2">
-                                      {p.naziv}
-                                    </div>
-                                  </td>
-
-                                  <td className="py-2 text-right">
-                                    {isSeen ? (
-                                      <span
-                                        className="font-bold"
-                                        style={{ color: "#8FC74A" }}
-                                        title="Pregledano"
-                                      >
-                                        ✓
-                                      </span>
-                                    ) : (
-                                      <span
-                                        className="text-gray-400"
-                                        title="Nije pregledano"
-                                      >
-                                        –
-                                      </span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                </div>
                 {selectedArtiklModal ? (
                   <>
                     {/* FORMA ZA DODAVANJE ARTIKLA U NOVU NARUDŽBU */}
@@ -1917,78 +1757,82 @@ export function OrdersList() {
                       className="p-4 border-b-2 flex-shrink-0 bg-white"
                       style={{ borderColor: "#8FC74A" }}
                     >
+                      {/* === PODACI O IZABRANOM PROIZVODU (KOMPAKTNO) === */}
                       <div
-                        className="rounded-lg p-2 mb-2"
+                        className="rounded-md px-2 py-2 mb-2"
                         style={{
                           backgroundColor: "#F5F3FF",
                           borderLeft: "4px solid #8FC74A",
                         }}
                       >
+                        {/* NAZIV ostaje isto (kao prije) */}
                         <h3
-                          className="font-bold text-lg mb-2"
+                          className="font-bold text-lg mb-1"
                           style={{ color: "#785E9E" }}
                         >
                           {selectedArtiklModal.naziv_proizvoda}
                         </h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                        {/* SVE U ISTI RED */}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
                           {/* ŠIFRA */}
-                          <div>
+                          <div className="flex items-baseline gap-1">
                             <span
                               className="font-semibold"
                               style={{ color: "#785E9E" }}
                             >
                               Šifra:
                             </span>
-                            <p className="font-semibold text-gray-700">
+                            <span className="font-semibold text-gray-700">
                               {selectedArtiklModal.sifra_proizvoda}
-                            </p>
+                            </span>
                           </div>
 
-                          {/* JEDINICA MJERE */}
-                          <div>
+                          {/* JM */}
+                          <div className="flex items-baseline gap-1">
                             <span
-                              className="font-bold"
+                              className="font-semibold"
                               style={{ color: "#785E9E" }}
                             >
-                              Jedinica mjere:
+                              JM:
                             </span>
-                            <p
-                              className="font-bold text-base"
+                            <span
+                              className="font-bold"
                               style={{ color: "#8FC74A" }}
                             >
                               {selectedArtiklModal.jm}
-                            </p>
+                            </span>
                           </div>
 
                           {/* VPC */}
-                          <div>
+                          <div className="flex items-baseline gap-1">
                             <span
                               className="font-semibold"
                               style={{ color: "#785E9E" }}
                             >
                               VPC:
                             </span>
-                            <p
+                            <span
                               className="font-semibold"
                               style={{ color: "#8FC74A" }}
                             >
                               {formatPrice(selectedArtiklModal.VPC)} BAM
-                            </p>
+                            </span>
                           </div>
+
                           {/* MPC */}
-                          <div>
+                          <div className="flex items-baseline gap-1">
                             <span
                               className="font-semibold"
                               style={{ color: "#785E9E" }}
                             >
                               MPC:
                             </span>
-                            <p
+                            <span
                               className="font-semibold"
                               style={{ color: "#8FC74A" }}
                             >
                               {formatPrice(selectedArtiklModal.mpc)} BAM
-                            </p>
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -2294,6 +2138,139 @@ export function OrdersList() {
                     </div>
                   </>
                 )}
+              </div>
+              {/* 3) DESNO - RANIJE UZIMANI (novo, zasebna kolona) */}
+              <div
+                className="w-full md:w-[320px] lg:w-[360px] flex flex-col bg-white rounded-lg p-3 border-2 shadow-sm"
+                style={{ borderColor: "#8FC74A" }}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="text-xs font-semibold"
+                      style={{ color: "#785E9E" }}
+                    >
+                      RANIJE UZIMANI PROIZVODI
+                    </div>
+
+                    <div
+                      className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: "#F5F3FF", color: "#785E9E" }}
+                      title="Ukupan broj ranije uzimanih proizvoda"
+                    >
+                      {totalRecent}
+                    </div>
+                  </div>
+
+                  {canExpand && (
+                    <button
+                      type="button"
+                      onClick={() => setRecentExpanded((v) => !v)}
+                      className="px-2 py-1 rounded-md border text-xs font-semibold hover:bg-gray-50"
+                      style={{ borderColor: "#E7E7E7", color: "#785E9E" }}
+                      title={recentExpanded ? "Prikaži manje" : "Prikaži sve"}
+                    >
+                      {recentExpanded ? "▲" : "▼"}
+                    </button>
+                  )}
+                </div>
+
+                <div
+                  style={{ borderTop: "1px solid #E0E0E0", margin: "0.5rem 0" }}
+                />
+
+                {/* bitno: flex-1 + min-h-0 da scroll radi u flex koloni */}
+                <div className="flex-1 min-h-0">
+                  {recentLoading && (
+                    <div className="text-xs text-gray-600">Učitavam...</div>
+                  )}
+
+                  {recentError && (
+                    <div className="text-xs text-red-600">
+                      Greška: {recentError}
+                    </div>
+                  )}
+
+                  {!recentLoading && !recentError && totalRecent === 0 && (
+                    <div className="text-xs text-gray-500">
+                      Nema ranije uzimanih proizvoda.
+                    </div>
+                  )}
+
+                  {!recentLoading && !recentError && totalRecent > 0 && (
+                    <div
+                      className={
+                        recentExpanded ? "max-h-full overflow-y-auto pr-1" : ""
+                      }
+                    >
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr
+                            className="text-left"
+                            style={{ color: "#785E9E" }}
+                          >
+                            <th className="py-1 pr-2 w-[90px]">ŠIFRA</th>
+                            <th className="py-1 pr-2">NAZIV</th>
+                            <th className="py-1 w-[50px] text-right">OK</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          {visibleRecent.map((p) => {
+                            const isSelected =
+                              Number(selectedArtiklModal?.sifra_proizvoda) ===
+                              Number(p.sifra);
+                            const isSeen = seenRecent.has(String(p.sifra));
+
+                            return (
+                              <tr
+                                key={`${p.sifra}-${p.naziv}`}
+                                onClick={() => {
+                                  if (!selectedVrstaPlacanja) {
+                                    alert("⚠️ Prvo odaberi vrstu plaćanja!");
+                                    return;
+                                  }
+                                  handleRecentProductClick(p);
+                                }}
+                                className={`border-t ${
+                                  selectedVrstaPlacanja
+                                    ? "cursor-pointer"
+                                    : "opacity-50 cursor-not-allowed"
+                                } ${isSelected ? "bg-green-50" : "hover:bg-gray-50"}`}
+                                style={{
+                                  borderTopColor: "#E7E7E7",
+                                  outline: isSelected
+                                    ? "2px solid #8FC74A"
+                                    : "none",
+                                  outlineOffset: "-2px",
+                                }}
+                              >
+                                <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
+                                  {p.sifra}
+                                </td>
+                                <td className="py-2 pr-2 text-gray-800">
+                                  <div className="line-clamp-2">{p.naziv}</div>
+                                </td>
+                                <td className="py-2 text-right">
+                                  {isSeen ? (
+                                    <span
+                                      className="font-bold"
+                                      style={{ color: "#8FC74A" }}
+                                    >
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">–</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
