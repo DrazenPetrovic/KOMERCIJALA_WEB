@@ -367,7 +367,7 @@ export function OrdersList() {
 
   const calculateModalTotalPrice = () => {
     return novaArtiklUNarudzbi.reduce(
-      (total, a) => total + a.VPC * a.kolicina,
+      (total, a) => total + a.mpc * a.kolicina,
       0,
     );
   };
@@ -543,6 +543,9 @@ export function OrdersList() {
           // Učitaj narudžbe za prvi dan
           if (firstDay.sifra_terena_dostava) {
             fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
+            console.log(
+              `📥 Učitavanje narudžbi za prvi dan: ${firstDay.sifra_terena_dostava}...${firstDay.sifra_terena}`,
+            );
           }
         }
       }
@@ -869,10 +872,10 @@ export function OrdersList() {
 
     // Učitaj aktivne narudžbe za odabrani teren
     if (day.sifraTerena) {
-      console.log(
-        `📅 Odabran dan: ${day.day} (${day.date}), šifra terena: ${day.sifraTerenaDostava}`,
-      );
       fetchAktivneNarudzbe(day.sifraTerenaDostava);
+      console.log(
+        `📥 Učitavanje narudžbi za teren ${day.sifraTerenaDostava} i ${day.sifraTerena}`,
+      );
     }
   };
 
@@ -892,6 +895,101 @@ export function OrdersList() {
     setSelectedKupac(kupac);
     setSelectedTerenInfo(terenInfo); // ← Šifra
     setShowKupacModal(true);
+  };
+
+  // ✅ 2) DODAJ handler-e za brisanje (iznad return-a)
+
+  // Brisanje cijelog partnera (kupca) za izabrani teren
+  const handleDeletePartnerFromTeren = async (kupac: NarudzbaKupac) => {
+    if (!selectedTerenaSifra) {
+      alert("Nedostaje šifra terena.");
+      return;
+    }
+
+    const ok = confirm(`Obrisati SVE stavke za kupca "${kupac.naziv_kupca}"?`);
+    if (!ok) return;
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+      // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
+      const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-partnera`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sifraTerenaDostava: Number(selectedDay),
+          sifraKupca: Number(kupac.sifra_kupca),
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || `HTTP greška: ${res.status}`);
+      }
+
+      // Refresh liste
+      if (selectedDay) fetchAktivneNarudzbe(selectedDay);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      alert("Greška pri brisanju partnera: " + msg);
+    }
+  };
+
+  // Brisanje jedne stavke (proizvoda) za partnera na terenu
+  const handleDeleteProductFromPartner = async (
+    kupac: NarudzbaKupac,
+    proizvod: NarudzbaProizvod,
+  ) => {
+    if (!selectedTerenaSifra) {
+      alert("Nedostaje šifra terena.");
+      return;
+    }
+
+    // Ako ima samo 1 proizvod, briši partnera kao cjelinu (po tvom pravilu)
+    if (kupac.proizvodi.length <= 1) {
+      await handleDeletePartnerFromTeren(kupac);
+      return;
+    }
+
+    const ok = confirm(
+      `Obrisati proizvod "${proizvod.naziv_proizvoda}" za kupca "${kupac.naziv_kupca}"?`,
+    );
+    if (!ok) return;
+    console.log(
+      `Brisanje proizvoda ${proizvod.naziv_proizvoda} (sifra: ${proizvod.sif}) za kupca ${kupac.naziv_kupca} na terenu ${selectedDay}`,
+    );
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+      // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
+      const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-stavku`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sifraTerenaDostava: Number(selectedDay),
+          sifraKupca: Number(kupac.sifra_kupca),
+          sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10), // ovdje je sifra_proizvoda u tvojoj strukturi
+        }),
+      });
+      console.log("Šaljem na backend:", {
+        sifraTerenaDostava: Number(selectedDay),
+        sifraKupca: Number(kupac.sifra_kupca),
+        sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || `HTTP greška: ${res.status}`);
+      }
+
+      // Refresh liste
+      if (selectedDay) fetchAktivneNarudzbe(selectedDay);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      alert("Greška pri brisanju stavke: " + msg);
+    }
   };
 
   return (
@@ -1342,6 +1440,26 @@ export function OrdersList() {
                                   {kupac.proizvodi.length}
                                 </span>
                               </div>
+                              {/* NOVO: smeće za brisanje cijelog partnera */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDeletePartnerFromTeren(kupac)
+                                }
+                                className="p-2 rounded-lg transition-all"
+                                style={{ backgroundColor: "#FFE5E5" }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    "#FFD5D5")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    "#FFE5E5")
+                                }
+                                title="Obriši partnera (sve stavke za ovog partnera na terenu)"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
                             </div>
                           </div>
 
@@ -1365,13 +1483,16 @@ export function OrdersList() {
                                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     NAPOMENA
                                   </th>
+                                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    AKCIJE
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody className="bg-white divide-y divide-gray-200">
                                 {kupac.proizvodi.length === 0 ? (
                                   <tr>
                                     <td
-                                      colSpan={5}
+                                      colSpan={6}
                                       className="px-6 py-8 text-center text-gray-500"
                                     >
                                       Nema proizvoda
@@ -1401,6 +1522,34 @@ export function OrdersList() {
                                       </td>
                                       <td className="px-6 py-4 text-sm text-gray-600">
                                         {proizvod.napomena || "-"}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleDeleteProductFromPartner(
+                                              kupac,
+                                              proizvod,
+                                            )
+                                          }
+                                          className="p-1.5 rounded-lg transition-all inline-flex"
+                                          style={{ backgroundColor: "#FFE5E5" }}
+                                          onMouseEnter={(e) =>
+                                            (e.currentTarget.style.backgroundColor =
+                                              "#FFD5D5")
+                                          }
+                                          onMouseLeave={(e) =>
+                                            (e.currentTarget.style.backgroundColor =
+                                              "#FFE5E5")
+                                          }
+                                          title={
+                                            kupac.proizvodi.length <= 1
+                                              ? "Kupac ima 1 stavku – briše se cijeli partner"
+                                              : "Obriši ovaj proizvod"
+                                          }
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                        </button>
                                       </td>
                                     </tr>
                                   ))
@@ -1708,7 +1857,7 @@ export function OrdersList() {
                                   className="font-bold mt-1"
                                   style={{ color: "#8FC74A" }}
                                 >
-                                  {formatPrice(artikal.VPC)} BAM
+                                  {formatPrice(artikal.VPC)} KM
                                 </div>
                               </div>
                               <div
@@ -1725,7 +1874,7 @@ export function OrdersList() {
                                   className="font-bold mt-1"
                                   style={{ color: "#8FC74A" }}
                                 >
-                                  {formatPrice(artikal.mpc)} BAM
+                                  {formatPrice(artikal.mpc)} KM
                                 </div>
                               </div>
                             </div>
@@ -1815,7 +1964,7 @@ export function OrdersList() {
                               className="font-semibold"
                               style={{ color: "#8FC74A" }}
                             >
-                              {formatPrice(selectedArtiklModal.VPC)} BAM
+                              {formatPrice(selectedArtiklModal.VPC)} KM
                             </span>
                           </div>
 
@@ -1831,7 +1980,7 @@ export function OrdersList() {
                               className="font-semibold"
                               style={{ color: "#8FC74A" }}
                             >
-                              {formatPrice(selectedArtiklModal.mpc)} BAM
+                              {formatPrice(selectedArtiklModal.mpc)} KM
                             </span>
                           </div>
                         </div>
@@ -1841,7 +1990,7 @@ export function OrdersList() {
                       <div className="space-y-4">
                         <div>
                           <label
-                            className="block text-sm font-semibold mb-2"
+                            className="block text-sm font-semibold mb-0"
                             style={{ color: "#785E9E" }}
                           >
                             Količina ({selectedArtiklModal.jm}) *
@@ -1849,29 +1998,47 @@ export function OrdersList() {
                           <div className="flex items-center gap-2">
                             <input
                               type="number"
-                              min="1"
-                              step="0.1"
-                              value={artiklKolicina}
-                              onChange={(e) =>
-                                setArtiklKolicina(
-                                  Math.max(1, parseFloat(e.target.value) || 1),
-                                )
-                              }
-                              className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
-                              style={{ borderColor: "#8FC74A" }}
+                              min="0.01"
+                              step="0.01"
+                              value={artiklKolicina || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+
+                                // Dozvoli prazno polje dok korisnik kuca
+                                if (val === "" || val === "0" || val === "0.") {
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  setArtiklKolicina(val as any);
+                                  return;
+                                }
+
+                                // Odbaci sve što nije broj ili decimalna tačka
+                                if (!/^\d*\.?\d*$/.test(val)) return;
+
+                                const parsed = parseFloat(val);
+                                if (!isNaN(parsed) && parsed > 0) {
+                                  setArtiklKolicina(parsed);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // Vrati na 0.01 ako je ostalo prazno ili 0
+                                if (!artiklKolicina || artiklKolicina <= 0) {
+                                  setArtiklKolicina(0.01);
+                                }
+                                // Vrati boju bordera
+                                e.currentTarget.style.borderColor = "#8FC74A";
+                              }}
                               onFocus={(e) =>
                                 (e.currentTarget.style.borderColor = "#785E9E")
                               }
-                              onBlur={(e) =>
-                                (e.currentTarget.style.borderColor = "#8FC74A")
-                              }
+                              className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
+                              style={{ borderColor: "#8FC74A" }}
                             />
                           </div>
                         </div>
 
                         <div>
                           <label
-                            className="block text-sm font-semibold mb-2"
+                            className="block text-sm font-semibold mb-0"
                             style={{ color: "#785E9E" }}
                           >
                             Napomena (opciono)
@@ -1881,7 +2048,7 @@ export function OrdersList() {
                             onChange={(e) => setArtiklNapomena(e.target.value)}
                             placeholder="Unesite napomenu..."
                             rows={2}
-                            className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none resize-none"
+                            className="w-full px-3 py-1 border-2 rounded-lg focus:outline-none resize-none"
                             style={{ borderColor: "#8FC74A" }}
                             onFocus={(e) =>
                               (e.currentTarget.style.borderColor = "#785E9E")
@@ -1892,7 +2059,7 @@ export function OrdersList() {
                           />
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button
                             onClick={handleAddArtiklToModalOrder}
                             className="flex-1 px-4 py-3 rounded-lg transition-all text-white font-medium"
@@ -1937,7 +2104,7 @@ export function OrdersList() {
                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-3 gap-2">
                           {novaArtiklUNarudzbi.map((artikal) => (
                             <div
                               key={artikal.sifra_proizvoda}
@@ -2005,7 +2172,7 @@ export function OrdersList() {
                                     className="font-bold text-[10px]"
                                     style={{ color: "#8FC74A" }}
                                   >
-                                    {formatPrice(artikal.VPC)} BAM
+                                    {formatPrice(artikal.VPC)} KM
                                   </p>
                                 </div>
                                 <div
@@ -2022,7 +2189,7 @@ export function OrdersList() {
                                     className="font-bold text-[10px]"
                                     style={{ color: "#8FC74A" }}
                                   >
-                                    {formatPrice(artikal.mpc)} BAM
+                                    {formatPrice(artikal.mpc)} KM
                                   </p>
                                 </div>
                               </div>
@@ -2065,7 +2232,7 @@ export function OrdersList() {
                                         parseFloat(e.target.value) || 1,
                                       )
                                     }
-                                    className="flex-1 px-1 py-0.5 border rounded text-center text-[10px] font-semibold"
+                                    className="flex-1 min-w-0 px-1 py-0.5 border rounded text-center text-[10px] font-semibold"
                                     style={{ borderColor: "#8FC74A" }}
                                   />
                                   <button
@@ -2110,7 +2277,7 @@ export function OrdersList() {
                                   {formatPrice(
                                     getPrice(artikal.mpc) * artikal.kolicina,
                                   )}{" "}
-                                  BAM
+                                  KM
                                 </p>
                               </div>
 
@@ -2357,7 +2524,7 @@ export function OrdersList() {
                         className="text-xl font-bold"
                         style={{ color: "#8FC74A" }}
                       >
-                        {calculateModalTotalPrice().toFixed(2)} BAM
+                        {calculateModalTotalPrice().toFixed(2)} KM
                       </span>
                     </div>
                   </div>
