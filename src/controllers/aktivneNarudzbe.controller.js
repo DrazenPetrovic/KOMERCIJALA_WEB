@@ -192,3 +192,22 @@ export const narudzbaBrisanjePartneraProizvoda = async (req, res) => {
     });
   }
 };
+
+export const getZadnjiDanNarudzbe = async (req, res) => {
+  try {
+    const zadnjiDan = await NarudzbeService.getZadnjiDanNarudzbe();
+    return res.json({
+      success: true,
+      data: zadnjiDan,
+      count: zadnjiDan.length,
+    });
+  } catch (error) {
+    console.error("Pregled zadnjeg dana narudžbe error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        error: "Greška pri učitavanju zadnjeg dana narudžbe",
+      });
+  }
+};

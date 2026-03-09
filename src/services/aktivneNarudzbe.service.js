@@ -134,3 +134,12 @@ export const getRanijeUzimano = async (sifraPartnera, nazivPartnera) => {
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
+
+export const getZadnjiDanNarudzbe = async () => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.dostava_provjera_zadnjeg_dana_provjere_izvrsene_narudzbe()",
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};

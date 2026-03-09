@@ -19,6 +19,16 @@ router.get(
 //   /api/narudzbe/obrisi-stavku
 router.get("/ranije-uzimano", verifyToken, NarudzbeController.getRanijeUzimano);
 
+//   /api/narudzbe/obrisi-partnera
+//   /api/narudzbe/obrisi-stavku
+router.get("/ranije-uzimano", verifyToken, NarudzbeController.getRanijeUzimano);
+
+router.get(
+  "/zadnji-dan-narudzbe",
+  verifyToken,
+  NarudzbeController.getZadnjiDanNarudzbe,
+);
+
 router.post(
   "/obrisi-partnera",
   verifyToken,
