@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useRef } from "react";
 import {
   ChevronDown,
   ChevronUp,
@@ -95,6 +95,9 @@ interface Artikal {
   jm: string;
   VPC: number;
   mpc: number;
+  kolicinaNaStanju: number;
+  // dodaj ostale svojstva ako ih ima
+
 }
 
 interface DaySchedule {
@@ -177,6 +180,7 @@ export function OrdersList() {
   const [aiExpanded, setAiExpanded] = useState<boolean>(false);
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
+const kolicinaInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchAiAnaliza = async () => {
     if (!selectedKupac) return;
@@ -241,13 +245,32 @@ export function OrdersList() {
       return;
     }
 
-    handleSelectArtikl(found);
+    // Prvo postavi artikal kao izabran
+    setSelectedArtiklModal(found);
+    setArtiklKolicina(1);
+    setArtiklNapomena("");
+
+    // Zatim fokusiraj na količinu input nakon što se modal ažurira
+    setTimeout(() => {
+      if (kolicinaInputRef.current) {
+        kolicinaInputRef.current.focus();
+        kolicinaInputRef.current.select();
+      }
+    }, 0);
   };
 
   const handleSelectArtikl = (artikal: Artikal) => {
     setSelectedArtiklModal(artikal);
     setArtiklKolicina(1);
     setArtiklNapomena("");
+    
+    // Fokusiraj na količinu input nakon što se modal ažurira
+    setTimeout(() => {
+      if (kolicinaInputRef.current) {
+        kolicinaInputRef.current.focus();
+        kolicinaInputRef.current.select();
+      }
+    }, 0);
   };
 
   const getSelectedTerenInfo = (): TerenDostaveInfo | null => {
@@ -490,14 +513,25 @@ export function OrdersList() {
 
         // console.log('📦 Odgovor sa servera:', data);
 
-        if (data.success && data.data) {
-          setArtikli(data.data);
-          // console.log('✅ Artikli uspješno učitani:', data.data.length, 'artikala');
-        } else if (Array.isArray(data)) {
-          // Ako server direktno vraća niz
-          setArtikli(data);
-          // console.log('✅ Artikli uspješno učitani:', data.length, 'artikala');
-        } else {
+if (data.success && data.data) {
+  setArtikli(
+    data.data.map((a: any) => ({
+      ...a,
+      kolicinaNaStanju: a.kolicina_proizvoda != null
+        ? Number(String(a.kolicina_proizvoda).replace(",", "."))
+        : 0,
+    })),
+  );
+} else if (Array.isArray(data)) {
+  setArtikli(
+    data.map((a: any) => ({
+      ...a,
+      kolicinaNaStanju: a.kolicina_proizvoda != null
+        ? Number(String(a.kolicina_proizvoda).replace(",", "."))
+        : 0,
+    })),
+  );
+}else {
           console.warn("⚠️ Neočekivan format podataka:", data);
           setArtikli([]);
         }
@@ -642,6 +676,18 @@ export function OrdersList() {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showKupacModal, selectedKupac?.sifra_kupca]);
+
+  useEffect(() => {
+    if (selectedArtiklModal) {
+      setTimeout(() => {
+        if (kolicinaInputRef.current) {
+          kolicinaInputRef.current.focus();
+          kolicinaInputRef.current.select();
+        }
+      }, 0);
+    }
+  }, [selectedArtiklModal]);
+
 
   // ===== ČETVRTA PROCEDURA - AKTIVNE NARUDŽBE PO TERENU =====
   const fetchAktivneNarudzbe = async (sifraTerena: number) => {
@@ -1803,85 +1849,101 @@ export function OrdersList() {
                             ?.toString()
                             .includes(searchArtikli),
                       )
-                      .map((artikal) => (
-                        <div
-                          key={artikal.sifra_proizvoda}
-                          onClick={() => {
-                            if (!selectedVrstaPlacanja) {
-                              alert("⚠️ Prvo odaberi vrstu plaćanja!");
-                              return;
-                            }
-                            handleSelectArtikl(artikal);
-                          }}
-                          className="bg-white border-2 rounded-lg p-2 hover:shadow-md transition-all cursor-pointer"
-                          style={{ borderColor: "#DDD" }}
-                          onMouseEnter={(e) =>
-                            (e.currentTarget.style.borderColor = "#8FC74A")
-                          }
-                          onMouseLeave={(e) =>
-                            (e.currentTarget.style.borderColor = "#DDD")
-                          }
-                        >
-                          <div className="flex flex-col gap-2">
-                            {/* Gornji dio */}
-                            <div className="min-w-0">
-                              <div
-                                className="text-[11px] font-semibold"
-                                style={{ color: "#785E9E" }}
-                              >
-                                {artikal.sifra_proizvoda}
-                              </div>
-                              <div className="text-xs font-semibold text-gray-800 truncate">
-                                {artikal.naziv_proizvoda}
-                              </div>
-                              <div
-                                className="text-[11px] font-bold mt-1"
-                                style={{ color: "#8FC74A" }}
-                              >
-                                JM: {artikal.jm}
-                              </div>
-                            </div>
-                            {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
-                            <div className="space-y-2 text-xs">
-                              <div
-                                className="rounded p-2"
-                                style={{ backgroundColor: "#F0F4FF" }}
-                              >
+                      .map((artikal) => {
+                        const isOutOfStock = Number(artikal.kolicinaNaStanju) === 0;
+
+                        return (
+                          <div
+                            key={artikal.sifra_proizvoda}
+                            onClick={() => {
+                              if (isOutOfStock) return;
+                              if (!selectedVrstaPlacanja) {
+                                alert("⚠️ Prvo odaberi vrstu plaćanja!");
+                                return;
+                              }
+                              handleSelectArtikl(artikal);
+                            }}
+                            className={`bg-white border-2 rounded-lg p-2 transition-all ${
+                              isOutOfStock
+                                ? "opacity-50 cursor-not-allowed"
+                                : "hover:shadow-md cursor-pointer"
+                            }`}
+                            style={{ borderColor: isOutOfStock ? "#E0E0E0" : "#785E9E" }}
+                            title={isOutOfStock ? "Nema na stanju" : undefined}
+                            onMouseEnter={(e) => {
+                              if (!isOutOfStock) e.currentTarget.style.borderColor = "#8FC74A";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = isOutOfStock ? "#E0E0E0" : "#785E9E";
+                            }}
+                          >
+                            <div className="flex flex-col gap-2">
+                              {/* Gornji dio */}
+                              <div className="min-w-0">
                                 <div
-                                  className="font-semibold"
+                                  className="text-[11px] font-semibold"
                                   style={{ color: "#785E9E" }}
                                 >
-                                  VPC
+                                  {artikal.sifra_proizvoda}
+
+                                </div>
+                                <div className="text-xs font-semibold text-gray-800 truncate">
+                                  {artikal.naziv_proizvoda}
+                                  {artikal.kolicinaNaStanju}
                                 </div>
                                 <div
-                                  className="font-bold mt-1"
+                                  className="text-[11px] font-bold mt-1"
                                   style={{ color: "#8FC74A" }}
                                 >
-                                  {formatPrice(artikal.VPC)} KM
+                                  JM: {artikal.jm}
                                 </div>
+                                {isOutOfStock && (
+                                  <div className="text-[10px] font-semibold text-red-600 mt-1">
+                                    NEMA NA STANJU
+                                  </div>
+                                )}
                               </div>
-                              <div
-                                className="rounded p-2"
-                                style={{ backgroundColor: "#F0FFF4" }}
-                              >
+                              {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
+                              <div className="space-y-2 text-xs">
                                 <div
-                                  className="font-semibold"
-                                  style={{ color: "#785E9E" }}
+                                  className="rounded p-2"
+                                  style={{ backgroundColor: "#F0F4FF" }}
                                 >
-                                  MPC
+                                  <div
+                                    className="font-semibold"
+                                    style={{ color: "#785E9E" }}
+                                  >
+                                    VPC
+                                  </div>
+                                  <div
+                                    className="font-bold mt-1"
+                                    style={{ color: "#8FC74A" }}
+                                  >
+                                    {formatPrice(artikal.VPC)} KM
+                                  </div>
                                 </div>
                                 <div
-                                  className="font-bold mt-1"
-                                  style={{ color: "#8FC74A" }}
+                                  className="rounded p-2"
+                                  style={{ backgroundColor: "#F0FFF4" }}
                                 >
-                                  {formatPrice(artikal.mpc)} KM
+                                  <div
+                                    className="font-semibold"
+                                    style={{ color: "#785E9E" }}
+                                  >
+                                    MPC
+                                  </div>
+                                  <div
+                                    className="font-bold mt-1"
+                                    style={{ color: "#8FC74A" }}
+                                  >
+                                    {formatPrice(artikal.mpc)} KM
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-
+                        );
+                      })}
                     {artikli.filter(
                       (a) =>
                         a.naziv_proizvoda
@@ -1997,6 +2059,7 @@ export function OrdersList() {
                           </label>
                           <div className="flex items-center gap-2">
                             <input
+                              ref={kolicinaInputRef}
                               type="number"
                               min="0.01"
                               step="0.01"
@@ -2221,11 +2284,11 @@ export function OrdersList() {
                                   >
                                     −
                                   </button>
-                                  <input
+                                  <input                                    
                                     type="number"
                                     step="0.1"
                                     min="1"
-                                    value={artikal.kolicina}
+                                    value={artiklKolicina || ""}
                                     onChange={(e) =>
                                       handleUpdateModalArtiklKolicina(
                                         artikal.sifra_proizvoda,
@@ -2381,59 +2444,62 @@ export function OrdersList() {
                             <th className="py-1 w-[50px] text-right">OK</th>
                           </tr>
                         </thead>
+<tbody>
+  {visibleRecent.map((p) => {
+    const isSelected =
+      Number(selectedArtiklModal?.sifra_proizvoda) === Number(p.sifra);
+    const isSeen = seenRecent.has(String(p.sifra));
 
-                        <tbody>
-                          {visibleRecent.map((p) => {
-                            const isSelected =
-                              Number(selectedArtiklModal?.sifra_proizvoda) ===
-                              Number(p.sifra);
-                            const isSeen = seenRecent.has(String(p.sifra));
+    const found = artikli.find((a) => Number(a.sifra_proizvoda) === Number(p.sifra));
+    const isOutOfStock = found ? Number(found.kolicinaNaStanju) === 0 : false;
 
-                            return (
-                              <tr
-                                key={`${p.sifra}-${p.naziv}`}
-                                onClick={() => {
-                                  if (!selectedVrstaPlacanja) {
-                                    alert("⚠️ Prvo odaberi vrstu plaćanja!");
-                                    return;
-                                  }
-                                  handleRecentProductClick(p);
-                                }}
-                                className={`border-t ${
-                                  selectedVrstaPlacanja
-                                    ? "cursor-pointer"
-                                    : "opacity-50 cursor-not-allowed"
-                                } ${isSelected ? "bg-green-50" : "hover:bg-gray-50"}`}
-                                style={{
-                                  borderTopColor: "#E7E7E7",
-                                  outline: isSelected
-                                    ? "2px solid #8FC74A"
-                                    : "none",
-                                  outlineOffset: "-2px",
-                                }}
-                              >
-                                <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
-                                  {p.sifra}
-                                </td>
-                                <td className="py-2 pr-2 text-gray-800">
-                                  <div className="line-clamp-2">{p.naziv}</div>
-                                </td>
-                                <td className="py-2 text-right">
-                                  {isSeen ? (
-                                    <span
-                                      className="font-bold"
-                                      style={{ color: "#8FC74A" }}
-                                    >
-                                      ✓
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-400">–</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
+    return (
+      <tr
+        key={`${p.sifra}-${p.naziv}`}
+        onClick={() => {
+  if (isOutOfStock) {
+    alert("⚠️ Proizvoda nema na stanju, ali možeš unijeti narudžbu.");
+  }
+  if (!selectedVrstaPlacanja) {
+    alert("⚠️ Prvo odaberi vrstu plaćanja!");
+    return;
+  }
+          handleRecentProductClick(p);
+        }}
+        className={`border-t ${
+          isOutOfStock
+            ? "opacity-50 cursor-pointer"
+            : selectedVrstaPlacanja
+              ? "cursor-pointer"
+              : "opacity-50 cursor-not-allowed"
+        } ${isSelected ? "bg-green-50" : "hover:bg-gray-50"}`}
+        style={{
+          borderTopColor: "#E7E7E7",
+          outline: isSelected ? "2px solid #8FC74A" : "none",
+          outlineOffset: "-2px",
+        }}
+        title={isOutOfStock ? "Nema na stanju" : undefined}
+      >
+        <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
+          {p.sifra}
+        </td>
+        <td className="py-2 pr-2 text-gray-800">
+          <div className="line-clamp-2">{p.naziv}</div>
+        </td>
+        <td className="py-2 text-right">
+          {isSeen ? (
+            <span className="font-bold" style={{ color: "#8FC74A" }}>
+              ✓
+            </span>
+          ) : (
+            <span className="text-gray-400">–</span>
+          )}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
+                        
                       </table>
                     </div>
                   )}
