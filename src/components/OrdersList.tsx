@@ -31,6 +31,23 @@ const formatDate = (dateString: string): string => {
   return `${day}.${month}.${year}`;
 };
 
+const generateReferentniBroj = (): string => {
+  const now = new Date();
+  const yyyy = String(now.getFullYear());
+  const MM = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const rand = Array.from({ length: 3 }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length)),
+  ).join("");
+
+  return `${yyyy}${MM}${dd}${hh}${mm}${ss}_${rand}`;
+};
+
 // ===== INTERFEJSI =====
 
 interface Order {
@@ -414,9 +431,11 @@ export function OrdersList() {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const referentniBroj = generateReferentniBroj();
 
       // ✅ PRIPREMI PODATKE
       const orderData = {
+        referentniBroj,
         sifraKupca: selectedKupac.sifra_kupca,
         sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
         vrstaPlacanja: selectedVrstaPlacanja,
@@ -447,7 +466,7 @@ export function OrdersList() {
 
       // ✅ PROVJERI REZULTAT
       if (result.success) {
-        alert("✅ Narudžba uspješno spremljena!");
+        alert(`✅ Narudžba uspješno spremljena! Ref: ${referentniBroj}`);
 
         // RESETUJ SVE STATE-ove
         setNovaArtiklUNarudzbi([]);

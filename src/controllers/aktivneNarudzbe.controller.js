@@ -82,8 +82,13 @@ export const getAktivneNarudzbe = async (req, res) => {
 
 export const createNarudzba = async (req, res) => {
   try {
-    const { sifraKupca, sifraTerenaDostava, vrstaPlacanja, proizvodi } =
-      req.body;
+    const {
+      referentniBroj,
+      sifraKupca,
+      sifraTerenaDostava,
+      vrstaPlacanja,
+      proizvodi,
+    } = req.body;
 
     // Validacija
     if (
@@ -109,6 +114,7 @@ export const createNarudzba = async (req, res) => {
 
     // Pozovi service za unos
     const rezultat = await NarudzbeService.createNarudzba({
+      referentniBroj,
       sifraKupca,
       sifraTerenaDostava,
       vrstaPlacanja,

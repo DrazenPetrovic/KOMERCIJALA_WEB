@@ -23,8 +23,13 @@ export const getAktivneNarudzbe = async (sifraTerena) => {
 
 // ✅ NOVA FUNKCIJA
 export const createNarudzba = async (narudzbaData) => {
-  const { sifraKupca, sifraTerenaDostava, vrstaPlacanja, proizvodi } =
-    narudzbaData;
+  const {
+    referentniBroj,
+    sifraKupca,
+    sifraTerenaDostava,
+    vrstaPlacanja,
+    proizvodi,
+  } = narudzbaData;
 
   return withConnection(async (connection) => {
     try {
@@ -36,6 +41,7 @@ export const createNarudzba = async (narudzbaData) => {
       // Za svaki proizvod u narudžbi
       for (const proizvod of proizvodi) {
         const { sifraProizvoda, kolicina, napomena = "" } = proizvod;
+        const cleanNote = String(napomena || "").trim();
 
         // Parametri za proceduru
         const params = [
@@ -43,7 +49,7 @@ export const createNarudzba = async (narudzbaData) => {
           sifraKupca, // p_sifra_partnera
           sifraProizvoda, // p_sifra_proizvoda
           parseFloat(kolicina), // p_kolicina_proizvoda (DECIMAL)
-          napomena, // p_napomena
+          cleanNote, // p_napomena
           0, // p_redosled_ispisa (DEFAULT)
           0, // p_notifikacija (DEFAULT)
           new Date(), // p_datum_unosa_narudzbe (SADA)
@@ -51,13 +57,14 @@ export const createNarudzba = async (narudzbaData) => {
           0, // p_sinhronizovano (DEFAULT)
           0, // p_stampano (DEFAULT)
           0, // p_spremljena_kolicina (DEFAULT)
+          referentniBroj || null, // p_referentni_broj
         ];
 
         // console.log('📦 Unos proizvoda:', sifraProizvoda, 'Količina:', kolicina);
 
         // Pozovi proceduru
         await connection.execute(
-          `CALL komercijala.dostava_unos_podataka_teren_proizvod(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `CALL komercijala.dostava_unos_podataka_teren_proizvod(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params,
         );
       }
@@ -67,6 +74,7 @@ export const createNarudzba = async (narudzbaData) => {
       // console.log('✅ Transakcija uspješna - narudžba unijeta');
 
       return {
+        referentniBroj,
         sifraKupca,
         sifraTerenaDostava,
         vrstaPlacanja,
