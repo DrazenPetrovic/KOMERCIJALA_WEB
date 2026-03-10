@@ -84,6 +84,7 @@ interface NarudzbaProizvod {
 interface NarudzbaKupac {
   sifra_kupca: number;
   naziv_kupca: string;
+  referentni_broj?: string;
   proizvodi: NarudzbaProizvod[];
 }
 
@@ -143,6 +144,22 @@ interface TerenDostaveInfo {
   dan_dostave: string;
   // dodaj ostale svojstva ako ih ima
 }
+
+const normalizeReferentniBroj = (value?: string | null): string => {
+  const normalized = String(value ?? "").trim();
+  if (!normalized || normalized === "-") return "";
+  return normalized;
+};
+
+const getKupacGroupingKey = (
+  sifraKupca: number,
+  referentniBroj?: string | null,
+): string => {
+  const normalizedReferentniBroj = normalizeReferentniBroj(referentniBroj);
+  return normalizedReferentniBroj
+    ? `${sifraKupca}::${normalizedReferentniBroj}`
+    : String(sifraKupca);
+};
 
 // interface OrdersListProps {
 //   onBack: () => void;
@@ -782,8 +799,9 @@ export function OrdersList() {
         const grupisaneData = grupisaneResult.data || [];
         const aktivneData = aktivneResult.data || [];
 
-        // Kreiraj mapu kupaca sa proizvodima
-        const kupciMap = new Map<number, NarudzbaKupac>();
+        // Grupisanje po kupcu + referentnom broju kada postoji.
+        // Ako je referentni broj "-" ili prazan, koristi se postojeće grupisanje samo po šifri kupca.
+        const kupciMap = new Map<string, NarudzbaKupac>();
 
         // Prvo dodaj sve kupce iz grupisanih
         grupisaneData.forEach(
@@ -791,12 +809,22 @@ export function OrdersList() {
             sifra_partnera: number;
             naziv_partnera: string;
             partnera: string;
+            referentni_broj: string;
           }) => {
-            if (!kupciMap.has(item.sifra_partnera)) {
-              kupciMap.set(item.sifra_partnera, {
+            const referentniBroj = normalizeReferentniBroj(
+              item.referentni_broj,
+            );
+            const kupacKey = getKupacGroupingKey(
+              item.sifra_partnera,
+              referentniBroj,
+            );
+
+            if (!kupciMap.has(kupacKey)) {
+              kupciMap.set(kupacKey, {
                 sifra_kupca: item.sifra_partnera,
                 naziv_kupca:
                   item.naziv_partnera || item.partnera || "Nepoznat kupac",
+                referentni_broj: referentniBroj,
                 proizvodi: [],
               });
             }
@@ -813,18 +841,33 @@ export function OrdersList() {
             jm: string;
             kolicina_proizvoda: number;
             napomena: string;
+            referentni_broj?: string;
           }) => {
-            const kupac = kupciMap.get(
-              item.sifra_patnera || item.sifra_partnera,
+            const sifraKupca = item.sifra_patnera || item.sifra_partnera;
+            const referentniBroj = normalizeReferentniBroj(
+              item.referentni_broj,
             );
+            const kupacKey = getKupacGroupingKey(sifraKupca, referentniBroj);
+
+            let kupac = kupciMap.get(kupacKey);
+            if (!kupac) {
+              // Fallback za starije podatke/procedure: ako nema referentnog broja,
+              // pokušaj pronaći postojeći unos grupisan samo po šifri kupca.
+              kupac = kupciMap.get(String(sifraKupca));
+            }
+
             if (kupac) {
+              if (!kupac.referentni_broj && referentniBroj) {
+                kupac.referentni_broj = referentniBroj;
+              }
+
               kupac.proizvodi.push({
                 sif: item.sifra_proizvoda || item.sifra_proizvoda,
                 naziv_proizvoda: item.naziv_proizvoda,
                 jm: item.jm,
                 kolicina: item.kolicina_proizvoda,
                 napomena: item.napomena || " ",
-                sifra_kupca: item.sifra_partnera,
+                sifra_kupca: sifraKupca,
               });
             }
           },
@@ -1023,6 +1066,7 @@ export function OrdersList() {
         body: JSON.stringify({
           sifraTerenaDostava: Number(selectedDay),
           sifraKupca: Number(kupac.sifra_kupca),
+          referentniBroj: kupac.referentni_broj || null,
         }),
       });
 
@@ -1075,12 +1119,14 @@ export function OrdersList() {
           sifraTerenaDostava: Number(selectedDay),
           sifraKupca: Number(kupac.sifra_kupca),
           sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10), // ovdje je sifra_proizvoda u tvojoj strukturi
+          referentniBroj: kupac.referentni_broj || null,
         }),
       });
       console.log("Šaljem na backend:", {
         sifraTerenaDostava: Number(selectedDay),
         sifraKupca: Number(kupac.sifra_kupca),
         sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10),
+        referentniBroj: kupac.referentni_broj || null,
       });
       const json = await res.json();
       if (!res.ok || !json?.success) {
@@ -1534,12 +1580,15 @@ export function OrdersList() {
                     <div className="space-y-6">
                       {narudzbePoKupcu.map((kupac) => (
                         <div
-                          key={kupac.sifra_kupca}
+                          key={getKupacGroupingKey(
+                            kupac.sifra_kupca,
+                            kupac.referentni_broj,
+                          )}
                           className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-200"
                         >
                           {/* Zaglavlje sa nazivom kupca */}
                           <div className="bg-gradient-to-r from-purple-100 to-green-100 px-6 py-4 border-b-2 border-gray-200">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center">
                               <div>
                                 <h3
                                   className="text-xl font-bold"
@@ -1557,8 +1606,14 @@ export function OrdersList() {
                                     <span className="ml-2">⭐</span>
                                   )}
                                 </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Referentni broj:{" "}
+                                  <span className="font-semibold text-gray-700">
+                                    {kupac.referentni_broj || "-"}
+                                  </span>
+                                </p>
                               </div>
-                              <div className="bg-white px-4 py-2 rounded-lg shadow">
+                              <div className="ml-auto mr-[10px] bg-white px-4 py-2 rounded-lg shadow">
                                 <span className="text-sm text-gray-600">
                                   Ukupno stavki:
                                 </span>
