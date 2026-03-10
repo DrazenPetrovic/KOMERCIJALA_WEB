@@ -749,7 +749,7 @@ export function OrdersList() {
         (json.data as ZadnjiDanNarudzbe[]).forEach((r) => {
           map[Number(r.sifra_partnera)] = Number(r.broj_dana);
         });
-        console.log("📅 Zadnji dan narudžbe map:", map);
+        //console.log("📅 Zadnji dan narudžbe map:", map);
         setZadnjiDanMap(map);
       } catch {
         setZadnjiDanMap({});
