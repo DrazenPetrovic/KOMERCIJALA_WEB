@@ -87,7 +87,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       }
 
       const dugovanjaResult = await response.json();
-      console.log("📊 DUGOVANJA UČITANA:", dugovanjaResult.data); // ← DODAJ OVO
+      //console.log("📊 DUGOVANJA UČITANA:", dugovanjaResult.data); // ← DODAJ OVO
 
       if (dugovanjaResult.success) {
         setAllDugovanja(dugovanjaResult.data);
@@ -139,7 +139,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
       if (uplateResult.success) {
         setUplate(uplateResult.data || []);
-        console.log("✅ Uplate uspješno učitane");
+        // console.log("✅ Uplate uspješno učitane");
       } else {
         console.warn("⚠️ Greška:", uplateResult.error);
         setUplateError(uplateResult.error || "Greška pri učitavanju uplata");

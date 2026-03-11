@@ -1,3 +1,4 @@
+import { getCurrentUser } from "../utils/auth";
 import { useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
@@ -111,6 +112,7 @@ interface Kupac {
   sifra_grada: number;
   naziv_grada: string;
   vrsta_kupca: number;
+  pripada_radniku?: number; // novo
 }
 
 interface Artikal {
@@ -219,8 +221,14 @@ export function OrdersList() {
   const [aiExpanded, setAiExpanded] = useState<boolean>(false);
   const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [showOutOfStockConfirm, setShowOutOfStockConfirm] =
+    useState<boolean>(false);
+  const outOfStockConfirmActionRef = useRef<(() => void) | null>(null);
   const kolicinaInputRef = useRef<HTMLInputElement | null>(null);
   const [zadnjiDanMap, setZadnjiDanMap] = useState<Record<number, number>>({});
+  const currentUser = getCurrentUser();
+  const sifraRadnika = Number(currentUser?.sifraRadnika || 0);
+  const vrstaRadnika = Number(currentUser?.vrstaRadnika || 0);
 
   const fetchAiAnaliza = async () => {
     if (!selectedKupac) return;
@@ -313,6 +321,21 @@ export function OrdersList() {
     }, 0);
   };
 
+  const openOutOfStockConfirm = (onConfirm: () => void) => {
+    outOfStockConfirmActionRef.current = onConfirm;
+    setShowOutOfStockConfirm(true);
+  };
+
+  const handleOutOfStockConfirmChoice = (shouldContinue: boolean) => {
+    setShowOutOfStockConfirm(false);
+
+    if (shouldContinue) {
+      outOfStockConfirmActionRef.current?.();
+    }
+
+    outOfStockConfirmActionRef.current = null;
+  };
+
   const getSelectedTerenInfo = (): TerenDostaveInfo | null => {
     if (selectedDay === null) return null;
 
@@ -350,7 +373,7 @@ export function OrdersList() {
     if (sifraKupca >= 10000) {
       return [
         { kod: 4, naziv: "Gotovina RK" },
-        { kod: 3, naziv: "Keš" },
+        // { kod: 3, naziv: "Keš" },
       ];
     } else {
       return [
@@ -463,7 +486,7 @@ export function OrdersList() {
         })),
       };
 
-      console.log("📤 Šaljem narudžbu:", orderData);
+      //console.log("📤 Šaljem narudžbu:", orderData);
 
       // ✅ POST ZAHTJEV
       const response = await fetch(`${apiUrl}/api/narudzbe/create`, {
@@ -621,9 +644,9 @@ export function OrdersList() {
           // Učitaj narudžbe za prvi dan
           if (firstDay.sifra_terena_dostava) {
             fetchAktivneNarudzbe(firstDay.sifra_terena_dostava);
-            console.log(
-              `📥 Učitavanje narudžbi za prvi dan: ${firstDay.sifra_terena_dostava}...${firstDay.sifra_terena}`,
-            );
+            // console.log(
+            //   `📥 Učitavanje narudžbi za prvi dan: ${firstDay.sifra_terena_dostava}...${firstDay.sifra_terena}`,
+            // );
           }
         }
       }
@@ -700,7 +723,12 @@ export function OrdersList() {
 
       if (kupciResult.success && kupciResult.data) {
         setKupciData(kupciResult.data);
-        //console.log('✅ Kupci učitani:', kupciResult.data);
+        // console.log("✅ Kupci učitani:", {
+        //   ukupno: Array.isArray(kupciResult.data) ? kupciResult.data.length : 0,
+        //   sample: Array.isArray(kupciResult.data)
+        //     ? kupciResult.data.slice(0, 5)
+        //     : [],
+        // });
       }
     } catch (error) {
       console.error("❌ Error fetching kupci:", error);
@@ -959,7 +987,35 @@ export function OrdersList() {
   const getKupciForGrad = (sifraGrada: number): Kupac[] => {
     //   return kupciData.filter(k => k.sifra_grada === sifraGrada);
     // };
-    const kupciZaGrad = kupciData.filter((k) => k.sifra_grada === sifraGrada);
+    const kupciPoGradu = kupciData.filter((k) => k.sifra_grada === sifraGrada);
+
+    const kupciZaGrad = kupciPoGradu.filter((k) => {
+      if (k.sifra_grada !== sifraGrada) return false;
+
+      // Filtriraj po radniku samo za vrstaRadnika = 2
+      if (vrstaRadnika === 2) {
+        return Number(k.pripada_radniku) === sifraRadnika;
+      }
+
+      // Ostali vide sve
+      return true;
+    });
+
+    // console.log("🔎 getKupciForGrad", {
+    //   sifraGrada,
+    //   vrstaRadnika,
+    //   sifraRadnika,
+    //   ukupnoKupacaUState: kupciData.length,
+    //   kupciPoGradu: kupciPoGradu.length,
+    //   kupciNakonFilteraRadnika: kupciZaGrad.length,
+    //   searchKupac,
+    //   sampleKupciZaGrad: kupciZaGrad.slice(0, 5).map((k) => ({
+    //     sifra_kupca: k.sifra_kupca,
+    //     naziv_kupca: k.naziv_kupca,
+    //     sifra_grada: k.sifra_grada,
+    //     pripada_radniku: k.pripada_radniku,
+    //   })),
+    // });
 
     // Ako nema search texta, vrati sve kupce
     if (!searchKupac.trim()) {
@@ -1995,16 +2051,20 @@ export function OrdersList() {
                           <div
                             key={artikal.sifra_proizvoda}
                             onClick={() => {
+                              const continueWithSelection = () => {
+                                if (!selectedVrstaPlacanja) {
+                                  alert("⚠️ Prvo odaberi vrstu plaćanja!");
+                                  return;
+                                }
+                                handleSelectArtikl(artikal);
+                              };
+
                               if (isOutOfStock) {
-                                alert(
-                                  "⚠️ Proizvoda nema na stanju, ali možeš unijeti narudžbu.",
-                                );
-                              }
-                              if (!selectedVrstaPlacanja) {
-                                alert("⚠️ Prvo odaberi vrstu plaćanja!");
+                                openOutOfStockConfirm(continueWithSelection);
                                 return;
                               }
-                              handleSelectArtikl(artikal);
+
+                              continueWithSelection();
                             }}
                             className={`bg-white border-2 rounded-lg p-2 transition-all ${
                               isOutOfStock
@@ -2628,16 +2688,18 @@ export function OrdersList() {
                               <tr
                                 key={`${p.sifra}-${p.naziv}`}
                                 onClick={() => {
+                                  const continueWithSelection = () => {
+                                    handleRecentProductClick(p);
+                                  };
+
                                   if (isOutOfStock) {
-                                    alert(
-                                      "⚠️ Proizvoda nema na stanju, ali možeš unijeti narudžbu.",
+                                    openOutOfStockConfirm(
+                                      continueWithSelection,
                                     );
-                                  }
-                                  if (!selectedVrstaPlacanja) {
-                                    alert("⚠️ Prvo odaberi vrstu plaćanja!");
                                     return;
                                   }
-                                  handleRecentProductClick(p);
+
+                                  continueWithSelection();
                                 }}
                                 className={`border-t ${
                                   isOutOfStock
@@ -2775,6 +2837,44 @@ export function OrdersList() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOutOfStockConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-gray-200 p-5">
+            <p className="text-base font-semibold text-gray-800 text-center">
+              Proizvoda nema na stanju! Da li želiš nastaviti?
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleOutOfStockConfirmChoice(true)}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                DA
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOutOfStockConfirmChoice(false)}
+                className="min-w-[90px] px-4 py-2 rounded-lg font-semibold border-2 transition-all"
+                style={{ color: "#785E9E", borderColor: "#785E9E" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#F5F3FF")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                NE
+              </button>
             </div>
           </div>
         </div>
