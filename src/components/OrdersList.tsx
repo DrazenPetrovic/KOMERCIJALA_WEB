@@ -580,6 +580,7 @@ export function OrdersList() {
 
         if (data.success && data.data) {
           setArtikli(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.data.map((a: any) => ({
               ...a,
               kolicinaNaStanju:
@@ -590,6 +591,7 @@ export function OrdersList() {
           );
         } else if (Array.isArray(data)) {
           setArtikli(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.map((a: any) => ({
               ...a,
               kolicinaNaStanju:
@@ -1122,9 +1124,17 @@ export function OrdersList() {
         body: JSON.stringify({
           sifraTerenaDostava: Number(selectedDay),
           sifraKupca: Number(kupac.sifra_kupca),
-          referentniBroj: kupac.referentni_broj || null,
+          referentniBroj: kupac.referentni_broj || "-",
         }),
       });
+      console.log(
+        `Brisanje partnera ${kupac.naziv_kupca} (sifra: ${kupac.sifra_kupca}) na terenu ${selectedDay}...`,
+        {
+          sifraTerenaDostava: Number(selectedDay),
+          sifraKupca: Number(kupac.sifra_kupca),
+          referentniBroj: kupac.referentni_broj || "-",
+        },
+      );
 
       const json = await res.json();
       if (!res.ok || !json?.success) {
@@ -1175,15 +1185,10 @@ export function OrdersList() {
           sifraTerenaDostava: Number(selectedDay),
           sifraKupca: Number(kupac.sifra_kupca),
           sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10), // ovdje je sifra_proizvoda u tvojoj strukturi
-          referentniBroj: kupac.referentni_broj || null,
+          referentniBroj: kupac.referentni_broj || "-",
         }),
       });
-      console.log("Šaljem na backend:", {
-        sifraTerenaDostava: Number(selectedDay),
-        sifraKupca: Number(kupac.sifra_kupca),
-        sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10),
-        referentniBroj: kupac.referentni_broj || null,
-      });
+
       const json = await res.json();
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || `HTTP greška: ${res.status}`);

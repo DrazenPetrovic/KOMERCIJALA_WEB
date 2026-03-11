@@ -137,10 +137,10 @@ export const createNarudzba = async (req, res) => {
 
 export const narudzbaBrisanjePartnera = async (req, res) => {
   try {
-    const { sifraKupca, sifraTerenaDostava } = req.body;
+    const { sifraKupca, sifraTerenaDostava, referentniBroj } = req.body;
 
     // Validacija
-    if (!sifraKupca || !sifraTerenaDostava) {
+    if (!sifraKupca || !sifraTerenaDostava || !referentniBroj) {
       return res.status(400).json({
         success: false,
         error: "❌ Nedostaju obavezni podaci (sifraKupca, sifraTerenaDostava)",
@@ -151,6 +151,7 @@ export const narudzbaBrisanjePartnera = async (req, res) => {
     await NarudzbeService.obrisiNarudzbuPartnera({
       p_sifra_terena: sifraTerenaDostava,
       p_sifra_partnera: sifraKupca,
+      p_referentni_broj: referentniBroj,
     });
 
     return res.json({
@@ -168,10 +169,16 @@ export const narudzbaBrisanjePartnera = async (req, res) => {
 
 export const narudzbaBrisanjePartneraProizvoda = async (req, res) => {
   try {
-    const { sifraKupca, sifraTerenaDostava, sifraProizvoda } = req.body;
+    const { sifraKupca, sifraTerenaDostava, sifraProizvoda, referentniBroj } =
+      req.body;
 
     // Validacija
-    if (!sifraKupca || !sifraTerenaDostava || !sifraProizvoda) {
+    if (
+      !sifraKupca ||
+      !sifraTerenaDostava ||
+      !sifraProizvoda ||
+      !referentniBroj
+    ) {
       return res.status(400).json({
         success: false,
         error:
@@ -184,6 +191,7 @@ export const narudzbaBrisanjePartneraProizvoda = async (req, res) => {
       p_sifra_terena: sifraTerenaDostava,
       p_sifra_partnera: sifraKupca,
       p_sifra_proizvoda: sifraProizvoda,
+      p_referentni_broj: referentniBroj,
     });
 
     return res.json({
@@ -209,11 +217,9 @@ export const getZadnjiDanNarudzbe = async (req, res) => {
     });
   } catch (error) {
     console.error("Pregled zadnjeg dana narudžbe error:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        error: "Greška pri učitavanju zadnjeg dana narudžbe",
-      });
+    return res.status(500).json({
+      success: false,
+      error: "Greška pri učitavanju zadnjeg dana narudžbe",
+    });
   }
 };

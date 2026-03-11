@@ -93,9 +93,11 @@ export const createNarudzba = async (narudzbaData) => {
 export const obrisiNarudzbuPartnera = async ({
   p_sifra_terena,
   p_sifra_partnera,
+  p_referentni_broj,
 }) => {
   const sifraTerena = Number(p_sifra_terena);
   const sifraPartnera = Number(p_sifra_partnera);
+  const referentniBroj = String(p_referentni_broj);
 
   if (!Number.isFinite(sifraTerena) || !Number.isFinite(sifraPartnera)) {
     throw new Error("Parametri moraju biti validni brojevi.");
@@ -103,8 +105,8 @@ export const obrisiNarudzbuPartnera = async ({
 
   await withConnection(async (conn) => {
     await conn.query(
-      "CALL komercijala.dostava_brisanje_podataka_za_partnera(?, ?)",
-      [sifraTerena, sifraPartnera],
+      "CALL komercijala.dostava_brisanje_podataka_za_partnera(?, ?, ?)",
+      [sifraTerena, sifraPartnera, referentniBroj],
     );
   });
 };
@@ -112,10 +114,12 @@ export const obrisiNarudzbuPartneraProizvoda = async ({
   p_sifra_terena,
   p_sifra_partnera,
   p_sifra_proizvoda,
+  p_referentni_broj,
 }) => {
   const sifraTerena = Number(p_sifra_terena);
   const sifraPartnera = Number(p_sifra_partnera);
   const sifraProizvoda = Number(p_sifra_proizvoda);
+  const referentniBroj = String(p_referentni_broj);
 
   if (
     !Number.isFinite(sifraTerena) ||
@@ -127,8 +131,8 @@ export const obrisiNarudzbuPartneraProizvoda = async ({
 
   await withConnection(async (conn) => {
     await conn.query(
-      "CALL komercijala.dostava_brisanje_podataka_za_partnera_i_proizvod(?, ?, ?)",
-      [sifraTerena, sifraPartnera, sifraProizvoda],
+      "CALL komercijala.dostava_brisanje_podataka_za_partnera_i_proizvod(?, ?, ?, ?)",
+      [sifraTerena, sifraPartnera, sifraProizvoda, referentniBroj],
     );
   });
 };
