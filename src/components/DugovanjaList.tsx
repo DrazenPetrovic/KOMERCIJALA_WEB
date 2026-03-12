@@ -197,7 +197,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
     } else if (d.dug_preko_60 > 0) {
       return "bg-red-100 hover:bg-red-200";
     } else if (d.dug_preko_30 > 0) {
-      return "bg-yellow-100 hover:bg-yellow-200";
+      return "bg-yellow-300 hover:bg-yellow-200";
     } else if (d.dug_preko_24 > 0) {
       return "bg-green-100 hover:bg-green-200";
     }
@@ -299,13 +299,13 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
         </div>
 
         <div
-          className="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
+          className="bg-yellow-200 border-2 border-yellow-600 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-shadow"
           onClick={() => setFilter30Active(!filter30Active)}
         >
           <div className="text-sm font-medium text-yellow-800 mb-1">
             Dug preko 30 dana
           </div>
-          <div className="text-2xl font-bold text-yellow-900">
+          <div className="text-2xl font-bold text-yellow-800">
             {stats.dugPreko30.toLocaleString("sr-RS", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -315,7 +315,7 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
           <div className="mt-2">
             <span
               className={`inline-block px-3 py-1 text-white text-xs font-semibold rounded ${
-                filter30Active ? "bg-yellow-600" : "bg-gray-400"
+                filter30Active ? "bg-yellow-400" : "bg-gray-400"
               }`}
             >
               {filter30Active ? "ON" : "OFF"}

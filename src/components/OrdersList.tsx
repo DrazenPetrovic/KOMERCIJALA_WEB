@@ -230,6 +230,14 @@ export function OrdersList() {
   const sifraRadnika = Number(currentUser?.sifraRadnika || 0);
   const vrstaRadnika = Number(currentUser?.vrstaRadnika || 0);
 
+  const [showDeletePartnerConfirm, setShowDeletePartnerConfirm] =
+    useState<boolean>(false);
+  const deletePartnerConfirmActionRef = useRef<(() => void) | null>(null);
+
+  const [showDeleteProizvodConfirm, setShowDeleteProizvodConfirm] =
+    useState<boolean>(false);
+  const deleteProizvodConfirmActionRef = useRef<(() => void) | null>(null);
+
   const fetchAiAnaliza = async () => {
     if (!selectedKupac) return;
 
@@ -1113,40 +1121,44 @@ export function OrdersList() {
     const ok = confirm(`Obrisati SVE stavke za kupca "${kupac.naziv_kupca}"?`);
     if (!ok) return;
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+    deletePartnerConfirmActionRef.current = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-      // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
-      const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-partnera`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sifraTerenaDostava: Number(selectedDay),
-          sifraKupca: Number(kupac.sifra_kupca),
-          referentniBroj: kupac.referentni_broj || "-",
-        }),
-      });
-      console.log(
-        `Brisanje partnera ${kupac.naziv_kupca} (sifra: ${kupac.sifra_kupca}) na terenu ${selectedDay}...`,
-        {
-          sifraTerenaDostava: Number(selectedDay),
-          sifraKupca: Number(kupac.sifra_kupca),
-          referentniBroj: kupac.referentni_broj || "-",
-        },
-      );
+        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
+        const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-partnera`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sifraTerenaDostava: Number(selectedDay),
+            sifraKupca: Number(kupac.sifra_kupca),
+            referentniBroj: kupac.referentni_broj || "-",
+          }),
+        });
+        console.log(
+          `Brisanje partnera ${kupac.naziv_kupca} (sifra: ${kupac.sifra_kupca}) na terenu ${selectedDay}...`,
+          {
+            sifraTerenaDostava: Number(selectedDay),
+            sifraKupca: Number(kupac.sifra_kupca),
+            referentniBroj: kupac.referentni_broj || "-",
+          },
+        );
 
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || `HTTP greška: ${res.status}`);
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || `HTTP greška: ${res.status}`);
+        }
+
+        // Refresh liste
+        if (selectedDay) fetchAktivneNarudzbe(selectedDay);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        alert("Greška pri brisanju partnera: " + msg);
       }
-
-      // Refresh liste
-      if (selectedDay) fetchAktivneNarudzbe(selectedDay);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      alert("Greška pri brisanju partnera: " + msg);
-    }
+    };
+    setShowDeletePartnerConfirm(true);
+    return; // ← TREBA
   };
 
   // Brisanje jedne stavke (proizvoda) za partnera na terenu
@@ -1165,41 +1177,45 @@ export function OrdersList() {
       return;
     }
 
-    const ok = confirm(
-      `Obrisati proizvod "${proizvod.naziv_proizvoda}" za kupca "${kupac.naziv_kupca}"?`,
-    );
-    if (!ok) return;
-    console.log(
-      `Brisanje proizvoda ${proizvod.naziv_proizvoda} (sifra: ${proizvod.sif}) za kupca ${kupac.naziv_kupca} na terenu ${selectedDay}`,
-    );
+    // const ok = confirm(
+    //   `Obrisati proizvod "${proizvod.naziv_proizvoda}" za kupca "${kupac.naziv_kupca}"?`,
+    // );
+    // if (!ok) return;
+    // console.log(
+    //   `Brisanje proizvoda ${proizvod.naziv_proizvoda} (sifra: ${proizvod.sif}) za kupca ${kupac.naziv_kupca} na terenu ${selectedDay}`,
+    // );
 
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+    deleteProizvodConfirmActionRef.current = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-      // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
-      const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-stavku`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sifraTerenaDostava: Number(selectedDay),
-          sifraKupca: Number(kupac.sifra_kupca),
-          sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10), // ovdje je sifra_proizvoda u tvojoj strukturi
-          referentniBroj: kupac.referentni_broj || "-",
-        }),
-      });
+        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
+        const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-stavku`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sifraTerenaDostava: Number(selectedDay),
+            sifraKupca: Number(kupac.sifra_kupca),
+            sifraProizvoda: parseInt(String(proizvod.sif).trim(), 10), // ovdje je sifra_proizvoda u tvojoj strukturi
+            referentniBroj: kupac.referentni_broj || "-",
+          }),
+        });
 
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || `HTTP greška: ${res.status}`);
+        const json = await res.json();
+        if (!res.ok || !json?.success) {
+          throw new Error(json?.error || `HTTP greška: ${res.status}`);
+        }
+
+        // Refresh liste
+        if (selectedDay) fetchAktivneNarudzbe(selectedDay);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        alert("Greška pri brisanju stavke: " + msg);
       }
-
-      // Refresh liste
-      if (selectedDay) fetchAktivneNarudzbe(selectedDay);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      alert("Greška pri brisanju stavke: " + msg);
-    }
+    };
+    setShowDeleteProizvodConfirm(true);
+    return; // ← važno, da ne nastavi dalje bez potvrde
   };
 
   return (
@@ -2300,6 +2316,11 @@ export function OrdersList() {
                                   setArtiklKolicina(parsed);
                                 }
                               }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleAddArtiklToModalOrder();
+                                }
+                              }}
                               onBlur={(e) => {
                                 // Vrati na 0.01 ako je ostalo prazno ili 0
                                 if (!artiklKolicina || artiklKolicina <= 0) {
@@ -2869,6 +2890,94 @@ export function OrdersList() {
               <button
                 type="button"
                 onClick={() => handleOutOfStockConfirmChoice(false)}
+                className="min-w-[90px] px-4 py-2 rounded-lg font-semibold border-2 transition-all"
+                style={{ color: "#785E9E", borderColor: "#785E9E" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#F5F3FF")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                NE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeletePartnerConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-gray-200 p-5">
+            <p className="text-base font-semibold text-gray-800 text-center">
+              Obrisati SVE stavke za ovog kupca?
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeletePartnerConfirm(false);
+                  deletePartnerConfirmActionRef.current?.();
+                  deletePartnerConfirmActionRef.current = null;
+                }}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                DA
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeletePartnerConfirm(false);
+                  deletePartnerConfirmActionRef.current = null;
+                }}
+                className="min-w-[90px] px-4 py-2 rounded-lg font-semibold border-2 transition-all"
+                style={{ color: "#785E9E", borderColor: "#785E9E" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#F5F3FF")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "transparent")
+                }
+              >
+                NE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteProizvodConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-gray-200 p-5">
+            <p className="text-base font-semibold text-gray-800 text-center">
+              Obrisati ovaj proizvod?
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteProizvodConfirm(false);
+                  deleteProizvodConfirmActionRef.current?.();
+                  deleteProizvodConfirmActionRef.current = null;
+                }}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                DA
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteProizvodConfirm(false);
+                  deleteProizvodConfirmActionRef.current = null;
+                }}
                 className="min-w-[90px] px-4 py-2 rounded-lg font-semibold border-2 transition-all"
                 style={{ color: "#785E9E", borderColor: "#785E9E" }}
                 onMouseEnter={(e) =>
