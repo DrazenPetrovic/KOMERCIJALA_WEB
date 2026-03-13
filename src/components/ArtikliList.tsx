@@ -242,7 +242,7 @@ export default function ArtikliList() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 {filteredArtikli.map((artikal) => {
                   const isSelected = selectedSifre.has(artikal.sifra_proizvoda);
 
@@ -259,14 +259,14 @@ export default function ArtikliList() {
                         }
                       }}
                       className={[
-                        "border rounded-xl overflow-hidden transition-colors cursor-pointer select-none",
+                        "border rounded-xl overflow-hidden transition-colors cursor-pointer select-none flex flex-col h-full",
                         isSelected
                           ? "border-purple-500 bg-purple-50"
                           : "border-gray-200 bg-white hover:bg-gray-50",
                       ].join(" ")}
                     >
                       {/* image */}
-                      <div className="w-full h-40 overflow-hidden relative">
+                      <div className="w-full aspect-square overflow-hidden relative">
                         {/* blur pozadina */}
                         <img
                           src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
@@ -276,7 +276,7 @@ export default function ArtikliList() {
                         <img
                           src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
                           alt={artikal.naziv_proizvoda}
-                          className="relative w-full h-full object-cover"
+                          className="relative w-full h-full object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = "none";
                             (
