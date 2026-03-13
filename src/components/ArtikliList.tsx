@@ -6,6 +6,8 @@ import {
   Square,
   Printer,
 } from "lucide-react";
+//import { generateStampaReport } from "../services/stampa/offerReport";
+import { generateStampaReport } from "./stampaRacuna";
 // interface ArtikliListProps {
 //   onBack: () => void; // ostavljamo prop radi kompatibilnosti, ali se ne koristi dok je dugme "Nazad" uklonjeno
 // }
@@ -25,18 +27,18 @@ export default function ArtikliList() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 1) Dodaj ovu pomoćnu funkciju negde u komponenti (ispod clearSelection npr.)
-  const handlePrintSelected = () => {
-    // uzmi sve artikle koji su selektovani (iz filtered ili iz artikli — ja bih iz artikli)
+  const handlePrintSelected = async () => {
     const selected = artikli.filter((a) =>
       selectedSifre.has(a.sifra_proizvoda),
     );
 
     if (selected.length === 0) return;
 
-    // za sada samo log/alert; ovde će kasnije ići PDF generator
-    console.log("Selected artikli for print:", selected);
-    alert(`Štampanje selekcije (${selected.length})...`);
+    await generateStampaReport({
+      items: selected,
+      documentType: "PONUDA",
+      filePrefix: "stampa",
+    });
   };
 
   // NOVO: selekcija proizvoda
@@ -264,24 +266,33 @@ export default function ArtikliList() {
                       ].join(" ")}
                     >
                       {/* image */}
-                      <div className="w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {artikal.image_url ? (
-                          <img
-                            src={artikal.image_url}
-                            alt={artikal.naziv_proizvoda}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // fallback ako slika ne postoji / 404
-                              const img = e.currentTarget;
-                              img.style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center text-gray-400">
-                            <ImageIcon className="w-10 h-10" />
-                            <span className="text-sm mt-1">Nema slike</span>
-                          </div>
-                        )}
+                      <div className="w-full h-40 overflow-hidden relative">
+                        {/* blur pozadina */}
+                        <img
+                          src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
+                          className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+                        />
+                        {/* glavna slika */}
+                        <img
+                          src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
+                          alt={artikal.naziv_proizvoda}
+                          className="relative w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            (
+                              e.currentTarget
+                                .previousElementSibling as HTMLElement
+                            ).style.display = "none";
+                            (
+                              e.currentTarget.nextElementSibling as HTMLElement
+                            ).style.display = "flex";
+                          }}
+                        />
+                        {/* fallback */}
+                        <div className="hidden flex-col items-center text-gray-400 absolute inset-0 justify-center bg-gray-100">
+                          <ImageIcon className="w-10 h-10" />
+                          <span className="text-sm mt-1">Nema slike</span>
+                        </div>
                       </div>
 
                       {/* content */}
