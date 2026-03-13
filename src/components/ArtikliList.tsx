@@ -7,7 +7,8 @@ import {
   Printer,
 } from "lucide-react";
 //import { generateStampaReport } from "../services/stampa/offerReport";
-import { generateStampaReport } from "./stampaRacuna";
+//import { generateStampaReport } from "./stampaRacuna";
+import { generateStampaReport } from "./stampa/stampaReport";
 // interface ArtikliListProps {
 //   onBack: () => void; // ostavljamo prop radi kompatibilnosti, ali se ne koristi dok je dugme "Nazad" uklonjeno
 // }
