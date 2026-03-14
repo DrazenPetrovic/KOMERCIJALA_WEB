@@ -439,8 +439,9 @@ export default function PoslovanjeKorisnici() {
           <div className="lg:col-span-10 bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 border-b flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-900">
-                Grafikon - Obračun bonusa prodaje se radi po formuli: (Naplata -
-                PDV) * 0.45%)
+                {viewMode === "realization"
+                  ? "Grafikon - Obračun bonusa prodaje se radi po formuli: (Naplata - PDV) * 0.45%"
+                  : "Grafikon"}
               </div>
             </div>
 
