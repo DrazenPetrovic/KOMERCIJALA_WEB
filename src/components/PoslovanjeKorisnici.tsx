@@ -43,12 +43,14 @@ type DisplayRow = {
   periodLabel: string; // "MAR 2026", "Q1 2025", "2024"
   izdani: number;
   naplata: number;
+  realizacija?: number;
 };
 
-type ViewMode = "month" | "quarter" | "year";
+type ViewMode = "month" | "quarter" | "year" | "realization";
 
 const COLOR_ISSUED = "#2563EB";
 const COLOR_PAID = "#F97316";
+const COLOR_REALIZATION = "#16A34A";
 
 const MONTHS = [
   "JAN",
@@ -243,6 +245,18 @@ export default function PoslovanjeKorisnici() {
       return Array.from(qMap.values()).sort((a, b) => (a.key > b.key ? -1 : 1));
     }
 
+    if (viewMode === "realization") {
+      return combinedDesc.map((r) => ({
+        key: r.key,
+        godina: r.godina,
+        periodLabel: `${r.mjesec} ${r.godina}`,
+        izdani: 0,
+        naplata: 0,
+        //realizacija: r.naplata * 0.45,
+        realizacija: (r.naplata - r.naplata * 0.1453) * 0.0045,
+      }));
+    }
+
     // year
     const yMap = new Map<number, DisplayRow>();
     for (const r of combinedDesc) {
@@ -320,6 +334,22 @@ export default function PoslovanjeKorisnici() {
               >
                 GODINA
               </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("realization")}
+                className={`px-3 py-1.5 text-xs rounded-lg font-semibold transition-colors ${
+                  viewMode === "realization"
+                    ? "text-white"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
+                style={
+                  viewMode === "realization"
+                    ? { backgroundColor: "#16A34A" }
+                    : { backgroundColor: "transparent" }
+                }
+              >
+                BONUS PRODAJE
+              </button>
             </div>
 
             <div className="text-xs text-gray-500">
@@ -351,10 +381,18 @@ export default function PoslovanjeKorisnici() {
                         ? "Mjesec/Godina"
                         : viewMode === "quarter"
                           ? "Kvartal"
-                          : "Godina"}
+                          : viewMode === "realization"
+                            ? "Mjesec/Godina"
+                            : "Godina"}
                     </th>
-                    <th className="p-2">Izdani</th>
-                    <th className="p-2">Naplata</th>
+                    {viewMode === "realization" ? (
+                      <th className="p-2">Realizacija</th>
+                    ) : (
+                      <>
+                        <th className="p-2">Izdani</th>
+                        <th className="p-2">Naplata</th>
+                      </>
+                    )}
                   </tr>
                 </thead>
 
@@ -367,18 +405,29 @@ export default function PoslovanjeKorisnici() {
                       <td className="p-2 font-semibold text-gray-800 whitespace-nowrap">
                         {r.periodLabel}
                       </td>
-                      <td
-                        className="p-2 whitespace-nowrap"
-                        style={{ color: COLOR_ISSUED }}
-                      >
-                        {format2(r.izdani)}
-                      </td>
-                      <td
-                        className="p-2 whitespace-nowrap"
-                        style={{ color: COLOR_PAID }}
-                      >
-                        {format2(r.naplata)}
-                      </td>
+                      {viewMode === "realization" ? (
+                        <td
+                          className="p-2 whitespace-nowrap"
+                          style={{ color: COLOR_REALIZATION }}
+                        >
+                          {format2(r.realizacija)}
+                        </td>
+                      ) : (
+                        <>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_ISSUED }}
+                          >
+                            {format2(r.izdani)}
+                          </td>
+                          <td
+                            className="p-2 whitespace-nowrap"
+                            style={{ color: COLOR_PAID }}
+                          >
+                            {format2(r.naplata)}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -390,7 +439,8 @@ export default function PoslovanjeKorisnici() {
           <div className="lg:col-span-10 bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="p-3 border-b flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-900">
-                Grafikon
+                Grafikon - Obračun bonusa prodaje se radi po formuli: (Naplata -
+                PDV) * 0.45%)
               </div>
             </div>
 
@@ -405,7 +455,11 @@ export default function PoslovanjeKorisnici() {
                     <XAxis
                       dataKey="periodLabel"
                       tick={{ fontSize: 11 }}
-                      interval={viewMode === "month" ? 2 : 0}
+                      interval={
+                        viewMode === "month" || viewMode === "realization"
+                          ? 2
+                          : 0
+                      }
                       height={40}
                     />
                     <YAxis tick={{ fontSize: 12 }} />
@@ -417,32 +471,50 @@ export default function PoslovanjeKorisnici() {
                       ]}
                     />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="izdani"
-                      name="Izdani računi"
-                      stroke={COLOR_ISSUED}
-                      strokeWidth={4.5}
-                      dot={{
-                        r: 3,
-                        fill: "#000000",
-                        stroke: "#000000",
-                        strokeWidth: 0,
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="naplata"
-                      name="Naplata"
-                      stroke={COLOR_PAID}
-                      strokeWidth={2.5}
-                      dot={{
-                        r: 3,
-                        fill: "#000000",
-                        stroke: "#000000",
-                        strokeWidth: 0,
-                      }}
-                    />
+                    {viewMode === "realization" ? (
+                      <Line
+                        type="monotone"
+                        dataKey="realizacija"
+                        name="Bonus prodaje"
+                        stroke={COLOR_REALIZATION}
+                        strokeWidth={3}
+                        dot={{
+                          r: 3,
+                          fill: "#000000",
+                          stroke: "#000000",
+                          strokeWidth: 0,
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <Line
+                          type="monotone"
+                          dataKey="izdani"
+                          name="Izdani računi"
+                          stroke={COLOR_ISSUED}
+                          strokeWidth={4.5}
+                          dot={{
+                            r: 3,
+                            fill: "#000000",
+                            stroke: "#000000",
+                            strokeWidth: 0,
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="naplata"
+                          name="Naplata"
+                          stroke={COLOR_PAID}
+                          strokeWidth={2.5}
+                          dot={{
+                            r: 3,
+                            fill: "#000000",
+                            stroke: "#000000",
+                            strokeWidth: 0,
+                          }}
+                        />
+                      </>
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

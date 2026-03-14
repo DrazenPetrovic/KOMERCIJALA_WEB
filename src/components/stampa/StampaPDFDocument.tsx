@@ -37,29 +37,33 @@ const BORDER = "#E6E6EB";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
-// ─── Stilovi ───────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
     fontSize: 9,
     color: TEXT_DARK,
+    paddingTop: 0,
+    paddingLeft: 14,
+    paddingRight: 14,
     paddingBottom: 40,
   },
   headerImage: {
     width: "100%",
     height: 96,
+    marginLeft: -14, // izlazi iz paddinga da ide do ruba
+    marginRight: -14,
   },
   accentLine: {
     height: 3,
     backgroundColor: ACCENT,
     marginTop: 2,
+    marginLeft: -14, // isto kao header
+    marginRight: -14,
   },
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    paddingHorizontal: 14,
     marginTop: 8,
     marginBottom: 6,
   },
@@ -81,14 +85,13 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
   },
   subtitle: {
-    paddingHorizontal: 14,
     fontSize: 9,
     color: TEXT_MUTED,
     marginBottom: 6,
     textAlign: "center",
   },
   tableContainer: {
-    paddingHorizontal: 14,
+    // paddingHorizontal uklonjen - naslijeđuje od page
   },
   tableHeader: {
     flexDirection: "row",
@@ -125,7 +128,6 @@ const styles = StyleSheet.create({
   sumRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    paddingHorizontal: 14,
     marginTop: 6,
     gap: 24,
   },
@@ -142,7 +144,6 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   noteBox: {
-    marginHorizontal: 14,
     marginTop: 10,
     padding: 7,
     backgroundColor: ACCENT_LIGHT,
@@ -171,7 +172,6 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
   },
 });
-
 // ─── Komponenta ────────────────────────────────────────────────────────────
 
 const StampaPDFDocument: React.FC<StampaPDFProps> = ({
