@@ -1,31 +1,51 @@
-import * as PartneriService from '../services/partneri.service.js';
+import * as PartneriService from "../services/partneri.service.js";
 
 export const getPartneri = async (req, res) => {
   try {
-        const { sifraRadnika } = req.user;
+    const { sifraRadnika } = req.user;
     const partneri = await PartneriService.getPartneri(sifraRadnika);
     return res.json({ success: true, data: partneri, count: partneri.length });
   } catch (error) {
-    console.error('Pregled partnera error:', error);
-    return res.status(500).json({ success: false, error: 'Greška pri učitavanju partnera' });
+    console.error("Pregled partnera error:", error);
+    return res
+      .status(500)
+      .json({ success: false, error: "Greška pri učitavanju partnera" });
   }
 };
 
+export const getPartneriDodatneLokacije = async (req, res) => {
+  try {
+    const partneriDodatneLokacije =
+      await PartneriService.getPartneriDodatneLokacije();
+    return res.json({
+      success: true,
+      data: partneriDodatneLokacije,
+      count: partneriDodatneLokacije.length,
+    });
+  } catch (error) {
+    console.error("Pregled partnera dodatne lokacije error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        error: "Greška pri učitavanju partnera dodatne lokacije",
+      });
+  }
+};
 
 export const getPartneriDodatniPodaci = async (req, res) => {
   try {
     const partneri = await PartneriService.getPartneriSaADodacima();
-    return res.json({ 
-      success: true, 
-      data: partneri, 
-      count: partneri.length 
+    return res.json({
+      success: true,
+      data: partneri,
+      count: partneri.length,
     });
-
   } catch (error) {
-    console.error('Pregled partnera dodatni podaci error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Greška pri učitavanju partnera dodatni podaci' 
+    console.error("Pregled partnera dodatni podaci error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Greška pri učitavanju partnera dodatni podaci",
     });
   }
 };
@@ -38,9 +58,9 @@ export const addDodatniPodaci = async (req, res) => {
     const { sifra_partnera, dodatni_podaci_opis, dodatni_podaci } = req.body;
 
     if (!sifra_partnera || !dodatni_podaci_opis || !dodatni_podaci) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Svi podaci su obavezni' 
+      return res.status(400).json({
+        success: false,
+        error: "Svi podaci su obavezni",
       });
     }
 
@@ -51,16 +71,16 @@ export const addDodatniPodaci = async (req, res) => {
       sifra_radnika: sifraRadnika,
     });
 
-    return res.json({ 
-      success: true, 
+    return res.json({
+      success: true,
       data: result,
-      message: 'Podaci su uspješno dodani' 
+      message: "Podaci su uspješno dodani",
     });
   } catch (error) {
-    console.error('Add dodatni podaci error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Greška pri dodavanju podataka' 
+    console.error("Add dodatni podaci error:", error);
+    return res.status(500).json({
+      success: false,
+      error: "Greška pri dodavanju podataka",
     });
   }
 };

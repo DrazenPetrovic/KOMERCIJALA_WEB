@@ -88,6 +88,7 @@ export const createNarudzba = async (req, res) => {
       sifraTerenaDostava,
       vrstaPlacanja,
       proizvodi,
+      dodatnaLokacija,
     } = req.body;
 
     // Validacija
@@ -109,7 +110,8 @@ export const createNarudzba = async (req, res) => {
     //   sifraKupca,
     //   sifraTerenaDostava,
     //   vrstaPlacanja,
-    //   brojProizvoda: proizvodi.length
+    //   brojProizvoda: proizvodi.length,
+    //   dinamickaLokacija: dodatnaLokacija
     // });
 
     // Pozovi service za unos
@@ -119,6 +121,7 @@ export const createNarudzba = async (req, res) => {
       sifraTerenaDostava,
       vrstaPlacanja,
       proizvodi,
+      dodatnaLokacija,
     });
 
     return res.json({

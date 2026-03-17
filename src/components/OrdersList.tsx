@@ -114,6 +114,15 @@ interface Kupac {
   vrsta_kupca: number;
   pripada_radniku?: number; // novo
 }
+interface DodatnaLokacija {
+  sifra_partnera: number;
+  sifra_lokacije?: number | string;
+  naziv_lokacije?: string;
+  adresa?: string;
+  grad?: string;
+  mjesto?: string;
+  [key: string]: unknown;
+}
 
 interface Artikal {
   sifra_proizvoda: number;
@@ -163,6 +172,28 @@ const getKupacGroupingKey = (
     : String(sifraKupca);
 };
 
+const getDodatnaLokacijaEntries = (lokacija: DodatnaLokacija) => {
+  const labelMap: Record<string, string> = {
+    sifra_partnera: "Šifra partnera",
+    sifra_lokacije: "Šifra lokacije",
+    naziv_lokacije: "Naziv lokacije",
+    adresa: "Adresa",
+    grad: "Grad",
+    mjesto: "Mjesto",
+  };
+
+  return Object.entries(lokacija)
+    .filter(
+      ([, value]) => value !== null && value !== undefined && value !== "",
+    )
+    .filter(([, value]) => typeof value !== "object")
+    .map(([key, value]) => ({
+      key,
+      label: labelMap[key] || key.replace(/_/g, " "),
+      value: String(value),
+    }));
+};
+
 // interface OrdersListProps {
 //   onBack: () => void;
 // }
@@ -198,10 +229,11 @@ export function OrdersList() {
   const [selectedArtiklModal, setSelectedArtiklModal] =
     useState<Artikal | null>(null);
   const [novaArtiklUNarudzbi, setNovaArtiklUNarudzbi] = useState<
-    (Artikal & { kolicina: number; napomena: string })[]
+    (Artikal & { kolicina: number; napomena: string; trazenaCijena: number })[]
   >([]);
   const [artiklKolicina, setArtiklKolicina] = useState<number>(1);
   const [artiklNapomena, setArtiklNapomena] = useState<string>("");
+  const [artiklTrazenaCijena, setArtiklTrazenaCijena] = useState<number>(0);
   const [selectedVrstaPlacanja, setSelectedVrstaPlacanja] = useState<
     number | null
   >(null);
@@ -237,6 +269,18 @@ export function OrdersList() {
   const [showDeleteProizvodConfirm, setShowDeleteProizvodConfirm] =
     useState<boolean>(false);
   const deleteProizvodConfirmActionRef = useRef<(() => void) | null>(null);
+
+  const [dodatneLokacijeByPartner, setDodatneLokacijeByPartner] = useState<
+    Record<number, DodatnaLokacija[]>
+  >({});
+  const [showDodatnaLokacijaModal, setShowDodatnaLokacijaModal] =
+    useState(false);
+  const [pendingKupacSelection, setPendingKupacSelection] = useState<{
+    kupac: Kupac;
+    terenInfo: TerenDostaveInfo;
+  } | null>(null);
+  const [selectedDodatnaLokacija, setSelectedDodatnaLokacija] =
+    useState<DodatnaLokacija | null>(null);
 
   const fetchAiAnaliza = async () => {
     if (!selectedKupac) return;
@@ -305,6 +349,11 @@ export function OrdersList() {
     setSelectedArtiklModal(found);
     setArtiklKolicina(1);
     setArtiklNapomena("");
+    setArtiklTrazenaCijena(
+      selectedVrstaPlacanja === 1
+        ? Number(found.VPC) || 0
+        : Number(found.mpc) || 0,
+    );
 
     // Zatim fokusiraj na količinu input nakon što se modal ažurira
     setTimeout(() => {
@@ -319,6 +368,11 @@ export function OrdersList() {
     setSelectedArtiklModal(artikal);
     setArtiklKolicina(1);
     setArtiklNapomena("");
+    setArtiklTrazenaCijena(
+      selectedVrstaPlacanja === 1
+        ? Number(artikal.VPC) || 0
+        : Number(artikal.mpc) || 0,
+    );
 
     // Fokusiraj na količinu input nakon što se modal ažurira
     setTimeout(() => {
@@ -416,6 +470,9 @@ export function OrdersList() {
         ...updatedList[existingIndex],
         kolicina: updatedList[existingIndex].kolicina + artiklKolicina,
         napomena: artiklNapomena || updatedList[existingIndex].napomena,
+        trazenaCijena:
+          Number(artiklTrazenaCijena) ||
+          updatedList[existingIndex].trazenaCijena,
       };
       setNovaArtiklUNarudzbi(updatedList);
     } else {
@@ -426,6 +483,7 @@ export function OrdersList() {
           ...selectedArtiklModal,
           kolicina: artiklKolicina,
           napomena: artiklNapomena,
+          trazenaCijena: Number(artiklTrazenaCijena) || 0,
         },
       ]);
     }
@@ -434,6 +492,7 @@ export function OrdersList() {
     setSelectedArtiklModal(null);
     setArtiklKolicina(1);
     setArtiklNapomena("");
+    setArtiklTrazenaCijena(0);
   };
 
   const handleRemoveArtiklFromModalOrder = (sifraProizvoda: number) => {
@@ -487,10 +546,14 @@ export function OrdersList() {
         sifraKupca: selectedKupac.sifra_kupca,
         sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
         vrstaPlacanja: selectedVrstaPlacanja,
+        dodatnaLokacija: selectedDodatnaLokacija
+          ? { ...selectedDodatnaLokacija }
+          : null,
         proizvodi: novaArtiklUNarudzbi.map((a) => ({
           sifraProizvoda: a.sifra_proizvoda,
           kolicina: a.kolicina,
           napomena: a.napomena || "",
+          trazenaCijena: Number(a.trazenaCijena) || 0,
         })),
       };
 
@@ -521,8 +584,12 @@ export function OrdersList() {
         setSelectedArtiklModal(null);
         setArtiklKolicina(1);
         setArtiklNapomena("");
+        setArtiklTrazenaCijena(0);
         setShowKupacModal(false);
         setSelectedKupac(null);
+        setSelectedDodatnaLokacija(null);
+        setPendingKupacSelection(null);
+        setShowDodatnaLokacijaModal(false);
         setSelectedVrstaPlacanja(null);
         setSelectedTerenInfo(null);
         setSearchArtikli("");
@@ -748,6 +815,57 @@ export function OrdersList() {
     }
   };
 
+  const fetchPartnerDodatneLokacije = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+      const response = await fetch(`${apiUrl}/api/partneri/dodatne-lokacije`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        setDodatneLokacijeByPartner({});
+        return;
+      }
+
+      const result = await response.json();
+      const rows = Array.isArray(result?.data) ? result.data : [];
+
+      const grouped: Record<number, DodatnaLokacija[]> = {};
+      rows.forEach((row: DodatnaLokacija) => {
+        const sifra = Number(row?.sifra_partnera);
+        if (!Number.isFinite(sifra)) return;
+        if (!grouped[sifra]) grouped[sifra] = [];
+        grouped[sifra].push(row);
+      });
+
+      setDodatneLokacijeByPartner(grouped);
+    } catch {
+      setDodatneLokacijeByPartner({});
+    }
+  };
+
+  const getPartnerDodatneLokacije = (sifraKupca: number): DodatnaLokacija[] =>
+    dodatneLokacijeByPartner[Number(sifraKupca)] || [];
+
+  const hasPartnerDodatneLokacije = (sifraKupca: number): boolean =>
+    getPartnerDodatneLokacije(sifraKupca).length > 0;
+
+  const getLokacijaLabel = (lok: DodatnaLokacija, index: number): string => {
+    const naziv =
+      String(lok?.naziv_lokacije || "").trim() ||
+      String(lok?.adresa || "").trim() ||
+      String(lok?.mjesto || lok?.grad || "").trim();
+    return naziv || `Lokacija ${index + 1}`;
+  };
+
+  useEffect(() => {
+    fetchPartnerDodatneLokacije();
+  }, []);
+
   useEffect(() => {
     if (showKupacModal && selectedKupac?.sifra_kupca) {
       fetchRanijeUzimano(selectedKupac.sifra_kupca, selectedKupac.naziv_kupca);
@@ -770,6 +888,16 @@ export function OrdersList() {
       }, 0);
     }
   }, [selectedArtiklModal]);
+
+  useEffect(() => {
+    if (!selectedArtiklModal || !selectedVrstaPlacanja) return;
+
+    setArtiklTrazenaCijena(
+      selectedVrstaPlacanja === 1
+        ? Number(selectedArtiklModal.VPC) || 0
+        : Number(selectedArtiklModal.mpc) || 0,
+    );
+  }, [selectedArtiklModal, selectedVrstaPlacanja]);
 
   useEffect(() => {
     const fetchZadnjiDan = async () => {
@@ -998,7 +1126,6 @@ export function OrdersList() {
     //   return kupciData.filter(k => k.sifra_grada === sifraGrada);
     // };
     const kupciPoGradu = kupciData.filter((k) => k.sifra_grada === sifraGrada);
-
     const kupciZaGrad = kupciPoGradu.filter((k) => {
       if (k.sifra_grada !== sifraGrada) return false;
 
@@ -1073,6 +1200,9 @@ export function OrdersList() {
     setSelectedTerenaSifra(day.sifraTerena);
     setExpandedGrad(null);
     setSelectedKupac(null);
+    setSelectedDodatnaLokacija(null);
+    setPendingKupacSelection(null);
+    setShowDodatnaLokacijaModal(false);
     setShowKupacModal(false);
     setExpandedCities(new Set());
     setSelectedCustomer(null);
@@ -1091,18 +1221,42 @@ export function OrdersList() {
     if (expandedGrad === grad.sifra_grada) {
       setExpandedGrad(null);
       setSelectedKupac(null);
+      setSelectedDodatnaLokacija(null);
+      setPendingKupacSelection(null);
+      setShowDodatnaLokacijaModal(false);
       setShowKupacModal(false);
     } else {
       setExpandedGrad(grad.sifra_grada);
       setSelectedKupac(null);
+      setSelectedDodatnaLokacija(null);
+      setPendingKupacSelection(null);
+      setShowDodatnaLokacijaModal(false);
       setShowKupacModal(false);
     }
   };
 
-  const handleKupacClick = (kupac: Kupac, terenInfo: TerenDostaveInfo) => {
+  const openKupacOrderModal = (
+    kupac: Kupac,
+    terenInfo: TerenDostaveInfo,
+    lokacija: DodatnaLokacija | null,
+  ) => {
     setSelectedKupac(kupac);
-    setSelectedTerenInfo(terenInfo); // ← Šifra
+    setSelectedTerenInfo(terenInfo);
+    setSelectedDodatnaLokacija(lokacija);
     setShowKupacModal(true);
+    setShowDodatnaLokacijaModal(false);
+    setPendingKupacSelection(null);
+  };
+
+  const handleKupacClick = (kupac: Kupac, terenInfo: TerenDostaveInfo) => {
+    if (hasPartnerDodatneLokacije(kupac.sifra_kupca)) {
+      setPendingKupacSelection({ kupac, terenInfo });
+      setSelectedDodatnaLokacija(null);
+      setShowDodatnaLokacijaModal(true);
+      return;
+    }
+
+    openKupacOrderModal(kupac, terenInfo, null);
   };
 
   const completedKupciSet = new Set(
@@ -1486,6 +1640,10 @@ export function OrdersList() {
                                     const isCompleted = completedKupciSet.has(
                                       Number(kupac.sifra_kupca),
                                     );
+                                    const hasDodatne =
+                                      hasPartnerDodatneLokacije(
+                                        kupac.sifra_kupca,
+                                      );
 
                                     return (
                                       <button
@@ -1505,7 +1663,9 @@ export function OrdersList() {
                                           selectedKupac?.sifra_kupca ===
                                           kupac.sifra_kupca
                                             ? "text-white shadow-lg"
-                                            : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                            : hasDodatne
+                                              ? "text-[#5A3F86] bg-[#F3EDFF] hover:bg-[#E8DBFF] font-bold"
+                                              : "text-gray-700 bg-gray-100 hover:bg-gray-200"
                                         }`}
                                         style={{
                                           backgroundColor:
@@ -1519,10 +1679,23 @@ export function OrdersList() {
                                         }}
                                       >
                                         <div className="flex items-center justify-between gap-2">
-                                          <span>
-                                            {kupac.naziv_kupca}{" "}
-                                            {kupac.sifra_kupca >
-                                              CUSTOMER_CODE_THRESHOLD && "⭐"}
+                                          <span className="flex items-center gap-2">
+                                            <span>
+                                              {kupac.naziv_kupca}{" "}
+                                              {kupac.sifra_kupca >
+                                                CUSTOMER_CODE_THRESHOLD && "⭐"}
+                                            </span>
+                                            {hasDodatne && (
+                                              <span
+                                                className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                                style={{
+                                                  backgroundColor: "#5A3F86",
+                                                  color: "#FFFFFF",
+                                                }}
+                                              >
+                                                Lokacije
+                                              </span>
+                                            )}
                                           </span>
                                           {zadnjiDanMap[kupac.sifra_kupca] !==
                                             undefined && (
@@ -1829,6 +2002,101 @@ export function OrdersList() {
         </div>
       </div>
 
+      {showDodatnaLokacijaModal && pendingKupacSelection && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl border-2 border-gray-200 p-5">
+            <h3 className="text-lg font-bold mb-2" style={{ color: "#785E9E" }}>
+              Odabir dodatne lokacije
+            </h3>
+
+            <p className="text-sm text-gray-700 mb-4">
+              Partner: {pendingKupacSelection.kupac.naziv_kupca}
+            </p>
+
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+              {getPartnerDodatneLokacije(
+                pendingKupacSelection.kupac.sifra_kupca,
+              ).map((lok, idx) => {
+                const active =
+                  selectedDodatnaLokacija === lok ||
+                  (selectedDodatnaLokacija?.sifra_lokacije !== undefined &&
+                    lok?.sifra_lokacije !== undefined &&
+                    String(selectedDodatnaLokacija.sifra_lokacije) ===
+                      String(lok.sifra_lokacije));
+
+                return (
+                  <button
+                    key={`${pendingKupacSelection.kupac.sifra_kupca}-${idx}-${String(lok.sifra_lokacije || idx)}`}
+                    type="button"
+                    onClick={() => setSelectedDodatnaLokacija(lok)}
+                    className="w-full text-left px-3 py-2 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: active ? "#8FC74A" : "#E5E7EB",
+                      backgroundColor: active ? "#F0FFF4" : "#FFFFFF",
+                    }}
+                  >
+                    <div
+                      className="font-semibold text-sm"
+                      style={{ color: "#785E9E" }}
+                    >
+                      {getLokacijaLabel(lok, idx)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  openKupacOrderModal(
+                    pendingKupacSelection.kupac,
+                    pendingKupacSelection.terenInfo,
+                    null,
+                  )
+                }
+                className="px-4 py-2 rounded-lg border-2 font-semibold"
+                style={{ color: "#785E9E", borderColor: "#785E9E" }}
+              >
+                Nastavi bez dodatne lokacije
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDodatnaLokacijaModal(false);
+                    setPendingKupacSelection(null);
+                    setSelectedDodatnaLokacija(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border-2 font-semibold"
+                  style={{ color: "#785E9E", borderColor: "#785E9E" }}
+                >
+                  Otkaži
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!selectedDodatnaLokacija}
+                  onClick={() =>
+                    openKupacOrderModal(
+                      pendingKupacSelection.kupac,
+                      pendingKupacSelection.terenInfo,
+                      selectedDodatnaLokacija,
+                    )
+                  }
+                  className="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50"
+                  style={{ backgroundColor: "#8FC74A" }}
+                >
+                  Nastavi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== MODAL ZA KUPCA ===== */}
       {showKupacModal && selectedKupac && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 md:p-[5px]">
@@ -1880,7 +2148,7 @@ export function OrdersList() {
                           ŠIFRA
                         </div>
                         <div
-                          className="text-sm font-bold leading-tight"
+                          className="text-[8px] font-bold leading-tight"
                           style={{ color: "#785E9E" }}
                         >
                           {selectedKupac.sifra_kupca}
@@ -1890,7 +2158,7 @@ export function OrdersList() {
                       {/* GRAD */}
                       <div className="-mt-0.5">
                         <div
-                          className="text-[10px] font-semibold leading-none"
+                          className="text-[8px] font-semibold leading-none"
                           style={{ color: "#785E9E" }}
                         >
                           GRAD
@@ -1913,6 +2181,52 @@ export function OrdersList() {
                         {selectedKupac.naziv_kupca}
                       </div>
                     </div>
+
+                    {selectedDodatnaLokacija && (
+                      <div className="-mt-1">
+                        <div
+                          className="text-[10px] font-semibold leading-none"
+                          style={{ color: "#785E9E" }}
+                        >
+                          DODATNA LOKACIJA
+                        </div>
+                        <div className="text-[11px] font-semibold text-gray-800 leading-tight">
+                          {getLokacijaLabel(selectedDodatnaLokacija, 0)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* {selectedDodatnaLokacija && (
+                      <div
+                        className="rounded-md px-2 py-2 mt-1"
+                        style={{ backgroundColor: "#F9FAFB" }}
+                      >
+                        <div
+                          className="text-[10px] font-semibold leading-none mb-2"
+                          style={{ color: "#785E9E" }}
+                        >
+                          PODACI LOKACIJE
+                        </div>
+
+                        <div className="space-y-1 max-h-[150px] overflow-y-auto pr-1">
+                          {getDodatnaLokacijaEntries(
+                            selectedDodatnaLokacija,
+                          ).map((entry) => (
+                            <div
+                              key={entry.key}
+                              className="grid grid-cols-[88px_1fr] gap-2 text-[10px] leading-tight"
+                            >
+                              <span className="font-semibold text-gray-500">
+                                {entry.label}
+                              </span>
+                              <span className="text-gray-800 break-words">
+                                {entry.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )} */}
                   </div>
 
                   <div
@@ -2278,62 +2592,108 @@ export function OrdersList() {
 
                       {/* INPUT POLJA */}
                       <div className="space-y-4">
-                        <div>
-                          <label
-                            className="block text-sm font-semibold mb-0"
-                            style={{ color: "#785E9E" }}
-                          >
-                            Količina ({selectedArtiklModal.jm}) *
-                          </label>
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-3">
+                          <div className="w-2/3">
+                            <label
+                              className="block text-sm font-semibold mb-0"
+                              style={{ color: "#785E9E" }}
+                            >
+                              Količina ({selectedArtiklModal.jm}) *
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                ref={kolicinaInputRef}
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                value={artiklKolicina || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+
+                                  // Dozvoli prazno polje dok korisnik kuca
+                                  if (
+                                    val === "" ||
+                                    val === "0" ||
+                                    val === "0."
+                                  ) {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    setArtiklKolicina(val as any);
+                                    return;
+                                  }
+
+                                  if (/^0\.\d*$/.test(val)) {
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    setArtiklKolicina(val as any);
+                                    return;
+                                  }
+
+                                  // Odbaci sve što nije broj ili decimalna tačka
+                                  if (!/^\d*\.?\d*$/.test(val)) return;
+
+                                  const parsed = parseFloat(val);
+                                  if (!isNaN(parsed) && parsed > 0) {
+                                    setArtiklKolicina(parsed);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleAddArtiklToModalOrder();
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  // Vrati na 0.01 ako je ostalo prazno ili 0
+                                  if (!artiklKolicina || artiklKolicina <= 0) {
+                                    setArtiklKolicina(0.01);
+                                  }
+                                  // Vrati boju bordera
+                                  e.currentTarget.style.borderColor = "#8FC74A";
+                                }}
+                                onFocus={(e) =>
+                                  (e.currentTarget.style.borderColor =
+                                    "#785E9E")
+                                }
+                                className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
+                                style={{ borderColor: "#8FC74A" }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="w-1/3">
+                            <label
+                              className="block text-sm font-semibold mb-0"
+                              style={{ color: "#785E9E" }}
+                            >
+                              Tražena cijena
+                            </label>
                             <input
-                              ref={kolicinaInputRef}
                               type="number"
-                              min="0.01"
+                              min="0"
                               step="0.01"
-                              value={artiklKolicina || ""}
+                              value={
+                                artiklTrazenaCijena
+                                  ? artiklTrazenaCijena.toFixed(2)
+                                  : ""
+                              }
                               onChange={(e) => {
                                 const val = e.target.value;
-
-                                // Dozvoli prazno polje dok korisnik kuca
-                                if (val === "" || val === "0" || val === "0.") {
-                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                  setArtiklKolicina(val as any);
+                                if (val === "") {
+                                  setArtiklTrazenaCijena(0);
                                   return;
                                 }
-
-                                if (/^0\.\d*$/.test(val)) {
-                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                  setArtiklKolicina(val as any);
-                                  return;
-                                }
-
-                                // Odbaci sve što nije broj ili decimalna tačka
-                                if (!/^\d*\.?\d*$/.test(val)) return;
 
                                 const parsed = parseFloat(val);
-                                if (!isNaN(parsed) && parsed > 0) {
-                                  setArtiklKolicina(parsed);
+                                if (!isNaN(parsed) && parsed >= 0) {
+                                  setArtiklTrazenaCijena(parsed);
                                 }
                               }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleAddArtiklToModalOrder();
-                                }
-                              }}
-                              onBlur={(e) => {
-                                // Vrati na 0.01 ako je ostalo prazno ili 0
-                                if (!artiklKolicina || artiklKolicina <= 0) {
-                                  setArtiklKolicina(0.01);
-                                }
-                                // Vrati boju bordera
-                                e.currentTarget.style.borderColor = "#8FC74A";
-                              }}
+                              className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
+                              style={{ borderColor: "#8FC74A" }}
                               onFocus={(e) =>
                                 (e.currentTarget.style.borderColor = "#785E9E")
                               }
-                              className="flex-1 px-3 py-2 border-2 rounded-lg focus:outline-none text-center font-semibold"
-                              style={{ borderColor: "#8FC74A" }}
+                              onBlur={(e) =>
+                                (e.currentTarget.style.borderColor = "#8FC74A")
+                              }
                             />
                           </div>
                         </div>
@@ -2376,7 +2736,10 @@ export function OrdersList() {
                             Dodaj u narudžbu
                           </button>
                           <button
-                            onClick={() => setSelectedArtiklModal(null)}
+                            onClick={() => {
+                              setSelectedArtiklModal(null);
+                              setArtiklTrazenaCijena(0);
+                            }}
                             className="flex-1 px-4 py-3 rounded-lg transition-all font-medium border-2"
                             style={{ color: "#785E9E", borderColor: "#785E9E" }}
                             onMouseEnter={(e) =>
@@ -2801,6 +3164,9 @@ export function OrdersList() {
                     onClick={() => {
                       setShowKupacModal(false);
                       setSelectedKupac(null);
+                      setSelectedDodatnaLokacija(null);
+                      setPendingKupacSelection(null);
+                      setShowDodatnaLokacijaModal(false);
                       setNovaArtiklUNarudzbi([]);
                       setSelectedArtiklModal(null);
                       setSelectedVrstaPlacanja(null);

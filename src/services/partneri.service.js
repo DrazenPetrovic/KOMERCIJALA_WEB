@@ -1,31 +1,41 @@
-import { withConnection } from './db.service.js';
+import { withConnection } from "./db.service.js";
 
 export const getPartneri = async (sifraRadnika) => {
   // Provjera da li je parametar prosleđen
   if (sifraRadnika === undefined || sifraRadnika === null) {
-    throw new Error('sifraRadnika parametar je obavezan');
+    throw new Error("sifraRadnika parametar je obavezan");
   }
 
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      'CALL komercijala.pregled_partnera(?)', 
-      [sifraRadnika]
+      "CALL komercijala.pregled_partnera(?)",
+      [sifraRadnika],
     );
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
 
+export const getPartneriDodatneLokacije = async () => {
+  // Provjera da li je parametar prosleđen
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.dostava_partneri_izdvojene_lokacije()",
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
 
 // ✅ ISPRAVLJENA FUNKCIJA
 export const getPartneriSaADodacima = async () => {
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      'CALL komercijala.partneri_dodatni_podaci()'
+      "CALL komercijala.partneri_dodatni_podaci()",
     );
-    
+
     //console.log('Rows from procedure:', rows);
     //console.log('Rows length:', rows?.length);
-    
+
     // Procedura vraća 2 result seta
     if (!Array.isArray(rows) || rows.length === 0) {
       return [];
@@ -33,7 +43,7 @@ export const getPartneriSaADodacima = async () => {
 
     // Prvi result set su partneri
     const partneriSet = rows[0];
-    
+
     // Drugi result set su dodatni podaci
     const dodatniPodaciSet = rows[1] || [];
 
@@ -42,16 +52,16 @@ export const getPartneriSaADodacima = async () => {
 
     // Provjeri da li su arraji
     if (!Array.isArray(partneriSet) || !Array.isArray(dodatniPodaciSet)) {
-      console.error('Partneri ili dodatni podaci nisu arraji');
+      console.error("Partneri ili dodatni podaci nisu arraji");
       return Array.isArray(partneriSet) ? partneriSet : [];
     }
 
     // Kombinuj podatke
-    return partneriSet.map(partner => ({
+    return partneriSet.map((partner) => ({
       ...partner,
       dodatniPodaci: dodatniPodaciSet.filter(
-        p => p.sifra_partnera === partner.sifra_partnera
-      )
+        (p) => p.sifra_partnera === partner.sifra_partnera,
+      ),
     }));
   });
 };
@@ -59,22 +69,21 @@ export const getPartneriSaADodacima = async () => {
 export const getPartneriDodatniPodaci = async () => {
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      'CALL komercijala.partneri_dodatni_podaci()'
+      "CALL komercijala.partneri_dodatni_podaci()",
     );
-    
+
     //console.log('Dodatni podaci rows:', rows);
-    
+
     return Array.isArray(rows) ? rows : [];
   });
 };
-
 
 // Dodajte:
 
 export const addDodatniPodaci = async (data) => {
   return withConnection(async (connection) => {
-    const today = new Date().toISOString().split('T')[0];
-    
+    const today = new Date().toISOString().split("T")[0];
+
     const [result] = await connection.execute(
       `CALL komercijala.partneri_dodatni_podaci_unosi(
         ?, ?, ?, ?, 0, ?
@@ -84,8 +93,8 @@ export const addDodatniPodaci = async (data) => {
         data.dodatni_podaci_opis,
         data.dodatni_podaci, // TELEFON
         data.sifra_radnika,
-        today
-      ]
+        today,
+      ],
     );
 
     return {
@@ -93,8 +102,7 @@ export const addDodatniPodaci = async (data) => {
       dodatni_podaci_opis: data.dodatni_podaci_opis,
       dodatni_podaci: data.dodatni_podaci,
       naziv_radnika: data.sifra_radnika,
-      datum_unosa: today
+      datum_unosa: today,
     };
   });
 };
-
