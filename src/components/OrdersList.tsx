@@ -270,6 +270,9 @@ export function OrdersList() {
     useState<boolean>(false);
   const deleteProizvodConfirmActionRef = useRef<(() => void) | null>(null);
 
+  const [showNotif, setShowNotif] = useState<boolean>(false);
+  const [notifMessage, setNotifMessage] = useState<string>("");
+
   const [dodatneLokacijeByPartner, setDodatneLokacijeByPartner] = useState<
     Record<number, DodatnaLokacija[]>
   >({});
@@ -577,7 +580,10 @@ export function OrdersList() {
 
       // ✅ PROVJERI REZULTAT
       if (result.success) {
-        alert(`✅ Narudžba uspješno spremljena! Ref: ${referentniBroj}`);
+        setNotifMessage(
+          `✅ Narudžba uspješno spremljena! Ref: ${referentniBroj}`,
+        );
+        setShowNotif(true);
 
         // RESETUJ SVE STATE-ove
         setNovaArtiklUNarudzbi([]);
@@ -599,16 +605,18 @@ export function OrdersList() {
           fetchAktivneNarudzbe(selectedDay);
         }
       } else {
-        alert(
+        setNotifMessage(
           "❌ " +
             (result.error || result.message || "Greška pri spremanju narudžbe"),
         );
+        setShowNotif(true);
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       console.error("❌ Greška:", errorMessage);
-      alert("❌ Greška pri spremanju narudžbe: " + errorMessage);
+      setNotifMessage("❌ Greška pri spremanju narudžbe: " + errorMessage);
+      setShowNotif(true);
     }
   };
   // ===== KRAJ FUNKCIJE VEZAN ZA NARUDZBE =====
@@ -3354,6 +3362,27 @@ export function OrdersList() {
                 }
               >
                 NE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showNotif && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-gray-200 p-6">
+            <p className="text-base font-semibold text-gray-800 text-center">
+              {notifMessage}
+            </p>
+            <div className="mt-5 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setShowNotif(false)}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                OK
               </button>
             </div>
           </div>

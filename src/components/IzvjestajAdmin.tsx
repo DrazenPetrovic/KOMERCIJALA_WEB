@@ -328,6 +328,7 @@ const IzvjestajAdmin: React.FC = () => {
     <div className="w-full bg-gray-50 p-2 md:p-3">
       <div className="max-w-7xl mx-auto space-y-3">
         {/* ... tvoj AI panel ostaje isti ... */}
+        {/* ...AI ANALIZA ... */}
         <div className="bg-gradient-to-br from-[#785E9E] to-[#5d4a7a] rounded-lg shadow-lg p-3 md:p-4 text-white">
           <div className="flex items-start gap-2 mb-2">
             <Sparkles className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
