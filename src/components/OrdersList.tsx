@@ -902,8 +902,9 @@ export function OrdersList() {
 
     setArtiklTrazenaCijena(
       selectedVrstaPlacanja === 1
-        ? Number(selectedArtiklModal.VPC) || 0
+        ? Number(selectedArtiklModal.mpc) || 0
         : Number(selectedArtiklModal.mpc) || 0,
+      // traženo je da zabiljezena trazena cijena uvijek bude MPC
     );
   }, [selectedArtiklModal, selectedVrstaPlacanja]);
 
@@ -1133,10 +1134,14 @@ export function OrdersList() {
   const getKupciForGrad = (sifraGrada: number): Kupac[] => {
     //   return kupciData.filter(k => k.sifra_grada === sifraGrada);
     // };
-    const kupciPoGradu = kupciData.filter((k) => k.sifra_grada === sifraGrada);
-    const kupciZaGrad = kupciPoGradu.filter((k) => {
-      if (k.sifra_grada !== sifraGrada) return false;
+    // const kupciPoGradu = kupciData.filter((k) => k.sifra_grada === sifraGrada);
 
+    const kupciPoGradu = kupciData.filter(
+      (k) => k.sifra_grada === sifraGrada || k.sifra_grada === 0,
+    );
+    const kupciZaGrad = kupciPoGradu.filter((k) => {
+      // if (k.sifra_grada !== sifraGrada) return false;
+      if (k.sifra_grada !== sifraGrada && k.sifra_grada !== 0) return false;
       // Filtriraj po radniku samo za vrstaRadnika = 2
       if (vrstaRadnika === 2) {
         return Number(k.pripada_radniku) === sifraRadnika;
@@ -2671,26 +2676,32 @@ export function OrdersList() {
                               className="block text-sm font-semibold mb-0"
                               style={{ color: "#785E9E" }}
                             >
-                              Tražena cijena
+                              Tražena cijena (MPC)
                             </label>
                             <input
                               type="number"
                               min="0"
                               step="0.01"
-                              value={
-                                artiklTrazenaCijena
-                                  ? artiklTrazenaCijena.toFixed(2)
-                                  : ""
-                              }
+                              value={artiklTrazenaCijena || ""}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                if (val === "") {
-                                  setArtiklTrazenaCijena(0);
+                                if (val === "" || val === "0" || val === "0.") {
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  setArtiklTrazenaCijena(val as any);
                                   return;
                                 }
 
+                                if (/^0\.\d*$/.test(val)) {
+                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                  setArtiklTrazenaCijena(val as any);
+                                  return;
+                                }
+
+                                // Odbaci sve što nije broj ili decimalna tačka
+                                if (!/^\d*\.?\d*$/.test(val)) return;
+
                                 const parsed = parseFloat(val);
-                                if (!isNaN(parsed) && parsed >= 0) {
+                                if (!isNaN(parsed) && parsed > 0) {
                                   setArtiklTrazenaCijena(parsed);
                                 }
                               }}
@@ -2699,9 +2710,14 @@ export function OrdersList() {
                               onFocus={(e) =>
                                 (e.currentTarget.style.borderColor = "#785E9E")
                               }
-                              onBlur={(e) =>
-                                (e.currentTarget.style.borderColor = "#8FC74A")
-                              }
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderColor = "#8FC74A";
+                                if (artiklTrazenaCijena) {
+                                  setArtiklTrazenaCijena(
+                                    parseFloat(artiklTrazenaCijena.toFixed(2)),
+                                  );
+                                }
+                              }}
                             />
                           </div>
                         </div>
