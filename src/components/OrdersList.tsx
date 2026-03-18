@@ -866,6 +866,53 @@ export function OrdersList() {
   const hasPartnerDodatneLokacije = (sifraKupca: number): boolean =>
     getPartnerDodatneLokacije(sifraKupca).length > 0;
 
+  const getPartnerPjZaGrad = (
+    sifraKupca: number,
+    sifraGrada: number,
+  ): DodatnaLokacija[] => {
+    const sveLokacije = getPartnerDodatneLokacije(sifraKupca);
+    if (sveLokacije.length === 0) return [];
+
+    const lokacijePoSifriGrada = sveLokacije.filter((lok) => {
+      const sifra = Number(lok?.sifra_grada);
+      return Number.isFinite(sifra) && sifra === sifraGrada;
+    });
+
+    if (lokacijePoSifriGrada.length > 0) {
+      return lokacijePoSifriGrada;
+    }
+
+    const nazivGrada = (
+      terenGradData.find((grad) => grad.sifra_grada === sifraGrada)
+        ?.naziv_grada || ""
+    )
+      .toString()
+      .trim()
+      .toLowerCase();
+
+    if (!nazivGrada) {
+      return sveLokacije;
+    }
+
+    const lokacijePoNazivuGrada = sveLokacije.filter((lok) => {
+      const naziv =
+        String(lok?.naziv_grada || "")
+          .trim()
+          .toLowerCase() ||
+        String(lok?.grad || "")
+          .trim()
+          .toLowerCase() ||
+        String(lok?.mjesto || "")
+          .trim()
+          .toLowerCase();
+      return naziv === nazivGrada;
+    });
+
+    return lokacijePoNazivuGrada.length > 0
+      ? lokacijePoNazivuGrada
+      : sveLokacije;
+  };
+
   const getLokacijaLabel = (lok: DodatnaLokacija, index: number): string => {
     const nazivLokacije = String(lok?.naziv_lokacije || "").trim();
     const grad =
@@ -1137,9 +1184,15 @@ export function OrdersList() {
   // ===== FILTRIRAJUĆE FUNKCIJE =====
   const getGradesForSelectedTeren = (): TerenGrad[] => {
     if (!selectedTerenaSifra) return [];
-    return terenGradData.filter(
-      (tg) => tg.sifra_terena === selectedTerenaSifra,
-    );
+    return terenGradData
+      .filter((tg) => tg.sifra_terena === selectedTerenaSifra)
+      .sort((a, b) =>
+        String(a.naziv_grada || "").localeCompare(
+          String(b.naziv_grada || ""),
+          "sr-Latn",
+          { sensitivity: "base" },
+        ),
+      );
   };
 
   const getKupciForGrad = (sifraGrada: number): Kupac[] => {
@@ -1270,17 +1323,6 @@ export function OrdersList() {
     setShowKupacModal(true);
     setShowDodatnaLokacijaModal(false);
     setPendingKupacSelection(null);
-  };
-
-  const handleKupacClick = (kupac: Kupac, terenInfo: TerenDostaveInfo) => {
-    if (hasPartnerDodatneLokacije(kupac.sifra_kupca)) {
-      setPendingKupacSelection({ kupac, terenInfo });
-      setSelectedDodatnaLokacija(null);
-      setShowDodatnaLokacijaModal(true);
-      return;
-    }
-
-    openKupacOrderModal(kupac, terenInfo, null);
   };
 
   const completedKupciSet = new Set(
@@ -1668,74 +1710,149 @@ export function OrdersList() {
                                       hasPartnerDodatneLokacije(
                                         kupac.sifra_kupca,
                                       );
+                                    const pjZaGrad = hasDodatne
+                                      ? getPartnerPjZaGrad(
+                                          kupac.sifra_kupca,
+                                          grad.sifra_grada,
+                                        )
+                                      : [];
 
                                     return (
-                                      <button
+                                      <div
                                         key={kupac.sifra_kupca}
-                                        onClick={() => {
-                                          const terenInfo =
-                                            getSelectedTerenInfo();
-                                          if (!terenInfo) {
-                                            alert(
-                                              "Odaberi dan prije nego što odabereš kupca!",
+                                        className="space-y-1"
+                                      >
+                                        <button
+                                          onClick={() => {
+                                            const terenInfo =
+                                              getSelectedTerenInfo();
+                                            if (!terenInfo) {
+                                              alert(
+                                                "Odaberi dan prije nego što odabereš kupca!",
+                                              );
+                                              return;
+                                            }
+                                            openKupacOrderModal(
+                                              kupac,
+                                              terenInfo,
+                                              null,
                                             );
-                                            return;
-                                          }
-                                          handleKupacClick(kupac, terenInfo);
-                                        }}
-                                        className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left font-medium border-2 ${
-                                          selectedKupac?.sifra_kupca ===
-                                          kupac.sifra_kupca
-                                            ? "text-white shadow-lg"
-                                            : hasDodatne
-                                              ? "text-[#5A3F86] bg-[#F3EDFF] hover:bg-[#E8DBFF] font-bold"
-                                              : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                                        }`}
-                                        style={{
-                                          backgroundColor:
+                                          }}
+                                          className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left font-medium border-2 ${
                                             selectedKupac?.sifra_kupca ===
                                             kupac.sifra_kupca
+                                              ? "text-white shadow-lg"
+                                              : hasDodatne
+                                                ? "text-[#5A3F86] bg-[#F3EDFF] hover:bg-[#E8DBFF] font-bold"
+                                                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                          }`}
+                                          style={{
+                                            backgroundColor:
+                                              selectedKupac?.sifra_kupca ===
+                                              kupac.sifra_kupca
+                                                ? "#8FC74A"
+                                                : undefined,
+                                            borderColor: isCompleted
                                               ? "#8FC74A"
-                                              : undefined,
-                                          borderColor: isCompleted
-                                            ? "#8FC74A"
-                                            : "transparent",
-                                        }}
-                                      >
-                                        <div className="flex items-center justify-between gap-2">
-                                          <span className="flex items-center gap-2">
-                                            <span>
-                                              {kupac.naziv_kupca}{" "}
-                                              {kupac.sifra_kupca >
-                                                CUSTOMER_CODE_THRESHOLD && "⭐"}
+                                              : "transparent",
+                                          }}
+                                        >
+                                          <div className="flex items-center justify-between gap-2">
+                                            <span className="flex items-center gap-2">
+                                              <span>
+                                                {kupac.naziv_kupca}{" "}
+                                                {kupac.sifra_kupca >
+                                                  CUSTOMER_CODE_THRESHOLD &&
+                                                  "⭐"}
+                                              </span>
+                                              {/* {hasDodatne && (
+                                                <span
+                                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                                  style={{
+                                                    backgroundColor: "#5A3F86",
+                                                    color: "#FFFFFF",
+                                                  }}
+                                                >
+                                                  PJ {pjZaGrad.length}
+                                                </span>
+                                              )} */}
                                             </span>
-                                            {hasDodatne && (
+                                            {zadnjiDanMap[kupac.sifra_kupca] !==
+                                              undefined && (
                                               <span
                                                 className="px-2 py-0.5 rounded-full text-[10px] font-bold"
                                                 style={{
-                                                  backgroundColor: "#5A3F86",
-                                                  color: "#FFFFFF",
+                                                  backgroundColor: "#785E9E",
+                                                  color: "#8FC74A",
                                                 }}
+                                                title="Broj dana od zadnje narudžbe"
                                               >
-                                                Lokacije
+                                                {
+                                                  zadnjiDanMap[
+                                                    kupac.sifra_kupca
+                                                  ]
+                                                }
                                               </span>
                                             )}
-                                          </span>
-                                          {zadnjiDanMap[kupac.sifra_kupca] !==
-                                            undefined && (
-                                            <span
-                                              className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                                              style={{
-                                                backgroundColor: "#785E9E",
-                                                color: "#8FC74A",
-                                              }}
-                                              title="Broj dana od zadnje narudžbe"
-                                            >
-                                              {zadnjiDanMap[kupac.sifra_kupca]}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </button>
+                                          </div>
+                                        </button>
+
+                                        {hasDodatne && pjZaGrad.length > 0 && (
+                                          <div className="ml-2 pl-2 border-l-2 border-[#D6C8F0] space-y-1">
+                                            {pjZaGrad.map((lok, idx) => {
+                                              const isLokacijaSelected =
+                                                selectedKupac?.sifra_kupca ===
+                                                  kupac.sifra_kupca &&
+                                                selectedDodatnaLokacija !=
+                                                  null &&
+                                                String(
+                                                  selectedDodatnaLokacija.sifra_lokacije ||
+                                                    "",
+                                                ) ===
+                                                  String(
+                                                    lok.sifra_lokacije || "",
+                                                  );
+
+                                              return (
+                                                <button
+                                                  key={`${kupac.sifra_kupca}-pj-${String(lok.sifra_lokacije || idx)}`}
+                                                  onClick={() => {
+                                                    const terenInfo =
+                                                      getSelectedTerenInfo();
+                                                    if (!terenInfo) {
+                                                      alert(
+                                                        "Odaberi dan prije nego što odabereš kupca!",
+                                                      );
+                                                      return;
+                                                    }
+
+                                                    openKupacOrderModal(
+                                                      kupac,
+                                                      terenInfo,
+                                                      lok,
+                                                    );
+                                                  }}
+                                                  className="w-full px-3 py-2 rounded-lg text-xs transition-all text-left font-semibold border"
+                                                  style={{
+                                                    borderColor:
+                                                      isLokacijaSelected
+                                                        ? "#8FC74A"
+                                                        : "#D6C8F0",
+                                                    backgroundColor:
+                                                      isLokacijaSelected
+                                                        ? "#F0FFF4"
+                                                        : "#FAF7FF",
+                                                    color: "#5A3F86",
+                                                  }}
+                                                >
+                                                  PJ:{" "}
+                                                  {getLokacijaLabel(lok, idx)}
+                                                </button>
+                                              );
+                                            })}
+                                          </div>
+                                        )}
+                                      </div>
                                     );
                                   },
                                 )
@@ -2220,7 +2337,7 @@ export function OrdersList() {
                       </div>
                     )}
 
-                    {/* {selectedDodatnaLokacija && (
+                    {selectedDodatnaLokacija && (
                       <div
                         className="rounded-md px-2 py-2 mt-1"
                         style={{ backgroundColor: "#F9FAFB" }}
@@ -2250,7 +2367,7 @@ export function OrdersList() {
                           ))}
                         </div>
                       </div>
-                    )} */}
+                    )}
                   </div>
 
                   <div
