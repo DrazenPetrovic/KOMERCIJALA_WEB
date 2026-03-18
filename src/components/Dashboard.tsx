@@ -62,6 +62,24 @@ export function Dashboard({
     vrsta === 1
       ? [
           {
+            id: "narudzbe",
+            label: "Narudžbe",
+            icon: FileText,
+            color: "bg-blue-100 text-blue-600",
+          },
+          {
+            id: "partneri",
+            label: "Partneri",
+            icon: Users,
+            color: "bg-orange-100 text-orange-600",
+          },
+          {
+            id: "artikli",
+            label: "Artikli",
+            icon: Book,
+            color: "bg-indigo-100 text-indigo-600",
+          },
+          {
             id: "analitika",
             label: "Analitika",
             icon: LineChart,
@@ -131,7 +149,7 @@ export function Dashboard({
     }
 
     if (activeSection === "artikli") {
-      return <ArtikliList onBack={() => setActiveSection(null)} />;
+      return <ArtikliList />;
     }
 
     if (activeSection === "dugovanja") {

@@ -60,6 +60,9 @@ export const createNarudzba = async (narudzbaData) => {
         const finalNote = dodatnaLokacija
           ? `${cleanNote} ${dodatnaLokacija.naziv_lokacije}`.trim()
           : cleanNote;
+        const poslovnaJedinicaSifra = Number(
+          dodatnaLokacija?.sifra_lokacije ?? dodatnaLokacija?.sifra ?? 0,
+        );
 
         // Parametri za proceduru
         const params = [
@@ -77,7 +80,7 @@ export const createNarudzba = async (narudzbaData) => {
           0, // p_spremljena_kolicina (DEFAULT)
           referentniBroj || null, // p_referentni_broj
           Number(trazenaCijena) || 0, // p_trazena_cijena
-          dodatnaLokacija?.sifra || 0, // p_poslovna_jedinica
+          Number.isFinite(poslovnaJedinicaSifra) ? poslovnaJedinicaSifra : 0, // p_poslovna_jedinica
         ];
 
         // console.log('📦 Unos proizvoda:', sifraProizvoda, 'Količina:', kolicina);

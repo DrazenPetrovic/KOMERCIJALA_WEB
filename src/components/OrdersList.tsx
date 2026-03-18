@@ -264,7 +264,6 @@ export function OrdersList() {
   const [zadnjiDanMap, setZadnjiDanMap] = useState<Record<number, number>>({});
   const currentUser = getCurrentUser();
   const sifraRadnika = Number(currentUser?.sifraRadnika || 0);
-  const vrstaRadnika = Number(currentUser?.vrstaRadnika || 0);
 
   const [showDeletePartnerConfirm, setShowDeletePartnerConfirm] =
     useState<boolean>(false);
@@ -288,6 +287,9 @@ export function OrdersList() {
   } | null>(null);
   const [selectedDodatnaLokacija, setSelectedDodatnaLokacija] =
     useState<DodatnaLokacija | null>(null);
+  const [selectedOrderGradSifra, setSelectedOrderGradSifra] = useState<
+    number | null
+  >(null);
 
   const fetchAiAnaliza = async () => {
     if (!selectedKupac) return;
@@ -546,12 +548,64 @@ export function OrdersList() {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
       const referentniBroj = generateReferentniBroj();
+      const parsedLokacijaGrad = Number(selectedDodatnaLokacija?.sifra_grada);
+      const parsedOrderGrad = Number(selectedOrderGradSifra);
+      const parsedKupacGrad = Number(selectedKupac.sifra_grada);
+      const targetGradSifra =
+        Number.isFinite(parsedLokacijaGrad) && parsedLokacijaGrad > 0
+          ? parsedLokacijaGrad
+          : Number.isFinite(parsedOrderGrad) && parsedOrderGrad > 0
+            ? parsedOrderGrad
+            : parsedKupacGrad;
+
+      const currentDayRecord = tereniData.find(
+        (t) => Number(t.sifra_terena_dostava) === Number(selectedDay),
+      );
+
+      const tereniZaGrad = terenGradData
+        .filter((tg) => Number(tg.sifra_grada) === Number(targetGradSifra))
+        .map((tg) => Number(tg.sifra_terena))
+        .filter(
+          (value, index, arr) =>
+            Number.isFinite(value) && arr.indexOf(value) === index,
+        );
+
+      if (tereniZaGrad.length === 0) {
+        alert(
+          "Za odabrani grad ne postoji mapiran teren. Narudžba nije spremljena.",
+        );
+        return;
+      }
+
+      let targetSifraTerenaDostava: number | undefined =
+        selectedTerenInfo?.sifraTerenaDostava;
+
+      const matchByDayAndGrad = tereniData.find(
+        (t) =>
+          tereniZaGrad.includes(Number(t.sifra_terena)) &&
+          String(t.datum_dostave) === String(currentDayRecord?.datum_dostave),
+      );
+      const fallbackByGrad = tereniData.find((t) =>
+        tereniZaGrad.includes(Number(t.sifra_terena)),
+      );
+
+      targetSifraTerenaDostava =
+        matchByDayAndGrad?.sifra_terena_dostava ??
+        fallbackByGrad?.sifra_terena_dostava ??
+        targetSifraTerenaDostava;
+
+      if (!targetSifraTerenaDostava) {
+        alert(
+          "Nije pronađen teren za odabrani grad/lokaciju. Provjeri mapiranje gradova i terena.",
+        );
+        return;
+      }
 
       // ✅ PRIPREMI PODATKE
       const orderData = {
         referentniBroj,
         sifraKupca: selectedKupac.sifra_kupca,
-        sifraTerenaDostava: selectedTerenInfo?.sifraTerenaDostava,
+        sifraTerenaDostava: targetSifraTerenaDostava,
         vrstaPlacanja: selectedVrstaPlacanja,
         dodatnaLokacija: selectedDodatnaLokacija
           ? { ...selectedDodatnaLokacija }
@@ -600,6 +654,7 @@ export function OrdersList() {
         setSelectedDodatnaLokacija(null);
         setPendingKupacSelection(null);
         setShowDodatnaLokacijaModal(false);
+        setSelectedOrderGradSifra(null);
         setSelectedVrstaPlacanja(null);
         setSelectedTerenInfo(null);
         setSearchArtikli("");
@@ -1196,22 +1251,29 @@ export function OrdersList() {
   };
 
   const getKupciForGrad = (sifraGrada: number): Kupac[] => {
-    //   return kupciData.filter(k => k.sifra_grada === sifraGrada);
-    // };
-    // const kupciPoGradu = kupciData.filter((k) => k.sifra_grada === sifraGrada);
+    const kupciZaGrad = kupciData.filter((k) => {
+      const osnovniGradMatch =
+        Number(k.sifra_grada) === Number(sifraGrada) ||
+        Number(k.sifra_grada) === 0;
 
-    const kupciPoGradu = kupciData.filter(
-      (k) => k.sifra_grada === sifraGrada || k.sifra_grada === 0,
-    );
-    const kupciZaGrad = kupciPoGradu.filter((k) => {
-      // if (k.sifra_grada !== sifraGrada) return false;
-      if (k.sifra_grada !== sifraGrada && k.sifra_grada !== 0) return false;
-      // Filtriraj po radniku samo za vrstaRadnika = 2
-      if (vrstaRadnika === 2) {
-        return Number(k.pripada_radniku) === sifraRadnika;
+      const imaPoslovnicuUGradu = getPartnerDodatneLokacije(k.sifra_kupca).some(
+        (lok) => Number(lok?.sifra_grada) === Number(sifraGrada),
+      );
+
+      if (!osnovniGradMatch && !imaPoslovnicuUGradu) return false;
+
+      // Za sve logovane korisnike - filtriraj po pripada_radniku
+      // (Stari kod sa admin iskljucenjem - zakomentarisan za kasnije)
+      // if (vrstaRadnika !== 1 && sifraRadnika > 0) {
+      //   return Number(k.pripada_radniku) === Number(sifraRadnika);
+      // }
+      // return true;
+
+      // Novi kod - svi se filtriraju po pripada_radniku
+      if (sifraRadnika > 0) {
+        return Number(k.pripada_radniku) === Number(sifraRadnika);
       }
 
-      // Ostali vide sve
       return true;
     });
 
@@ -1278,6 +1340,7 @@ export function OrdersList() {
     setExpandedGrad(null);
     setSelectedKupac(null);
     setSelectedDodatnaLokacija(null);
+    setSelectedOrderGradSifra(null);
     setPendingKupacSelection(null);
     setShowDodatnaLokacijaModal(false);
     setShowKupacModal(false);
@@ -1299,6 +1362,7 @@ export function OrdersList() {
       setExpandedGrad(null);
       setSelectedKupac(null);
       setSelectedDodatnaLokacija(null);
+      setSelectedOrderGradSifra(null);
       setPendingKupacSelection(null);
       setShowDodatnaLokacijaModal(false);
       setShowKupacModal(false);
@@ -1306,6 +1370,7 @@ export function OrdersList() {
       setExpandedGrad(grad.sifra_grada);
       setSelectedKupac(null);
       setSelectedDodatnaLokacija(null);
+      setSelectedOrderGradSifra(null);
       setPendingKupacSelection(null);
       setShowDodatnaLokacijaModal(false);
       setShowKupacModal(false);
@@ -1316,10 +1381,12 @@ export function OrdersList() {
     kupac: Kupac,
     terenInfo: TerenDostaveInfo,
     lokacija: DodatnaLokacija | null,
+    orderGradSifra: number,
   ) => {
     setSelectedKupac(kupac);
     setSelectedTerenInfo(terenInfo);
     setSelectedDodatnaLokacija(lokacija);
+    setSelectedOrderGradSifra(orderGradSifra);
     setShowKupacModal(true);
     setShowDodatnaLokacijaModal(false);
     setPendingKupacSelection(null);
@@ -1338,8 +1405,8 @@ export function OrdersList() {
       return;
     }
 
-    const ok = confirm(`Obrisati SVE stavke za kupca "${kupac.naziv_kupca}"?`);
-    if (!ok) return;
+    // const ok = confirm(`Obrisati SVE stavke za kupca "${kupac.naziv_kupca}"?`);
+    // if (!ok) return;
 
     deletePartnerConfirmActionRef.current = async () => {
       try {
@@ -1659,7 +1726,7 @@ export function OrdersList() {
                             className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left flex items-center justify-between ${
                               expandedGrad === grad.sifra_grada
                                 ? "text-white shadow-lg"
-                                : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                : "text-[#2F4F77] bg-[#EAF2FF] hover:bg-[#DCEAFF] border border-[#C6DBFF]"
                             }`}
                             style={{
                               backgroundColor:
@@ -1736,6 +1803,7 @@ export function OrdersList() {
                                               kupac,
                                               terenInfo,
                                               null,
+                                              grad.sifra_grada,
                                             );
                                           }}
                                           className={`w-full px-3 py-2 rounded-lg text-sm transition-all text-left font-medium border-2 ${
@@ -1830,6 +1898,9 @@ export function OrdersList() {
                                                       kupac,
                                                       terenInfo,
                                                       lok,
+                                                      Number(
+                                                        lok?.sifra_grada,
+                                                      ) || grad.sifra_grada,
                                                     );
                                                   }}
                                                   className="w-full px-3 py-2 rounded-lg text-xs transition-all text-left font-semibold border"
@@ -2195,6 +2266,8 @@ export function OrdersList() {
                     pendingKupacSelection.kupac,
                     pendingKupacSelection.terenInfo,
                     null,
+                    selectedOrderGradSifra ||
+                      pendingKupacSelection.kupac.sifra_grada,
                   )
                 }
                 className="px-4 py-2 rounded-lg border-2 font-semibold"
@@ -2225,6 +2298,9 @@ export function OrdersList() {
                       pendingKupacSelection.kupac,
                       pendingKupacSelection.terenInfo,
                       selectedDodatnaLokacija,
+                      Number(selectedDodatnaLokacija?.sifra_grada) ||
+                        selectedOrderGradSifra ||
+                        pendingKupacSelection.kupac.sifra_grada,
                     )
                   }
                   className="px-4 py-2 rounded-lg text-white font-semibold disabled:opacity-50"
@@ -3319,6 +3395,7 @@ export function OrdersList() {
                       setSelectedDodatnaLokacija(null);
                       setPendingKupacSelection(null);
                       setShowDodatnaLokacijaModal(false);
+                      setSelectedOrderGradSifra(null);
                       setNovaArtiklUNarudzbi([]);
                       setSelectedArtiklModal(null);
                       setSelectedVrstaPlacanja(null);
