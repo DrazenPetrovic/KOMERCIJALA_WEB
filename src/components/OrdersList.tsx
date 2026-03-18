@@ -117,7 +117,9 @@ interface Kupac {
 interface DodatnaLokacija {
   sifra_partnera: number;
   sifra_lokacije?: number | string;
+  sifra_grada?: number | string;
   naziv_lokacije?: string;
+  naziv_grada?: string;
   adresa?: string;
   grad?: string;
   mjesto?: string;
@@ -176,7 +178,9 @@ const getDodatnaLokacijaEntries = (lokacija: DodatnaLokacija) => {
   const labelMap: Record<string, string> = {
     sifra_partnera: "Šifra partnera",
     sifra_lokacije: "Šifra lokacije",
+    sifra_grada: "Šifra grada",
     naziv_lokacije: "Naziv lokacije",
+    naziv_grada: "Naziv grada",
     adresa: "Adresa",
     grad: "Grad",
     mjesto: "Mjesto",
@@ -863,11 +867,18 @@ export function OrdersList() {
     getPartnerDodatneLokacije(sifraKupca).length > 0;
 
   const getLokacijaLabel = (lok: DodatnaLokacija, index: number): string => {
-    const naziv =
-      String(lok?.naziv_lokacije || "").trim() ||
-      String(lok?.adresa || "").trim() ||
-      String(lok?.mjesto || lok?.grad || "").trim();
-    return naziv || `Lokacija ${index + 1}`;
+    const nazivLokacije = String(lok?.naziv_lokacije || "").trim();
+    const grad =
+      String(lok?.naziv_grada || "").trim() ||
+      String(lok?.grad || "").trim() ||
+      String(lok?.mjesto || "").trim();
+
+    if (nazivLokacije && grad) {
+      return `${nazivLokacije} (${grad})`;
+    }
+
+    const fallback = nazivLokacije || String(lok?.adresa || "").trim() || grad;
+    return fallback || `Lokacija ${index + 1}`;
   };
 
   useEffect(() => {
