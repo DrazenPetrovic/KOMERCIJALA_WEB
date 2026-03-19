@@ -2412,7 +2412,7 @@ export function OrdersList() {
                         </div>
                       </div>
                     )}
-
+                    {/* 
                     {selectedDodatnaLokacija && (
                       <div
                         className="rounded-md px-2 py-2 mt-1"
@@ -2443,7 +2443,7 @@ export function OrdersList() {
                           ))}
                         </div>
                       </div>
-                    )}
+                    )} */}
                   </div>
 
                   <div
