@@ -19,11 +19,25 @@ interface Artikal {
   jm: string;
   vpc: number;
   mpc: number;
+  sifraGrupe: string;
+  nazivGrupe: string;
   image_url?: string | null; // NOVO: opcioni URL slike proizvoda
 }
 
+interface ArtikalGrupaOption {
+  sifraGrupe: string;
+  nazivGrupe: string;
+}
+
+const ALL_ARTIKLI_GRUPE = "all";
+
+const toGroupString = (value: unknown): string => String(value ?? "").trim();
+
 export default function ArtikliList() {
   const [artikli, setArtikli] = useState<Artikal[]>([]);
+  const [artikliGrupe, setArtikliGrupe] = useState<ArtikalGrupaOption[]>([]);
+  const [selectedArtikliGrupa, setSelectedArtikliGrupa] =
+    useState<string>(ALL_ARTIKLI_GRUPE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,10 +87,23 @@ export default function ArtikliList() {
           jm: a.jm || "",
           vpc: parseFloat(a.vpc || a.VPC) || 0,
           mpc: parseFloat(a.mpc || a.MPC) || 0,
+          sifraGrupe: toGroupString(
+            a.grupa_proizvoda ?? a.sifra_grupe ?? a.grupa_sifra,
+          ),
+          nazivGrupe: toGroupString(a.naziv_grupe ?? a.Naziv_grupe ?? ""),
           // probaj više mogućih naziva polja, da “radi odmah” kad API vrati neki od njih:
           image_url:
             a.image_url || a.slika_url || a.slika || a.imageUrl || null,
         }));
+
+        // console.log(
+        //   "[ArtikliList] grupe iz getArtikli (sample)",
+        //   artikliData.slice(0, 50).map((item: Artikal) => ({
+        //     sifraArtikla: item.sifra_proizvoda,
+        //     sifraGrupe: item.sifraGrupe,
+        //     nazivGrupe: item.nazivGrupe,
+        //   })),
+        // );
 
         setArtikli(artikliData);
         // reset selekcije nakon refresh-a (možeš ukloniti ako želiš da se čuva selekcija)
@@ -94,20 +121,98 @@ export default function ArtikliList() {
     }
   };
 
+  const fetchArtikliGrupe = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${apiUrl}/api/artikli/grupe`, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        setArtikliGrupe([]);
+        return;
+      }
+
+      const result = await response.json();
+      const rows = Array.isArray(result?.data)
+        ? result.data
+        : Array.isArray(result)
+          ? result
+          : [];
+
+      // Debug: koje grupe dolaze iz /api/artikli/grupe
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // console.log(
+      //   "[ArtikliList] grupe raw",
+      //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      //   rows.map((row: any) => row),
+      // );
+
+      const uniqueByKey = new Map<string, ArtikalGrupaOption>();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rows.forEach((row: any) => {
+        const sifra = toGroupString(
+          row.grupa_proizvoda ??
+            row.sifra_grupe ??
+            row.grupa_sifra ??
+            row.id_grupe ??
+            row.grupa_id,
+        );
+        const naziv = toGroupString(
+          row.naziv_grupe ?? row.Naziv_grupe ?? row.naziv,
+        );
+        const key = sifra;
+        if (!key || uniqueByKey.has(key)) return;
+
+        uniqueByKey.set(key, {
+          sifraGrupe: key,
+          nazivGrupe: naziv || sifra,
+        });
+      });
+
+      // console.log(
+      //   "[ArtikliList] grupe normalizovane",
+      //   Array.from(uniqueByKey.values()),
+      // );
+
+      setArtikliGrupe(
+        Array.from(uniqueByKey.values()).sort((a, b) =>
+          a.nazivGrupe.localeCompare(b.nazivGrupe, "sr-Latn", {
+            sensitivity: "base",
+          }),
+        ),
+      );
+    } catch {
+      setArtikliGrupe([]);
+    }
+  };
+
   useEffect(() => {
     fetchArtikli();
+    fetchArtikliGrupe();
   }, []);
 
   const filteredArtikli = useMemo(() => {
     return artikli.filter((artikal) => {
-      return (
+      const matchesSearch =
         (artikal.naziv_proizvoda || "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        (artikal.sifra_proizvoda || "").toString().includes(searchTerm)
-      );
+        (artikal.sifra_proizvoda || "").toString().includes(searchTerm);
+
+      if (selectedArtikliGrupa === ALL_ARTIKLI_GRUPE) {
+        return matchesSearch;
+      }
+
+      const groupKey = toGroupString(artikal.sifraGrupe);
+
+      return matchesSearch && groupKey === selectedArtikliGrupa;
     });
-  }, [artikli, searchTerm]);
+  }, [artikli, searchTerm, selectedArtikliGrupa]);
 
   const isAllSelected =
     filteredArtikli.length > 0 &&
@@ -150,6 +255,59 @@ export default function ArtikliList() {
         </div>
 
         <div className="mb-6">
+          <div className="mb-3">
+            <div
+              className="text-sm font-semibold mb-2"
+              style={{ color: "#785E9E" }}
+            >
+              Grupa artikala
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedArtikliGrupa(ALL_ARTIKLI_GRUPE)}
+                className="px-3 py-1 rounded-full border-2 text-sm font-semibold transition-all"
+                style={{
+                  borderColor:
+                    selectedArtikliGrupa === ALL_ARTIKLI_GRUPE
+                      ? "#8FC74A"
+                      : "#D1D5DB",
+                  backgroundColor:
+                    selectedArtikliGrupa === ALL_ARTIKLI_GRUPE
+                      ? "#F0FFF4"
+                      : "#FFFFFF",
+                  color:
+                    selectedArtikliGrupa === ALL_ARTIKLI_GRUPE
+                      ? "#2F4F77"
+                      : "#6B7280",
+                }}
+              >
+                Sve grupe
+              </button>
+
+              {artikliGrupe.map((grupa) => {
+                const isActive = selectedArtikliGrupa === grupa.sifraGrupe;
+
+                return (
+                  <button
+                    key={grupa.sifraGrupe}
+                    type="button"
+                    onClick={() => setSelectedArtikliGrupa(grupa.sifraGrupe)}
+                    className="px-3 py-1 rounded-full border-2 text-sm font-semibold transition-all"
+                    style={{
+                      borderColor: isActive ? "#8FC74A" : "#D1D5DB",
+                      backgroundColor: isActive ? "#F0FFF4" : "#FFFFFF",
+                      color: isActive ? "#2F4F77" : "#6B7280",
+                    }}
+                    title={grupa.nazivGrupe}
+                  >
+                    {grupa.nazivGrupe}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <input
             type="text"
             placeholder="Pretraži artikle po nazivu ili šifri..."
@@ -304,8 +462,13 @@ export default function ArtikliList() {
                               Šifra: {artikal.sifra_proizvoda}
                             </div>
                             <div
-                              className="text-lg font-semibold text-gray-900 truncate"
+                              className="text-lg font-semibold text-gray-900 overflow-hidden"
                               title={artikal.naziv_proizvoda}
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                              }}
                             >
                               {artikal.naziv_proizvoda}
                             </div>
@@ -314,17 +477,24 @@ export default function ArtikliList() {
                             </div>
                           </div>
 
-                          {/* checkbox (da se vidi jasno selekcija) */}
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() =>
-                              toggleSelect(artikal.sifra_proizvoda)
-                            }
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-1 w-5 h-5 accent-purple-600"
-                            aria-label={`Selektuj artikal ${artikal.naziv_proizvoda}`}
-                          />
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="text-xs font-semibold text-[#2F4F77] bg-[#F0FFF4] border border-[#8FC74A] rounded-full px-2 py-0.5 whitespace-nowrap">
+                              {artikal.nazivGrupe ||
+                                `Grupa ${artikal.sifraGrupe || "-"}`}
+                            </div>
+
+                            {/* checkbox (da se vidi jasno selekcija) */}
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() =>
+                                toggleSelect(artikal.sifra_proizvoda)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                              className="mt-1 w-5 h-5 accent-purple-600"
+                              aria-label={`Selektuj artikal ${artikal.naziv_proizvoda}`}
+                            />
+                          </div>
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2">

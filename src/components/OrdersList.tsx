@@ -1340,6 +1340,14 @@ export function OrdersList() {
 
   const currentSchedule = selectedDay ? mockSchedule[selectedDay] : undefined;
 
+  const filteredArtikli = artikli.filter((artikal) => {
+    const search = searchArtikli.toLowerCase();
+    return (
+      artikal.naziv_proizvoda?.toLowerCase().includes(search) ||
+      artikal.sifra_proizvoda?.toString().includes(searchArtikli)
+    );
+  });
+
   // ===== HANDLER FUNKCIJE =====
   const toggleCity = (cityId: string) => {
     const newExpanded = new Set(expandedCities);
@@ -2602,131 +2610,115 @@ export function OrdersList() {
                 {/* LISTA ARTIKALA - 2 KOLONE (kartica ~50% širine) */}
                 <div className="flex-1 overflow-y-auto pr-2 min-h-[300px]">
                   <div className="grid grid-cols-2 gap-2 min-h-[300px]">
-                    {artikli
-                      .filter(
-                        (artikal) =>
-                          artikal.naziv_proizvoda
-                            ?.toLowerCase()
-                            .includes(searchArtikli.toLowerCase()) ||
-                          artikal.sifra_proizvoda
-                            ?.toString()
-                            .includes(searchArtikli),
-                      )
-                      .map((artikal) => {
-                        const isOutOfStock =
-                          Number(artikal.kolicinaNaStanju) === 0;
+                    {filteredArtikli.map((artikal) => {
+                      const isOutOfStock =
+                        Number(artikal.kolicinaNaStanju) === 0;
 
-                        return (
-                          <div
-                            key={artikal.sifra_proizvoda}
-                            onClick={() => {
-                              const continueWithSelection = () => {
-                                if (!selectedVrstaPlacanja) {
-                                  alert("⚠️ Prvo odaberi vrstu plaćanja!");
-                                  return;
-                                }
-                                handleSelectArtikl(artikal);
-                              };
-
-                              if (isOutOfStock) {
-                                openOutOfStockConfirm(continueWithSelection);
+                      return (
+                        <div
+                          key={artikal.sifra_proizvoda}
+                          onClick={() => {
+                            const continueWithSelection = () => {
+                              if (!selectedVrstaPlacanja) {
+                                alert("⚠️ Prvo odaberi vrstu plaćanja!");
                                 return;
                               }
+                              handleSelectArtikl(artikal);
+                            };
 
-                              continueWithSelection();
-                            }}
-                            className={`bg-white border-2 rounded-lg p-2 transition-all ${
-                              isOutOfStock
-                                ? "opacity-50 cursor-pointer"
-                                : "hover:shadow-md cursor-pointer"
-                            }`}
-                            style={{
-                              borderColor: isOutOfStock ? "#E0E0E0" : "#785E9E",
-                            }}
-                            title={isOutOfStock ? "Nema na stanju" : undefined}
-                            onMouseEnter={(e) => {
-                              if (!isOutOfStock)
-                                e.currentTarget.style.borderColor = "#8FC74A";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = isOutOfStock
-                                ? "#E0E0E0"
-                                : "#785E9E";
-                            }}
-                          >
-                            <div className="flex flex-col gap-2">
-                              {/* Gornji dio */}
-                              <div className="min-w-0">
-                                <div
-                                  className="text-[11px] font-semibold"
+                            if (isOutOfStock) {
+                              openOutOfStockConfirm(continueWithSelection);
+                              return;
+                            }
+
+                            continueWithSelection();
+                          }}
+                          className={`bg-white border-2 rounded-lg p-2 transition-all ${
+                            isOutOfStock
+                              ? "opacity-50 cursor-pointer"
+                              : "hover:shadow-md cursor-pointer"
+                          }`}
+                          style={{
+                            borderColor: isOutOfStock ? "#E0E0E0" : "#785E9E",
+                          }}
+                          title={isOutOfStock ? "Nema na stanju" : undefined}
+                          onMouseEnter={(e) => {
+                            if (!isOutOfStock)
+                              e.currentTarget.style.borderColor = "#8FC74A";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = isOutOfStock
+                              ? "#E0E0E0"
+                              : "#785E9E";
+                          }}
+                        >
+                          <div className="flex flex-col gap-2">
+                            {/* Gornji dio */}
+                            <div className="min-w-0">
+                              <div
+                                className="text-[11px] font-semibold"
+                                style={{ color: "#785E9E" }}
+                              >
+                                {artikal.sifra_proizvoda}
+                              </div>
+                              <div className="text-xs font-semibold text-gray-800 truncate">
+                                {artikal.naziv_proizvoda}
+                              </div>
+                              <div
+                                className="text-[11px] font-bold mt-1"
+                                style={{ color: "#8FC74A" }}
+                              >
+                                JM: {artikal.jm}
+                              </div>
+                              {isOutOfStock && (
+                                <div className="text-[10px] font-semibold text-red-600 mt-1">
+                                  NEMA NA STANJU
+                                </div>
+                              )}
+                            </div>
+                            {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
+                            <div className="space-y-2 text-xs">
+                              <div
+                                className="rounded p-2 h-[32px] flex items-center justify-between"
+                                style={{ backgroundColor: "#F0F4FF" }}
+                              >
+                                <span
+                                  className="font-semibold"
                                   style={{ color: "#785E9E" }}
                                 >
-                                  {artikal.sifra_proizvoda}
-                                </div>
-                                <div className="text-xs font-semibold text-gray-800 truncate">
-                                  {artikal.naziv_proizvoda}
-                                </div>
-                                <div
-                                  className="text-[11px] font-bold mt-1"
+                                  VPC
+                                </span>
+                                <span
+                                  className="font-bold"
                                   style={{ color: "#8FC74A" }}
                                 >
-                                  JM: {artikal.jm}
-                                </div>
-                                {isOutOfStock && (
-                                  <div className="text-[10px] font-semibold text-red-600 mt-1">
-                                    NEMA NA STANJU
-                                  </div>
-                                )}
+                                  {formatPrice(artikal.VPC)} KM
+                                </span>
                               </div>
-                              {/* CIJENE - VERTIKALNO (MPC ispod VPC) */}
-                              <div className="space-y-2 text-xs">
-                                <div
-                                  className="rounded p-2 h-[32px] flex items-center justify-between"
-                                  style={{ backgroundColor: "#F0F4FF" }}
-                                >
-                                  <span
-                                    className="font-semibold"
-                                    style={{ color: "#785E9E" }}
-                                  >
-                                    VPC
-                                  </span>
-                                  <span
-                                    className="font-bold"
-                                    style={{ color: "#8FC74A" }}
-                                  >
-                                    {formatPrice(artikal.VPC)} KM
-                                  </span>
-                                </div>
 
-                                <div
-                                  className="rounded p-2 h-[32px] flex items-center justify-between"
-                                  style={{ backgroundColor: "#F0FFF4" }}
+                              <div
+                                className="rounded p-2 h-[32px] flex items-center justify-between"
+                                style={{ backgroundColor: "#F0FFF4" }}
+                              >
+                                <span
+                                  className="font-semibold"
+                                  style={{ color: "#785E9E" }}
                                 >
-                                  <span
-                                    className="font-semibold"
-                                    style={{ color: "#785E9E" }}
-                                  >
-                                    MPC
-                                  </span>
-                                  <span
-                                    className="font-bold"
-                                    style={{ color: "#8FC74A" }}
-                                  >
-                                    {formatPrice(artikal.mpc)} KM
-                                  </span>
-                                </div>
+                                  MPC
+                                </span>
+                                <span
+                                  className="font-bold"
+                                  style={{ color: "#8FC74A" }}
+                                >
+                                  {formatPrice(artikal.mpc)} KM
+                                </span>
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
-                    {artikli.filter(
-                      (a) =>
-                        a.naziv_proizvoda
-                          ?.toLowerCase()
-                          .includes(searchArtikli.toLowerCase()) ||
-                        a.sifra_proizvoda?.toString().includes(searchArtikli),
-                    ).length === 0 && (
+                        </div>
+                      );
+                    })}
+                    {filteredArtikli.length === 0 && (
                       <div className="col-span-2 text-center text-gray-400 py-8">
                         <p className="text-sm">Nema pronađenih artikala</p>
                       </div>
