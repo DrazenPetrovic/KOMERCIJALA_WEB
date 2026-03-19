@@ -610,12 +610,29 @@ export function OrdersList() {
         dodatnaLokacija: selectedDodatnaLokacija
           ? { ...selectedDodatnaLokacija }
           : null,
-        proizvodi: novaArtiklUNarudzbi.map((a) => ({
-          sifraProizvoda: a.sifra_proizvoda,
-          kolicina: a.kolicina,
-          napomena: a.napomena || "",
-          trazenaCijena: Number(a.trazenaCijena) || 0,
-        })),
+        // proizvodi: novaArtiklUNarudzbi.map((a) => ({
+        //   sifraProizvoda: a.sifra_proizvoda,
+        //   kolicina: a.kolicina,
+        //   napomena: a.napomena || "",
+        //   trazenaCijena: Number(a.trazenaCijena) || 0,
+        // })),
+        proizvodi: novaArtiklUNarudzbi.map((a) => {
+          const mpc = Number(a.mpc) || 0;
+          const trazena = Number(a.trazenaCijena) || 0;
+          const cijenaDio =
+            trazena > 0 && trazena !== mpc ? `TC:${trazena.toFixed(2)}` : "";
+          const napomenaDio = (a.napomena || "").trim();
+          const finalNapomena = [napomenaDio, cijenaDio]
+            .filter(Boolean)
+            .join(" ");
+
+          return {
+            sifraProizvoda: a.sifra_proizvoda,
+            kolicina: a.kolicina,
+            napomena: finalNapomena,
+            trazenaCijena: trazena,
+          };
+        }),
       };
 
       //console.log("📤 Šaljem narudžbu:", orderData);
