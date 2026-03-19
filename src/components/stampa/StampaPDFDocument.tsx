@@ -1,6 +1,6 @@
 import React from "react";
 import { Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
-import { formatCurrency } from "./matematickeFunkcije";
+import { formatCurrency as razneFunkcije } from "./matematickeFunkcije";
 // ─── Tipovi ────────────────────────────────────────────────────────────────
 
 export interface ReportArtikal {
@@ -37,28 +37,36 @@ const BORDER = "#E6E6EB";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
+const PAGE_SIDE_PADDING = 14;
+
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
     fontSize: 9,
     color: TEXT_DARK,
     paddingTop: 0,
-    paddingLeft: 14,
-    paddingRight: 14,
+    paddingLeft: PAGE_SIDE_PADDING,
+    paddingRight: PAGE_SIDE_PADDING,
     paddingBottom: 40,
   },
+
+  headerWrap: {
+    marginLeft: -PAGE_SIDE_PADDING,
+    marginRight: -PAGE_SIDE_PADDING,
+  },
+
   headerImage: {
     width: "100%",
     height: 96,
-    marginLeft: -14, // izlazi iz paddinga da ide do ruba
-    marginRight: -14,
+    objectFit: "cover",
   },
+
   accentLine: {
     height: 3,
     backgroundColor: ACCENT,
     marginTop: 2,
-    marginLeft: -14, // isto kao header
-    marginRight: -14,
+    marginLeft: -PAGE_SIDE_PADDING,
+    marginRight: -PAGE_SIDE_PADDING,
   },
   titleRow: {
     flexDirection: "row",
@@ -232,10 +240,10 @@ const StampaPDFDocument: React.FC<StampaPDFProps> = ({
             </Text>
             <Text style={[styles.colJm, styles.tdText]}>{artikal.jm}</Text>
             <Text style={[styles.colVpc, styles.tdText]}>
-              {formatCurrency(artikal.vpc)}
+              {razneFunkcije(artikal.vpc)}
             </Text>
             <Text style={[styles.colMpc, styles.tdText]}>
-              {formatCurrency(artikal.mpc)}
+              {razneFunkcije(artikal.mpc)}
             </Text>
           </View>
         ))}

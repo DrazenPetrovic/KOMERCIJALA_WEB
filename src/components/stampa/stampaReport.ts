@@ -5,6 +5,7 @@ import StampaPDFDocument, {
   ReportArtikal,
   ReportTemplateConfig,
 } from "./StampaPDFDocument";
+import { generateDocNumber } from "./matematickeFunkcije";
 
 // ─── Tipovi ────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,11 @@ interface GenerateStampaOptions {
 }
 
 // ─── Konstante ─────────────────────────────────────────────────────────────
+const DOC_PREFIX_BY_TYPE: Record<ReportDocumentType, string> = {
+  PONUDA: "PON",
+  PREDRACUN: "PR",
+  OTPREMNICA: "OT",
+};
 
 const DEFAULT_TEMPLATE_BY_TYPE: Record<
   ReportDocumentType,
@@ -27,21 +33,18 @@ const DEFAULT_TEMPLATE_BY_TYPE: Record<
   PONUDA: {
     documentTitle: "PONUDA",
     subtitle: "Ponuda artikala iz selekcije",
-    documentNumber: "PON-001",
-    note: "Napomena: Cene su informativne i podlozne promenama.",
+    note: "Napomena: Cene su informativne i podložne promjenama.",
     logoPath: "/foto/MEMORANDUM.jpg",
   },
   PREDRACUN: {
     documentTitle: "PREDRACUN",
     subtitle: "Predracun artikala",
-    documentNumber: "PR-001",
     note: "Napomena: Predracun nije fiskalni dokument.",
     logoPath: "/foto/MEMORANDUM.jpg",
   },
   OTPREMNICA: {
     documentTitle: "OTPREMNICA",
     subtitle: "Otprema robe",
-    documentNumber: "OT-001",
     note: "Napomena: Molimo proverite robu pri prijemu.",
     logoPath: "/foto/MEMORANDUM.jpg",
   },
@@ -96,10 +99,14 @@ export const generateStampaReport = async ({
   if (items.length === 0) return;
 
   const now = new Date();
+  const generatedDocumentNumber = generateDocNumber(
+    DOC_PREFIX_BY_TYPE[documentType],
+  );
   const defaultTemplate = DEFAULT_TEMPLATE_BY_TYPE[documentType];
   const mergedTemplate: ReportTemplateConfig = {
     ...defaultTemplate,
     ...template,
+    documentNumber: template?.documentNumber ?? generatedDocumentNumber,
     documentDate: template?.documentDate ?? now.toLocaleDateString("sr-RS"),
     validUntil:
       template?.validUntil ??
