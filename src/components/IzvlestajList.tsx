@@ -1,5 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Users, FileText, Save, Loader, Calendar, Search } from 'lucide-react';
+import { useEffect, useState, useRef } from "react";
+import {
+  Users,
+  FileText,
+  Save,
+  Loader,
+  Calendar,
+  Search,
+  Mic,
+  MicOff,
+} from "lucide-react";
 
 interface Partner {
   sifra_partnera: number;
@@ -17,9 +26,8 @@ interface Partner {
 //   poslano_emailom: number;
 // }
 
-
 interface Report {
-  sifra_tabele: number
+  sifra_tabele: number;
   datum_izvjestaja: string;
   podaci_izvjestaja: string;
 }
@@ -36,28 +44,32 @@ interface Report {
 export default function IzvlestajList() {
   const [partneri, setPartneri] = useState<Partner[]>([]);
   const [filteredPartneri, setFilteredPartneri] = useState<Partner[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
-  const [reportData, setReportData] = useState<string>('');
+  const [reportData, setReportData] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadingReports, setLoadingReports] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-
-    useEffect(() => {
+  useEffect(() => {
     fetchPartneri();
   }, []);
 
   useEffect(() => {
     // Filtriranje partnera u realnom vremenu
-    const filtered = partneri.filter((partner) =>
-      partner.Naziv_partnera.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.Naziv_grada.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      partner.sifra_partnera.toString().includes(searchQuery)
+    const filtered = partneri.filter(
+      (partner) =>
+        partner.Naziv_partnera.toLowerCase().includes(
+          searchQuery.toLowerCase(),
+        ) ||
+        partner.Naziv_grada.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        partner.sifra_partnera.toString().includes(searchQuery),
     );
     setFilteredPartneri(filtered);
   }, [searchQuery, partneri]);
@@ -65,33 +77,33 @@ export default function IzvlestajList() {
   const fetchPartneri = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
       const response = await fetch(`${apiUrl}/api/partneri`, {
-        method: 'GET',
-        credentials: 'include',
+        method: "GET",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
-        throw new Error('Greška pri učitavanju partnera');
+        throw new Error("Greška pri učitavanju partnera");
       }
 
       const result = await response.json();
 
       // console.log('Rezultat API poziva za partneri:', result);
-      
+
       if (result.success && result.data) {
         const dataArray = Array.isArray(result.data) ? result.data : [];
         setPartneri(dataArray);
       } else {
-        setError(result.error || 'Greška pri učitavanju partnera');
+        setError(result.error || "Greška pri učitavanju partnera");
       }
     } catch (err) {
-      setError('Greška pri učitavanju podataka');
+      setError("Greška pri učitavanju podataka");
       console.error(err);
     } finally {
       setLoading(false);
@@ -101,17 +113,20 @@ export default function IzvlestajList() {
   const fetchReports = async (sifraPartnera: number) => {
     try {
       setLoadingReports(true);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-      const response = await fetch(`${apiUrl}/api/izvjestaji/${sifraPartnera}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(
+        `${apiUrl}/api/izvjestaji/${sifraPartnera}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Greška pri učitavanju izvještaja');
+        throw new Error("Greška pri učitavanju izvještaja");
       }
 
       const result = await response.json();
@@ -121,7 +136,7 @@ export default function IzvlestajList() {
         // console.log('Rezultat API poziva za izvještaje:', result.data);
       }
     } catch (err) {
-      console.error('Greška pri učitavanju izvještaja:', err);
+      console.error("Greška pri učitavanju izvještaja:", err);
     } finally {
       setLoadingReports(false);
     }
@@ -129,34 +144,34 @@ export default function IzvlestajList() {
 
   const handlePartnerClick = (partner: Partner) => {
     setSelectedPartner(partner);
-    setReportData('');
-    setSuccessMessage('');
-    setError('');
+    setReportData("");
+    setSuccessMessage("");
+    setError("");
     fetchReports(partner.sifra_partnera);
   };
 
   const handleSave = async () => {
     if (!selectedPartner) {
-      setError('Molimo odaberite partnera');
+      setError("Molimo odaberite partnera");
       return;
     }
 
     if (!reportData.trim()) {
-      setError('Molimo unesite podatke o razgovoru');
+      setError("Molimo unesite podatke o razgovoru");
       return;
     }
 
     try {
       setSaving(true);
-      setError('');
-      setSuccessMessage('');
+      setError("");
+      setSuccessMessage("");
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
       const response = await fetch(`${apiUrl}/api/izvjestaji/save`, {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           sifraPartnera: selectedPartner.sifra_partnera,
@@ -165,25 +180,67 @@ export default function IzvlestajList() {
       });
 
       if (!response.ok) {
-        throw new Error('Greška pri spremanju izvještaja');
+        throw new Error("Greška pri spremanju izvještaja");
       }
 
       const result = await response.json();
 
       if (result.success) {
-        setSuccessMessage('Izvještaj uspješno sačuvan!');
-        setReportData('');
+        setSuccessMessage("Izvještaj uspješno sačuvan!");
+        setReportData("");
         // Refresh reports list
         fetchReports(selectedPartner.sifra_partnera);
       } else {
-        setError(result.error || 'Greška pri spremanju izvještaja');
+        setError(result.error || "Greška pri spremanju izvještaja");
       }
     } catch (err) {
-      setError('Greška pri spremanju podataka');
+      setError("Greška pri spremanju podataka");
       console.error(err);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleVoiceInput = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognitionAPI =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      setError(
+        "Vaš pretraživač ne podržava prepoznavanje govora (koristite Chrome/Edge)",
+      );
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "sr-Latn-RS";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const results = Array.from(event.results) as SpeechRecognitionResult[];
+
+      const transcript = results
+        .slice(event.resultIndex)
+        .map((r) => r[0].transcript)
+        .join(" ");
+
+      setReportData((prev) => prev + (prev ? " " : "") + transcript);
+    };
+
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
   };
 
   // const formatDate = (dateString: string): string => {
@@ -197,19 +254,21 @@ export default function IzvlestajList() {
 
   return (
     <div className="h-screen w-full overflow-x-hidden">
-
       <div className="h-full w-full px-4 md:px-6 lg:px-8 py-4">
-        
         <div className="grid gap-6 h-full w-full grid-cols-1 lg:grid-cols-[minmax(280px,30%)_minmax(0,1fr)]">
-
-
           {/* LIJEVA STRANA - LISTA PARTNERA (30%) */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full min-w-0">
-
-            <div className="px-6 md:px-8 py-4 md:py-6" style={{ backgroundImage: 'linear-gradient(to right, #785E9E, #6a4f8a)' }}>
+            <div
+              className="px-6 md:px-8 py-4 md:py-6"
+              style={{
+                backgroundImage: "linear-gradient(to right, #785E9E, #6a4f8a)",
+              }}
+            >
               <div className="flex items-center gap-3">
                 <Users className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                <h1 className="text-xl md:text-2xl font-bold text-white">Partneri</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-white">
+                  Partneri
+                </h1>
               </div>
             </div>
 
@@ -230,15 +289,22 @@ export default function IzvlestajList() {
             <div className="p-4 md:p-6 overflow-y-auto flex-1">
               {loading ? (
                 <div className="text-center py-16">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300" style={{ borderTopColor: '#785E9E' }}></div>
-                  <p className="mt-6 text-gray-600 text-sm">Učitavanje partnera...</p>
+                  <div
+                    className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300"
+                    style={{ borderTopColor: "#785E9E" }}
+                  ></div>
+                  <p className="mt-6 text-gray-600 text-sm">
+                    Učitavanje partnera...
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {filteredPartneri.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                       <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-600 text-sm">Nema pronađenih partnera</p>
+                      <p className="text-gray-600 text-sm">
+                        Nema pronađenih partnera
+                      </p>
                     </div>
                   ) : (
                     filteredPartneri.map((partner) => (
@@ -246,14 +312,21 @@ export default function IzvlestajList() {
                         key={partner.sifra_partnera}
                         onClick={() => handlePartnerClick(partner)}
                         className={`w-full p-3 rounded-xl border-2 transition-all text-left ${
-                          selectedPartner?.sifra_partnera === partner.sifra_partnera
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
+                          selectedPartner?.sifra_partnera ===
+                          partner.sifra_partnera
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50"
                         }`}
                       >
-                        <p className="font-semibold text-gray-900 text-sm">{partner.Naziv_partnera}</p>
-                        <p className="text-xs text-gray-600 mt-0.5">{partner.Naziv_grada}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">Šifra: {partner.sifra_partnera}</p>
+                        <p className="font-semibold text-gray-900 text-sm">
+                          {partner.Naziv_partnera}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {partner.Naziv_grada}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Šifra: {partner.sifra_partnera}
+                        </p>
                       </button>
                     ))
                   )}
@@ -264,10 +337,17 @@ export default function IzvlestajList() {
 
           {/* DESNA STRANA - FORMA ZA IZVJEŠTAJ (70%) */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden flex flex-col h-full min-w-0 ">
-            <div className="px-6 md:px-8 py-4 md:py-6 flex-shrink-0" style={{ backgroundImage: 'linear-gradient(to right, #8FC74A, #7fb83a)' }}>
+            <div
+              className="px-6 md:px-8 py-4 md:py-6 flex-shrink-0"
+              style={{
+                backgroundImage: "linear-gradient(to right, #8FC74A, #7fb83a)",
+              }}
+            >
               <div className="flex items-center gap-3">
                 <FileText className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                <h1 className="text-xl md:text-2xl font-bold text-white">Izvještaj</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-white">
+                  Izvještaj
+                </h1>
               </div>
             </div>
 
@@ -275,51 +355,103 @@ export default function IzvlestajList() {
               {!selectedPartner ? (
                 <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                   <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 text-sm">Molimo odaberite partnera sa lijeve strane</p>
+                  <p className="text-gray-600 text-sm">
+                    Molimo odaberite partnera sa lijeve strane
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {/* INFO O ODABRANOM PARTNERU */}
-                  <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200 flex-shrink-0">
-                    <h3 className="font-bold text-base mb-2" style={{ color: '#785E9E' }}>
-                      {selectedPartner.Naziv_partnera}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <p className="text-gray-600">Grad:</p>
-                        <p className="font-semibold">{selectedPartner.Naziv_grada}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Šifra:</p>
-                        <p className="font-semibold">{selectedPartner.sifra_partnera}</p>
+                  {/* INFO O ODABRANOM PARTNERU + GOVORI DUGME */}
+                  {/* INFO O ODABRANOM PARTNERU + GOVORI DUGME */}
+                  <div className="grid grid-cols-[2fr_1fr] gap-3 items-stretch flex-shrink-0">
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-4 border-2 border-purple-200">
+                      <h3
+                        className="font-bold text-base mb-2"
+                        style={{ color: "#785E9E" }}
+                      >
+                        {selectedPartner.Naziv_partnera}
+                      </h3>
+
+                      <div className="flex items-center gap-3 text-xs">
+                        <div className="flex items-center gap-1">
+                          <p className="text-gray-600">Grad:</p>
+                          <p className="font-semibold">
+                            {selectedPartner.Naziv_grada}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <p className="text-gray-600">Šifra:</p>
+                          <p className="font-semibold">
+                            {selectedPartner.sifra_partnera}
+                          </p>
+                        </div>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleVoiceInput}
+                      className={`w-full h-full min-h-[112px] rounded-xl border-2 px-3 py-3 flex flex-col items-center justify-center gap-2 text-base font-bold transition-all active:scale-[0.98] ${
+                        isRecording
+                          ? "bg-red-100 text-red-700 border-red-400 animate-pulse"
+                          : "bg-purple-100 text-purple-700 border-purple-400 hover:bg-purple-200"
+                      }`}
+                    >
+                      {isRecording ? (
+                        <>
+                          <MicOff className="w-6 h-6" />
+                          ZAUSTAVI
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-6 h-6" />
+                          GOVORI
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* FORMA ZA UNOS PODATAKA */}
                   <div className="flex-shrink-0">
-                    <label className="block text-xs font-semibold text-gray-700 mb-2">
-                      Podaci o razgovoru:
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-semibold text-gray-700">
+                        Podaci o razgovoru:
+                      </label>
+                    </div>
                     <textarea
                       value={reportData}
                       onChange={(e) => setReportData(e.target.value)}
                       placeholder="Unesite podatke o razgovoru sa partnerom..."
                       rows={6}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:border-purple-500 transition-all resize-none text-sm"
+                      className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all resize-none text-sm ${
+                        isRecording
+                          ? "border-red-400 focus:border-red-500"
+                          : "border-gray-300 focus:border-purple-500"
+                      }`}
                     />
+                    {isRecording && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                        <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        Snimanje u toku... govorite na bosanskom
+                      </p>
+                    )}
                   </div>
 
                   {/* PORUKE */}
                   {error && (
                     <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex-shrink-0">
-                      <p className="text-red-600 font-medium text-sm">{error}</p>
+                      <p className="text-red-600 font-medium text-sm">
+                        {error}
+                      </p>
                     </div>
                   )}
 
                   {successMessage && (
                     <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 flex-shrink-0">
-                      <p className="text-green-600 font-medium text-sm">{successMessage}</p>
+                      <p className="text-green-600 font-medium text-sm">
+                        {successMessage}
+                      </p>
                     </div>
                   )}
 
@@ -328,14 +460,14 @@ export default function IzvlestajList() {
                     onClick={handleSave}
                     disabled={saving || !reportData.trim()}
                     className="w-full px-6 py-3 rounded-xl transition-all text-white font-bold text-base flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                    style={{ backgroundColor: '#785E9E' }}
+                    style={{ backgroundColor: "#785E9E" }}
                     onMouseEnter={(e) => {
                       if (!saving && reportData.trim()) {
-                        e.currentTarget.style.backgroundColor = '#6a4f8a';
+                        e.currentTarget.style.backgroundColor = "#6a4f8a";
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#785E9E';
+                      e.currentTarget.style.backgroundColor = "#785E9E";
                     }}
                   >
                     {saving ? (
@@ -353,32 +485,38 @@ export default function IzvlestajList() {
 
                   {/* ISTORIJA IZVJEŠTAJA */}
                   <div className="border-t-2 border-gray-200 pt-4 mt-4">
-                    <h3 className="font-bold text-base mb-3 flex-shrink-0" style={{ color: '#785E9E' }}>
+                    <h3
+                      className="font-bold text-base mb-3 flex-shrink-0"
+                      style={{ color: "#785E9E" }}
+                    >
                       Istorija izvještavanja
                     </h3>
 
                     {loadingReports ? (
                       <div className="text-center py-6">
                         <Loader className="w-6 h-6 animate-spin text-purple-600 mx-auto" />
-                        <p className="text-gray-600 mt-2 text-xs">Učitavanje izvještaja...</p>
+                        <p className="text-gray-600 mt-2 text-xs">
+                          Učitavanje izvještaja...
+                        </p>
                       </div>
                     ) : reports.length === 0 ? (
                       <div className="text-center py-6 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                         <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-600 text-xs">Nema prethodnih izvještaja</p>
+                        <p className="text-gray-600 text-xs">
+                          Nema prethodnih izvještaja
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {reports.map((report) => (
                           <div
-                           key={report.sifra_tabele}
+                            key={report.sifra_tabele}
                             className="bg-gray-50 rounded-xl p-3 border-2 border-gray-200 hover:border-purple-300 transition-all"
                           >
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-2">
                                 <Calendar className="w-3 h-3 text-purple-600" />
                                 <span className="font-bold text-gray-900 text-xs">
-                                
                                   {report.datum_izvjestaja}
                                 </span>
                               </div>
