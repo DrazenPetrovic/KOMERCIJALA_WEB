@@ -19,6 +19,7 @@ interface Artikal {
   jm: string;
   vpc: number;
   mpc: number;
+  kolicinaNaStanju: number;
   sifraGrupe: string;
   nazivGrupe: string;
   image_url?: string | null; // NOVO: opcioni URL slike proizvoda
@@ -87,6 +88,10 @@ export default function ArtikliList() {
           jm: a.jm || "",
           vpc: parseFloat(a.vpc || a.VPC) || 0,
           mpc: parseFloat(a.mpc || a.MPC) || 0,
+          kolicinaNaStanju:
+            Number(
+              a.kolicinaNaStanju ?? a.kolicina_proizvoda ?? a.stanje ?? 0,
+            ) || 0,
           sifraGrupe: toGroupString(
             a.grupa_proizvoda ?? a.sifra_grupe ?? a.grupa_sifra,
           ),
@@ -197,21 +202,36 @@ export default function ArtikliList() {
   }, []);
 
   const filteredArtikli = useMemo(() => {
-    return artikli.filter((artikal) => {
-      const matchesSearch =
-        (artikal.naziv_proizvoda || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (artikal.sifra_proizvoda || "").toString().includes(searchTerm);
+    return artikli
+      .filter((artikal) => {
+        const matchesSearch =
+          (artikal.naziv_proizvoda || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          (artikal.sifra_proizvoda || "").toString().includes(searchTerm);
 
-      if (selectedArtikliGrupa === ALL_ARTIKLI_GRUPE) {
-        return matchesSearch;
-      }
+        if (selectedArtikliGrupa === ALL_ARTIKLI_GRUPE) {
+          return matchesSearch;
+        }
 
-      const groupKey = toGroupString(artikal.sifraGrupe);
+        const groupKey = toGroupString(artikal.sifraGrupe);
 
-      return matchesSearch && groupKey === selectedArtikliGrupa;
-    });
+        return matchesSearch && groupKey === selectedArtikliGrupa;
+      })
+      .sort((a, b) => {
+        const aOutOfStock = Number(a.kolicinaNaStanju) === 0;
+        const bOutOfStock = Number(b.kolicinaNaStanju) === 0;
+
+        if (aOutOfStock !== bOutOfStock) {
+          return aOutOfStock ? 1 : -1;
+        }
+
+        return (a.naziv_proizvoda || "").localeCompare(
+          b.naziv_proizvoda || "",
+          "sr-Latn",
+          { sensitivity: "base" },
+        );
+      });
   }, [artikli, searchTerm, selectedArtikliGrupa]);
 
   const isAllSelected =
@@ -404,6 +424,7 @@ export default function ArtikliList() {
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 {filteredArtikli.map((artikal) => {
                   const isSelected = selectedSifre.has(artikal.sifra_proizvoda);
+                  const isOutOfStock = Number(artikal.kolicinaNaStanju) === 0;
 
                   return (
                     <div
@@ -421,8 +442,11 @@ export default function ArtikliList() {
                         "border rounded-xl overflow-hidden transition-colors cursor-pointer select-none flex flex-col h-full",
                         isSelected
                           ? "border-purple-500 bg-purple-50"
-                          : "border-gray-200 bg-white hover:bg-gray-50",
+                          : isOutOfStock
+                            ? "border-gray-200 bg-gray-50 opacity-60 hover:bg-gray-100"
+                            : "border-purple-300 bg-white hover:bg-gray-50",
                       ].join(" ")}
+                      title={isOutOfStock ? "Nema na stanju" : undefined}
                     >
                       {/* image */}
                       <div className="w-full aspect-square overflow-hidden relative">
@@ -455,7 +479,7 @@ export default function ArtikliList() {
                       </div>
 
                       {/* content */}
-                      <div className="p-4">
+                      <div className="p-4 bg-purple-50">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-sm text-gray-500">
@@ -475,6 +499,11 @@ export default function ArtikliList() {
                             <div className="text-sm text-gray-600 mt-1">
                               JM: {artikal.jm}
                             </div>
+                            {isOutOfStock && (
+                              <div className="text-xs font-semibold text-red-600 mt-2">
+                                NEMA NA STANJU
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex flex-col items-end gap-2">
@@ -501,7 +530,7 @@ export default function ArtikliList() {
                           <div className="bg-white border border-gray-200 rounded-lg p-2">
                             <div className="text-xs text-gray-500">VPC</div>
                             <div className="font-medium text-gray-900">
-                              {artikal.vpc.toLocaleString("sr-RS", {
+                              {artikal.vpc.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}{" "}
@@ -511,13 +540,32 @@ export default function ArtikliList() {
                           <div className="bg-white border border-gray-200 rounded-lg p-2">
                             <div className="text-xs text-gray-500">MPC</div>
                             <div className="font-medium text-gray-900">
-                              {artikal.mpc.toLocaleString("sr-RS", {
+                              {artikal.mpc.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}{" "}
                               KM
                             </div>
                           </div>
+                        </div>
+
+                        <div className="mt-2 text-xs text-gray-600">
+                          Stanje:{" "}
+                          <span
+                            className={
+                              isOutOfStock
+                                ? "font-semibold text-red-600"
+                                : "font-semibold text-gray-900"
+                            }
+                          >
+                            {Number(artikal.kolicinaNaStanju).toLocaleString(
+                              "en-US",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              },
+                            )}
+                          </span>
                         </div>
 
                         {/* helper: ovde ćeš kasnije lako dodati dugme "Kreiraj PDF" */}
