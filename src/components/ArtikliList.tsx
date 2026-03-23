@@ -444,7 +444,7 @@ export default function ArtikliList() {
                           ? "border-purple-500 bg-purple-50"
                           : isOutOfStock
                             ? "border-gray-200 bg-gray-50 opacity-60 hover:bg-gray-100"
-                            : "border-purple-300 bg-white hover:bg-gray-50",
+                            : "border-purple-900 bg-[#785E9E] hover:bg-[#6B4F9E]",
                       ].join(" ")}
                       title={isOutOfStock ? "Nema na stanju" : undefined}
                     >
@@ -479,10 +479,13 @@ export default function ArtikliList() {
                       </div>
 
                       {/* content */}
-                      <div className="p-4 bg-purple-50">
+                      <div
+                        className="p-4"
+                        style={{ backgroundColor: "#785E9E" }}
+                      >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm text-gray-900">
                               Šifra: {artikal.sifra_proizvoda}
                             </div>
                             <div
@@ -496,7 +499,7 @@ export default function ArtikliList() {
                             >
                               {artikal.naziv_proizvoda}
                             </div>
-                            <div className="text-sm text-gray-600 mt-1">
+                            <div className="text-sm text-gray-800 mt-1">
                               JM: {artikal.jm}
                             </div>
                             {isOutOfStock && (
