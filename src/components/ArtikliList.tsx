@@ -425,7 +425,6 @@ export default function ArtikliList() {
                 {filteredArtikli.map((artikal) => {
                   const isSelected = selectedSifre.has(artikal.sifra_proizvoda);
                   const isOutOfStock = Number(artikal.kolicinaNaStanju) === 0;
-
                   return (
                     <div
                       key={artikal.sifra_proizvoda}
@@ -439,12 +438,12 @@ export default function ArtikliList() {
                         }
                       }}
                       className={[
-                        "border rounded-xl overflow-hidden transition-colors cursor-pointer select-none flex flex-col h-full",
+                        "border-2 rounded-xl overflow-hidden transition-colors cursor-pointer select-none flex flex-col h-full",
                         isSelected
-                          ? "border-purple-500 bg-purple-50"
+                          ? "border-[#785E9E] bg-[#ede8f5]"
                           : isOutOfStock
-                            ? "border-gray-200 bg-gray-50 opacity-60 hover:bg-gray-100"
-                            : "border-purple-900 bg-purple-400 hover:border-2 hover:border-[#8FC74A] hover:bg-purple-400",
+                            ? "border-0 bg-[#F3EFF9] opacity-40 grayscale"
+                            : "border-2 border-[#d4c8e8] bg-[#F3EFF9] hover:border-4 hover:border-[#8FC74A]",
                       ].join(" ")}
                       title={isOutOfStock ? "Nema na stanju" : undefined}
                     >
@@ -472,17 +471,17 @@ export default function ArtikliList() {
                           }}
                         />
                         {/* fallback */}
-                        <div className="hidden flex-col items-center text-gray-400 absolute inset-0 justify-center bg-gray-100">
+                        <div className="hidden flex-col items-center text-[#9b89b8] absolute inset-0 justify-center bg-[#F3EFF9]">
                           <ImageIcon className="w-10 h-10" />
                           <span className="text-sm mt-1">Nema slike</span>
                         </div>
                       </div>
 
                       {/* content */}
-                      <div className="p-4 bg-purple-400 rounded-xl flex flex-col gap-2.5">
-                        {/* Naziv - puni red */}
+                      <div className="p-4 flex flex-col gap-2.5">
+                        {/* Naziv */}
                         <div
-                          className="text-lg font-semibold text-gray-900 w-full overflow-hidden"
+                          className="text-lg font-semibold text-[#2d1f45] w-full overflow-hidden"
                           title={artikal.naziv_proizvoda}
                           style={{
                             display: "-webkit-box",
@@ -494,16 +493,16 @@ export default function ArtikliList() {
                         </div>
 
                         {/* Šifra | JM | Stanje */}
-                        <div className="flex items-center justify-between text-xs text-gray-800">
+                        <div className="flex items-center justify-between text-xs text-[#5a4a72]">
                           <span>
                             Šifra:{" "}
-                            <strong className="text-gray-900">
+                            <strong className="text-[#2d1f45]">
                               {artikal.sifra_proizvoda}
                             </strong>
                           </span>
                           <span>
                             JM:{" "}
-                            <strong className="text-gray-900">
+                            <strong className="text-[#2d1f45]">
                               {artikal.jm}
                             </strong>
                           </span>
@@ -511,7 +510,7 @@ export default function ArtikliList() {
                             Stanje:{" "}
                             <strong
                               className={
-                                isOutOfStock ? "text-red-600" : "text-gray-900"
+                                isOutOfStock ? "text-red-500" : "text-[#2d1f45]"
                               }
                             >
                               {Number(artikal.kolicinaNaStanju).toLocaleString(
@@ -527,9 +526,9 @@ export default function ArtikliList() {
 
                         {/* VPC / MPC */}
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="bg-white border border-gray-200 rounded-lg p-2">
-                            <div className="text-xs text-gray-500">VPC</div>
-                            <div className="font-medium text-gray-900">
+                          <div className="bg-white border border-[#d4c8e8] rounded-lg p-2">
+                            <div className="text-xs text-[#9b89b8]">VPC</div>
+                            <div className="font-medium text-[#2d1f45]">
                               {artikal.vpc.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -537,9 +536,9 @@ export default function ArtikliList() {
                               KM
                             </div>
                           </div>
-                          <div className="bg-white border border-gray-200 rounded-lg p-2">
-                            <div className="text-xs text-gray-500">MPC</div>
-                            <div className="font-medium text-gray-900">
+                          <div className="bg-white border border-[#d4c8e8] rounded-lg p-2">
+                            <div className="text-xs text-[#9b89b8]">MPC</div>
+                            <div className="font-medium text-[#2d1f45]">
                               {artikal.mpc.toLocaleString("en-US", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -549,9 +548,9 @@ export default function ArtikliList() {
                           </div>
                         </div>
 
-                        {/* Grupa (lijevo) + Checkbox (desno) */}
+                        {/* Grupa + Checkbox */}
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-semibold text-[#2F4F77] bg-[#F0FFF4] border border-[#8FC74A] rounded-full px-2.5 py-0.5 whitespace-nowrap">
+                          <div className="text-xs font-semibold text-[#4a7a1e] bg-[#f0fff4] border-2 border-[#8FC74A] rounded-full px-2.5 py-0.5 whitespace-nowrap">
                             {artikal.nazivGrupe ||
                               `Grupa ${artikal.sifraGrupe || "-"}`}
                           </div>
@@ -562,7 +561,7 @@ export default function ArtikliList() {
                               toggleSelect(artikal.sifra_proizvoda)
                             }
                             onClick={(e) => e.stopPropagation()}
-                            className="w-5 h-5 accent-purple-600"
+                            className="w-5 h-5 accent-[#785E9E]"
                             aria-label={`Selektuj artikal ${artikal.naziv_proizvoda}`}
                           />
                         </div>
