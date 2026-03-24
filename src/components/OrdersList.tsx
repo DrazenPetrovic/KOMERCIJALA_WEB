@@ -130,8 +130,8 @@ interface Artikal {
   sifra_proizvoda: number;
   naziv_proizvoda: string;
   jm: string;
-  VPC: number;
-  mpc: number;
+  vpc: number | string;
+  mpc: number | string;
   kolicinaNaStanju: number;
   // dodaj ostale svojstva ako ih ima
 }
@@ -358,11 +358,7 @@ export function OrdersList() {
     setSelectedArtiklModal(found);
     setArtiklKolicina(1);
     setArtiklNapomena("");
-    setArtiklTrazenaCijena(
-      selectedVrstaPlacanja === 1
-        ? Number(found.VPC) || 0
-        : Number(found.mpc) || 0,
-    );
+    setArtiklTrazenaCijena(getDefaultTrazenaCijena(found));
 
     // Zatim fokusiraj na količinu input nakon što se modal ažurira
     setTimeout(() => {
@@ -377,11 +373,7 @@ export function OrdersList() {
     setSelectedArtiklModal(artikal);
     setArtiklKolicina(1);
     setArtiklNapomena("");
-    setArtiklTrazenaCijena(
-      selectedVrstaPlacanja === 1
-        ? Number(artikal.VPC) || 0
-        : Number(artikal.mpc) || 0,
-    );
+    setArtiklTrazenaCijena(getDefaultTrazenaCijena(artikal));
 
     // Fokusiraj na količinu input nakon što se modal ažurira
     setTimeout(() => {
@@ -424,18 +416,36 @@ export function OrdersList() {
   // DODAJ OVAJ RED ISPOD:
   const [headerCollapsed, setHeaderCollapsed] = useState<boolean>(false);
 
+  const parsePriceValue = (
+    price: number | string | undefined | null,
+  ): number => {
+    if (price === null || price === undefined) return 0;
+    if (typeof price === "number") return isNaN(price) ? 0 : price;
+
+    const normalized = String(price).trim().replace(/\s+/g, "");
+    if (!normalized) return 0;
+
+    // Podrzi zapise tipa 12,50 i 1.234,50
+    const withoutThousands = normalized
+      .replace(/\.(?=.*[,])/g, "")
+      .replace(/,/g, ".");
+    const parsed = Number(withoutThousands);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
   const formatPrice = (price: number | string | undefined | null): string => {
-    if (price === null || price === undefined) return "0.00";
-    const numPrice =
-      typeof price === "number" ? price : parseFloat(String(price));
-    return isNaN(numPrice) ? "0.00" : numPrice.toFixed(2);
+    return parsePriceValue(price).toFixed(2);
   };
 
   const getPrice = (price: number | string | undefined | null): number => {
-    if (price === null || price === undefined) return 0;
-    const numPrice =
-      typeof price === "number" ? price : parseFloat(String(price));
-    return isNaN(numPrice) ? 0 : numPrice;
+    return parsePriceValue(price);
+  };
+
+  const getDefaultTrazenaCijena = (artikal?: Artikal | null): number => {
+    if (!artikal) return 0;
+    return selectedVrstaPlacanja === 1
+      ? getPrice(artikal.vpc)
+      : getPrice(artikal.mpc);
   };
 
   const getVrstePaymentaZaKupca = (
@@ -467,6 +477,12 @@ export function OrdersList() {
   const handleAddArtiklToModalOrder = () => {
     if (!selectedArtiklModal || artiklKolicina <= 0) return;
 
+    const trazenaInput = getPrice(artiklTrazenaCijena);
+    const trazenaToSave =
+      trazenaInput > 0
+        ? trazenaInput
+        : getDefaultTrazenaCijena(selectedArtiklModal);
+
     // Provjeri da li artikal već postoji u OVOJ narudžbi (samo u modalu)
     const existingIndex = novaArtiklUNarudzbi.findIndex(
       (a) => a.sifra_proizvoda === selectedArtiklModal.sifra_proizvoda,
@@ -480,8 +496,7 @@ export function OrdersList() {
         kolicina: updatedList[existingIndex].kolicina + artiklKolicina,
         napomena: artiklNapomena || updatedList[existingIndex].napomena,
         trazenaCijena:
-          Number(artiklTrazenaCijena) ||
-          updatedList[existingIndex].trazenaCijena,
+          trazenaToSave || updatedList[existingIndex].trazenaCijena,
       };
       setNovaArtiklUNarudzbi(updatedList);
     } else {
@@ -492,7 +507,7 @@ export function OrdersList() {
           ...selectedArtiklModal,
           kolicina: artiklKolicina,
           napomena: artiklNapomena,
-          trazenaCijena: Number(artiklTrazenaCijena) || 0,
+          trazenaCijena: trazenaToSave,
         },
       ]);
     }
@@ -529,7 +544,7 @@ export function OrdersList() {
 
   const calculateModalTotalPrice = () => {
     return novaArtiklUNarudzbi.reduce(
-      (total, a) => total + a.mpc * a.kolicina,
+      (total, a) => total + getPrice(a.mpc) * a.kolicina,
       0,
     );
   };
@@ -617,8 +632,8 @@ export function OrdersList() {
         //   trazenaCijena: Number(a.trazenaCijena) || 0,
         // })),
         proizvodi: novaArtiklUNarudzbi.map((a) => {
-          const mpc = Number(a.mpc) || 0;
-          const trazena = Number(a.trazenaCijena) || 0;
+          const mpc = getPrice(a.mpc);
+          const trazena = getPrice(a.trazenaCijena);
           const cijenaDio =
             trazena > 0 && trazena !== mpc ? `TC:${trazena.toFixed(2)}` : "";
           const napomenaDio = (a.napomena || "").trim();
@@ -1030,12 +1045,7 @@ export function OrdersList() {
   useEffect(() => {
     if (!selectedArtiklModal || !selectedVrstaPlacanja) return;
 
-    setArtiklTrazenaCijena(
-      selectedVrstaPlacanja === 1
-        ? Number(selectedArtiklModal.mpc) || 0
-        : Number(selectedArtiklModal.mpc) || 0,
-      // traženo je da zabiljezena trazena cijena uvijek bude MPC
-    );
+    setArtiklTrazenaCijena(getDefaultTrazenaCijena(selectedArtiklModal));
   }, [selectedArtiklModal, selectedVrstaPlacanja]);
 
   useEffect(() => {
@@ -2692,7 +2702,7 @@ export function OrdersList() {
                                   className="font-bold"
                                   style={{ color: "#8FC74A" }}
                                 >
-                                  {formatPrice(artikal.VPC)} KM
+                                  {formatPrice(artikal.vpc)} KM
                                 </span>
                               </div>
 
@@ -2794,7 +2804,7 @@ export function OrdersList() {
                               className="font-semibold"
                               style={{ color: "#8FC74A" }}
                             >
-                              {formatPrice(selectedArtiklModal.VPC)} KM
+                              {formatPrice(selectedArtiklModal.vpc)} KM
                             </span>
                           </div>
 
@@ -2925,9 +2935,17 @@ export function OrdersList() {
                               }
                               onBlur={(e) => {
                                 e.currentTarget.style.borderColor = "#8FC74A";
-                                if (artiklTrazenaCijena) {
+                                if (getPrice(artiklTrazenaCijena) > 0) {
                                   setArtiklTrazenaCijena(
-                                    parseFloat(artiklTrazenaCijena.toFixed(2)),
+                                    parseFloat(
+                                      getPrice(artiklTrazenaCijena).toFixed(2),
+                                    ),
+                                  );
+                                } else {
+                                  setArtiklTrazenaCijena(
+                                    getDefaultTrazenaCijena(
+                                      selectedArtiklModal,
+                                    ),
                                   );
                                 }
                               }}
@@ -3074,7 +3092,7 @@ export function OrdersList() {
                                     className="font-bold text-[10px]"
                                     style={{ color: "#8FC74A" }}
                                   >
-                                    {formatPrice(artikal.VPC)} KM
+                                    {formatPrice(artikal.vpc)} KM
                                   </span>
                                 </div>
                                 <div
@@ -3092,6 +3110,23 @@ export function OrdersList() {
                                     style={{ color: "#8FC74A" }}
                                   >
                                     {formatPrice(artikal.mpc)} KM
+                                  </span>
+                                </div>
+                                <div
+                                  className="rounded p-1 h-[28px] flex items-center justify-between"
+                                  style={{ backgroundColor: "#F0FFF4" }}
+                                >
+                                  <span
+                                    className="text-[10px] font-semibold"
+                                    style={{ color: "#785E9E" }}
+                                  >
+                                    Tražena cijena
+                                  </span>
+                                  <span
+                                    className="font-bold text-[10px]"
+                                    style={{ color: "#8FC74A" }}
+                                  >
+                                    {formatPrice(artikal.trazenaCijena)} KM
                                   </span>
                                 </div>
                               </div>
