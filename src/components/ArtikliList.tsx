@@ -444,7 +444,7 @@ export default function ArtikliList() {
                           ? "border-purple-500 bg-purple-50"
                           : isOutOfStock
                             ? "border-gray-200 bg-gray-50 opacity-60 hover:bg-gray-100"
-                            : "border-purple-900 bg-purple-400 hover:bg-[#6B4F9E]",
+                            : "border-purple-900 bg-purple-400 hover:border-2 hover:border-[#8FC74A] hover:bg-purple-400",
                       ].join(" ")}
                       title={isOutOfStock ? "Nema na stanju" : undefined}
                     >
@@ -479,54 +479,54 @@ export default function ArtikliList() {
                       </div>
 
                       {/* content */}
-                      <div className="p-4  bg-purple-400">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm text-gray-900">
-                              Šifra: {artikal.sifra_proizvoda}
-                            </div>
-                            <div
-                              className="text-lg font-semibold text-gray-900 overflow-hidden"
-                              title={artikal.naziv_proizvoda}
-                              style={{
-                                display: "-webkit-box",
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: "vertical",
-                              }}
-                            >
-                              {artikal.naziv_proizvoda}
-                            </div>
-                            <div className="text-sm text-gray-800 mt-1">
-                              JM: {artikal.jm}
-                            </div>
-                            {isOutOfStock && (
-                              <div className="text-xs font-semibold text-red-600 mt-2">
-                                NEMA NA STANJU
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="text-xs font-semibold text-[#2F4F77] bg-[#F0FFF4] border border-[#8FC74A] rounded-full px-2 py-0.5 whitespace-nowrap">
-                              {artikal.nazivGrupe ||
-                                `Grupa ${artikal.sifraGrupe || "-"}`}
-                            </div>
-
-                            {/* checkbox (da se vidi jasno selekcija) */}
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() =>
-                                toggleSelect(artikal.sifra_proizvoda)
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                              className="mt-1 w-5 h-5 accent-purple-600"
-                              aria-label={`Selektuj artikal ${artikal.naziv_proizvoda}`}
-                            />
-                          </div>
+                      <div className="p-4 bg-purple-400 rounded-xl flex flex-col gap-2.5">
+                        {/* Naziv - puni red */}
+                        <div
+                          className="text-lg font-semibold text-gray-900 w-full overflow-hidden"
+                          title={artikal.naziv_proizvoda}
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {artikal.naziv_proizvoda}
                         </div>
 
-                        <div className="mt-3 grid grid-cols-2 gap-2">
+                        {/* Šifra | JM | Stanje */}
+                        <div className="flex items-center justify-between text-xs text-gray-800">
+                          <span>
+                            Šifra:{" "}
+                            <strong className="text-gray-900">
+                              {artikal.sifra_proizvoda}
+                            </strong>
+                          </span>
+                          <span>
+                            JM:{" "}
+                            <strong className="text-gray-900">
+                              {artikal.jm}
+                            </strong>
+                          </span>
+                          <span>
+                            Stanje:{" "}
+                            <strong
+                              className={
+                                isOutOfStock ? "text-red-600" : "text-gray-900"
+                              }
+                            >
+                              {Number(artikal.kolicinaNaStanju).toLocaleString(
+                                "en-US",
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )}
+                            </strong>
+                          </span>
+                        </div>
+
+                        {/* VPC / MPC */}
+                        <div className="grid grid-cols-2 gap-2">
                           <div className="bg-white border border-gray-200 rounded-lg p-2">
                             <div className="text-xs text-gray-500">VPC</div>
                             <div className="font-medium text-gray-900">
@@ -549,27 +549,23 @@ export default function ArtikliList() {
                           </div>
                         </div>
 
-                        <div className="mt-2 text-xs text-gray-600">
-                          Stanje:{" "}
-                          <span
-                            className={
-                              isOutOfStock
-                                ? "font-semibold text-red-600"
-                                : "font-semibold text-gray-900"
+                        {/* Grupa (lijevo) + Checkbox (desno) */}
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-semibold text-[#2F4F77] bg-[#F0FFF4] border border-[#8FC74A] rounded-full px-2.5 py-0.5 whitespace-nowrap">
+                            {artikal.nazivGrupe ||
+                              `Grupa ${artikal.sifraGrupe || "-"}`}
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() =>
+                              toggleSelect(artikal.sifra_proizvoda)
                             }
-                          >
-                            {Number(artikal.kolicinaNaStanju).toLocaleString(
-                              "en-US",
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              },
-                            )}
-                          </span>
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-5 h-5 accent-purple-600"
+                            aria-label={`Selektuj artikal ${artikal.naziv_proizvoda}`}
+                          />
                         </div>
-
-                        {/* helper: ovde ćeš kasnije lako dodati dugme "Kreiraj PDF" */}
-                        {/* <button ... disabled={selectedSifre.size === 0}>Kreiraj PDF</button> */}
                       </div>
                     </div>
                   );
