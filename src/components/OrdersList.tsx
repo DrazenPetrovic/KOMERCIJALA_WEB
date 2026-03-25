@@ -443,9 +443,7 @@ export function OrdersList() {
 
   const getDefaultTrazenaCijena = (artikal?: Artikal | null): number => {
     if (!artikal) return 0;
-    return selectedVrstaPlacanja === 1
-      ? getPrice(artikal.vpc)
-      : getPrice(artikal.mpc);
+return getPrice(artikal.mpc);
   };
 
   const getVrstePaymentaZaKupca = (
