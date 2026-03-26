@@ -252,6 +252,7 @@ export function OrdersList() {
     : recentProducts.slice(0, RECENT_PREVIEW_COUNT);
   const canExpand = totalRecent > RECENT_PREVIEW_COUNT;
   const [seenRecent, setSeenRecent] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const [aiText, setAiText] = useState<string>("");
   const [aiExpanded, setAiExpanded] = useState<boolean>(false);
@@ -443,7 +444,7 @@ export function OrdersList() {
 
   const getDefaultTrazenaCijena = (artikal?: Artikal | null): number => {
     if (!artikal) return 0;
-return getPrice(artikal.mpc);
+    return getPrice(artikal.mpc);
   };
 
   const getVrstePaymentaZaKupca = (
@@ -557,6 +558,8 @@ return getPrice(artikal.mpc);
       alert("❌ OBAVEZNO odaberi vrstu plaćanja!");
       return;
     }
+    if (isSaving) return; // ← guard
+    setIsSaving(true);
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -706,6 +709,8 @@ return getPrice(artikal.mpc);
       console.error("❌ Greška:", errorMessage);
       setNotifMessage("❌ Greška pri spremanju narudžbe: " + errorMessage);
       setShowNotif(true);
+    } finally {
+      setIsSaving(false);
     }
   };
   // ===== KRAJ FUNKCIJE VEZAN ZA NARUDZBE =====
@@ -3424,7 +3429,9 @@ return getPrice(artikal.mpc);
                     }
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                     disabled={
-                      novaArtiklUNarudzbi.length === 0 || !selectedVrstaPlacanja
+                      novaArtiklUNarudzbi.length === 0 ||
+                      !selectedVrstaPlacanja ||
+                      isSaving
                     }
                   >
                     Spremi sve
