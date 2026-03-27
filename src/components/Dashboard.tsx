@@ -20,6 +20,7 @@ import { OrdersList } from "./OrdersList";
 import IzvlestajList from "./IzvlestajList";
 import IzvjestajAdmin from "./IzvjestajAdmin";
 import PoslovanjeKorisnici from "./PoslovanjeKorisnici";
+import PoslovanjeAdmin from "./PoslovanjeAdmin";
 
 interface DashboardProps {
   username: string;
@@ -166,6 +167,10 @@ export function Dashboard({
       return <IzvjestajAdmin />;
     }
 
+    if (activeSection === "analitika") {
+      return <PoslovanjeAdmin />;
+    }
+
     if (activeSection === "poslovanje") {
       return <PoslovanjeKorisnici />;
     }
@@ -302,6 +307,7 @@ export function Dashboard({
           activeSection === "artikli" ||
           activeSection === "dugovanja" ||
           activeSection === "poslovanje" ||
+          activeSection === "analitika" ||
           activeSection === "izvestaji" ||
           activeSection === "izvestaji2" ||
           activeSection === "izvestaji_admin" ? (

@@ -9,9 +9,20 @@ router.get(
   PoslovanjeController.getPoslovanjeIzdaniRacuni,
 );
 router.get(
+  "/izdani-racuni-admin",
+  verifyToken,
+  PoslovanjeController.getPoslovanjeIzdaniRacuniAdmin,
+);
+router.get(
   "/naplata-racuna",
   verifyToken,
   PoslovanjeController.getPoslovanjeNaplataRacuna,
+);
+
+router.get(
+  "/naplata-racuna-admin",
+  verifyToken,
+  PoslovanjeController.getPoslovanjeNaplataRacunaAdmin,
 );
 
 export default router;

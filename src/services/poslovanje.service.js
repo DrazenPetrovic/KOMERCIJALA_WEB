@@ -15,6 +15,17 @@ export const getPoslovanjeIzdaniRacuni = async (sifraRadnika) => {
   });
 };
 
+export const getPoslovanjeIzdaniRacuniAdmin = async () => {
+  // Provjera da li je parametar prosleđen
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.analitika_poslovanje_izdani_racuni_admin()",
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
+
 export const getPoslovanjeNaplataRacuna = async (sifraRadnika) => {
   // Provjera da li je parametar prosleđen
   if (sifraRadnika === undefined || sifraRadnika === null) {
@@ -25,6 +36,17 @@ export const getPoslovanjeNaplataRacuna = async (sifraRadnika) => {
     const [rows] = await connection.execute(
       "CALL komercijala.analitika_poslovanje_naplata_racuna(?)",
       [sifraRadnika],
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
+
+export const getPoslovanjeNaplataRacunaAdmin = async () => {
+  // Provjera da li je parametar prosleđen
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.analitika_poslovanje_naplata_racuna_admin()",
     );
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
