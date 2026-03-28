@@ -195,13 +195,9 @@ export function Dashboard({
     setActiveSection(null);
   }, [vrstaRadnika]);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* HEADER + NAV - KOLAPSIBILAN */}
-      <div
-        className={`transition-all duration-300 relative ${
-          headerCollapsed ? "max-h-12" : "max-h-96"
-        }`}
-      >
+<div className={`relative flex-shrink-0 ${headerCollapsed ? "h-10" : ""}`}>
         {/* STRELICA ZA TOGGLE - GORNJI LIJEVI UGAO */}
         <div className="absolute top-2 left-2 z-50">
           <button
@@ -219,48 +215,55 @@ export function Dashboard({
 
         {/* HEADER - SKRIVENO KADA JE KOLABIRAN */}
         {!headerCollapsed && (
-          <header
-            className="bg-white shadow-md"
-            style={{ borderBottom: "3px solid #785E9E" }}
-          >
-            <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-0">
-              <div className="flex items-center gap-4">
-                <img
-                  src="/logo.png"
-                  alt="Karpas Logo"
-                  className="w-12 h-12 md:w-16 md:h-16 object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                  }}
-                />
-                <div>
-                  <h1
-                    className="text-2xl md:text-3xl lg:text-4xl font-bold"
-                    style={{ color: "#785E9E" }}
-                  >
-                    Karpas ambalaže doo
-                  </h1>
-                  <p className="text-base md:text-lg text-gray-600 mt-1">
-                    Korisnik: {username}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-2 md:gap-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 md:px-6 py-3 md:py-4 rounded-xl transition-all text-base md:text-lg font-medium shadow-lg hover:shadow-xl transform active:scale-95"
-              >
-                <LogOut className="w-5 h-5 md:w-6 md:h-6" />
-                Odjava
-              </button>
-            </div>
-          </header>
-        )}
+  <header
+    className="bg-white shadow-md"
+    style={{ borderBottom: "3px solid #785E9E" }}
+  >
+    <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
+      
+      {/* LIJEVO - Logo + Korisnik */}
+      <div className="flex items-center gap-3 min-w-[180px]">
+        <img
+          src="/logo.png"
+          alt="Karpas Logo"
+          className="w-9 h-9 object-contain"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.display = "none";
+          }}
+        />
+        <p className="text-sm text-gray-600">
+          Korisnik: <span className="font-semibold" style={{ color: "#785E9E" }}>{username}</span>
+        </p>
+      </div>
+
+      {/* SREDINA - Naziv firme */}
+      <h1
+        className="text-xl md:text-2xl font-bold text-center flex-1"
+        style={{ color: "#785E9E" }}
+      >
+        Karpas ambalaže doo
+      </h1>
+
+      {/* DESNO - Odjava */}
+      <div className="flex justify-end min-w-[180px]">
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-2 bg-[#785E9E] hover:bg-[#5A3E8C] active:bg-[#4B2E6F] text-white px-4 py-2 rounded-xl transition-all text-sm font-medium shadow-md hover:shadow-lg transform active:scale-95"
+        >
+          <LogOut className="w-4 h-4" />
+          Odjava
+        </button>
+      </div>
+
+    </div>
+  </header>
+)}
 
         {/* NAV - SKRIVENO KADA JE KOLABIRAN */}
         {!headerCollapsed && (
-          <nav className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm">
-            <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8">
+          <nav className="bg-white border-b-2 border-gray-200 sticky top-0 z-40 shadow-sm mt-[5px]">
+            <div className="max-w-full mx-auto px-2 md:px-6 lg:px-8">
               <div className="flex overflow-x-auto gap-2 md:gap-3 py-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {menuItems.map((item) => {
                   const Icon = item.icon;
@@ -289,7 +292,7 @@ export function Dashboard({
         )}
       </div>
 
-      <main className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 lg:py-10">
+      <main className="flex-1 w-full px-4 md:px-6 lg:px-8" style={{ paddingTop: "5px" }}>
         {activeSection === null ? (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10 text-center">
             <h2
