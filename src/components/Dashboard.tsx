@@ -197,7 +197,9 @@ export function Dashboard({
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* HEADER + NAV - KOLAPSIBILAN */}
-<div className={`relative flex-shrink-0 ${headerCollapsed ? "h-10" : ""}`}>
+      <div
+        className={`relative flex-shrink-0 ${headerCollapsed ? "h-10" : ""}`}
+      >
         {/* STRELICA ZA TOGGLE - GORNJI LIJEVI UGAO */}
         <div className="absolute top-2 left-2 z-50">
           <button
@@ -215,50 +217,51 @@ export function Dashboard({
 
         {/* HEADER - SKRIVENO KADA JE KOLABIRAN */}
         {!headerCollapsed && (
-  <header
-    className="bg-white shadow-md"
-    style={{ borderBottom: "3px solid #785E9E" }}
-  >
-    <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
-      
-      {/* LIJEVO - Logo + Korisnik */}
-      <div className="flex items-center gap-3 min-w-[180px]">
-        <img
-          src="/logo.png"
-          alt="Karpas Logo"
-          className="w-9 h-9 object-contain"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = "none";
-          }}
-        />
-        <p className="text-sm text-gray-600">
-          Korisnik: <span className="font-semibold" style={{ color: "#785E9E" }}>{username}</span>
-        </p>
-      </div>
+          <header
+            className="bg-white shadow-md"
+            style={{ borderBottom: "3px solid #785E9E" }}
+          >
+            <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
+              {/* LIJEVO - Logo + Korisnik */}
+              <div className="flex items-center gap-3 min-w-[180px]">
+                <img
+                  src="/logo.png"
+                  alt="Karpas Logo"
+                  className="w-9 h-9 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                  }}
+                />
+                <p className="text-sm text-gray-600">
+                  Korisnik:{" "}
+                  <span className="font-semibold" style={{ color: "#785E9E" }}>
+                    {username}
+                  </span>
+                </p>
+              </div>
 
-      {/* SREDINA - Naziv firme */}
-      <h1
-        className="text-xl md:text-2xl font-bold text-center flex-1"
-        style={{ color: "#785E9E" }}
-      >
-        Karpas ambalaže doo
-      </h1>
+              {/* SREDINA - Naziv firme */}
+              <h1
+                className="text-xl md:text-2xl font-bold text-center flex-1"
+                style={{ color: "#785E9E" }}
+              >
+                Karpas ambalaže doo
+              </h1>
 
-      {/* DESNO - Odjava */}
-      <div className="flex justify-end min-w-[180px]">
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-2 bg-[#785E9E] hover:bg-[#5A3E8C] active:bg-[#4B2E6F] text-white px-4 py-2 rounded-xl transition-all text-sm font-medium shadow-md hover:shadow-lg transform active:scale-95"
-        >
-          <LogOut className="w-4 h-4" />
-          Odjava
-        </button>
-      </div>
-
-    </div>
-  </header>
-)}
+              {/* DESNO - Odjava */}
+              <div className="flex justify-end min-w-[180px]">
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-2 bg-[#785E9E] hover:bg-[#5A3E8C] active:bg-[#4B2E6F] text-white px-4 py-2 rounded-xl transition-all text-sm font-medium shadow-md hover:shadow-lg transform active:scale-95"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Odjava
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
 
         {/* NAV - SKRIVENO KADA JE KOLABIRAN */}
         {!headerCollapsed && (
@@ -292,7 +295,10 @@ export function Dashboard({
         )}
       </div>
 
-      <main className="flex-1 w-full px-4 md:px-6 lg:px-8" style={{ paddingTop: "5px" }}>
+      <main
+        className="flex-1 min-h-0 w-full overflow-y-auto overflow-x-hidden px-4 md:px-6 lg:px-8"
+        style={{ paddingTop: "5px" }}
+      >
         {activeSection === null ? (
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 lg:p-10 text-center">
             <h2
