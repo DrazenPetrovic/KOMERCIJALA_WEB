@@ -25,4 +25,9 @@ router.get(
   PoslovanjeController.getPoslovanjeNaplataRacunaAdmin,
 );
 
+router.get(
+  "/kretanje-proizvoda",
+  verifyToken,
+  PoslovanjeController.getKretanjeProizvoda,
+);
 export default router;

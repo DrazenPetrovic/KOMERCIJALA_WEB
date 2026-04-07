@@ -21,6 +21,7 @@ import IzvlestajList from "./IzvlestajList";
 import IzvjestajAdmin from "./IzvjestajAdmin";
 import PoslovanjeKorisnici from "./PoslovanjeKorisnici";
 import PoslovanjeAdmin from "./PoslovanjeAdmin";
+import KretanjeProizvoda from "./KretanjeProizvoda";
 
 interface DashboardProps {
   username: string;
@@ -35,7 +36,7 @@ type MenuSection =
   | "izvestaji2"
   | "poslovanje"
   | "partneri"
-  | "dodatni"
+  | "analitikaKretanjaProizvoda"
   | "artikli"
   | "izvestaji_admin"
   | "analitika"
@@ -125,8 +126,8 @@ export function Dashboard({
             color: "bg-orange-100 text-orange-600",
           },
           {
-            id: "dodatni",
-            label: "Dodatni podaci",
+            id: "analitikaKretanjaProizvoda",
+            label: "Kretanja proizvoda",
             icon: Package,
             color: "bg-teal-100 text-teal-600",
           },
@@ -175,6 +176,10 @@ export function Dashboard({
       return <PoslovanjeKorisnici />;
     }
 
+    if (activeSection === "analitikaKretanjaProizvoda") {
+      return <KretanjeProizvoda />;
+    }
+
     const contentMap: Record<Exclude<MenuSection, null>, string> = {
       narudzbe: "Pregled narudžbi",
       dugovanja: "Pregled dugovanja",
@@ -182,7 +187,7 @@ export function Dashboard({
       izvestaji2: "Izveštaji (napredno)",
       poslovanje: "Poslovanje",
       partneri: "Partneri",
-      dodatni: "Dodatni podaci",
+      analitikaKretanjaProizvoda: "Kretanja proizvoda",
       artikli: "Artikli",
       analitika: "Analitika",
       izvestaji_admin: "Administratorski izveštaji",

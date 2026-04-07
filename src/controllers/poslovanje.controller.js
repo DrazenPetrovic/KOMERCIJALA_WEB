@@ -49,3 +49,18 @@ export const getPoslovanjeNaplataRacunaAdmin = async (req, res) => {
       .json({ success: false, error: "Greška pri učitavanju naplata računa" });
   }
 };
+
+export const getKretanjeProizvoda = async (req, res) => {
+  try {
+    const partneri = await Poslovanje.getKretanjeProizvoda();
+    return res.json({ success: true, data: partneri, count: partneri.length });
+  } catch (error) {
+    console.error("Učitavanje kretanja proizvoda error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        error: "Greška pri učitavanju kretanja proizvoda",
+      });
+  }
+};

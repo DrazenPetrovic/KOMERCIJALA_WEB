@@ -51,3 +51,14 @@ export const getPoslovanjeNaplataRacunaAdmin = async () => {
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
+
+export const getKretanjeProizvoda = async () => {
+  // Provjera da li je parametar prosleđen
+
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.pregled_prodanih_kolicina_proizvoda()",
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
