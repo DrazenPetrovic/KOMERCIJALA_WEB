@@ -72,7 +72,12 @@ const toNumber = (v: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const format2 = (v: unknown) => toNumber(v).toFixed(2);
+const numberFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const format2 = (v: unknown) => numberFormatter.format(toNumber(v));
 
 const formatKey = (mjesec: number, godina: number) =>
   `${godina}-${String(mjesec).padStart(2, "0")}`;

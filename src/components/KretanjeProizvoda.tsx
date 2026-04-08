@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Loader } from "lucide-react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getCurrentUser } from "../utils/auth";
 
 interface KretanjeProizvodaApiData {
@@ -40,6 +50,7 @@ interface GroupData {
   sifra_grupe: number;
   naziv_grupe: string;
   ukupna_kolicina: number;
+  kolicinePoJm: Record<string, number>;
   proizvodi: ProductData[];
 }
 
@@ -53,6 +64,18 @@ interface MonthData {
 interface YearData {
   godina: number;
   mjeseci: MonthData[];
+}
+
+interface GroupFilterOption {
+  sifra_grupe: number;
+  naziv_grupe: string;
+}
+
+interface GroupChartSeries {
+  sifra_grupe: number;
+  naziv_grupe: string;
+  jmKeys: string[];
+  data: Array<{ periodLabel: string; [key: string]: string | number }>;
 }
 
 interface ApiResponse<T> {
@@ -77,10 +100,28 @@ const MONTHS = [
   "DEC",
 ];
 
+const CHART_COLORS = [
+  "#785E9E",
+  "#8FC74A",
+  "#2563EB",
+  "#D97706",
+  "#DC2626",
+  "#0891B2",
+  "#4F46E5",
+  "#16A34A",
+];
+
+const quantityFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 const toNumber = (value: number | string | null | undefined) => {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const formatQuantity = (value: number) => quantityFormatter.format(value);
 
 const normalizeRow = (
   item: KretanjeProizvodaApiData,
@@ -102,6 +143,8 @@ export default function KretanjeProizvoda() {
   const [expandedGroupIds, setExpandedGroupIds] = useState<
     Record<string, boolean>
   >({});
+  const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
+  const [isChartModalOpen, setIsChartModalOpen] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -191,6 +234,7 @@ export default function KretanjeProizvoda() {
                     sifra_grupe: item.sifra_grupe,
                     naziv_grupe: item.naziv_grupe,
                     ukupna_kolicina: item.ukupna_kolicina,
+                    kolicinePoJm: { [item.jm]: item.ukupna_kolicina },
                     proizvodi: [
                       {
                         sifra_proizvoda: item.sifra_proizvoda,
@@ -204,6 +248,9 @@ export default function KretanjeProizvoda() {
                 }
 
                 existingGroup.ukupna_kolicina += item.ukupna_kolicina;
+                existingGroup.kolicinePoJm[item.jm] =
+                  (existingGroup.kolicinePoJm[item.jm] ?? 0) +
+                  item.ukupna_kolicina;
 
                 const existingProduct = existingGroup.proizvodi.find(
                   (product) => product.sifra_proizvoda === item.sifra_proizvoda,
@@ -234,6 +281,122 @@ export default function KretanjeProizvoda() {
       );
   }, [rawData]);
 
+  const groupFilterOptions = useMemo((): GroupFilterOption[] => {
+    const map = new Map<number, string>();
+    for (const row of rawData) {
+      if (!map.has(row.sifra_grupe)) {
+        map.set(row.sifra_grupe, row.naziv_grupe);
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([sifra_grupe, naziv_grupe]) => ({ sifra_grupe, naziv_grupe }))
+      .sort((a, b) => a.naziv_grupe.localeCompare(b.naziv_grupe, "sr"));
+  }, [rawData]);
+
+  const visibleGroupedByPeriod = useMemo(() => {
+    if (selectedGroupIds.length === 0) {
+      return groupedByPeriod;
+    }
+
+    return groupedByPeriod
+      .map((yearItem) => ({
+        ...yearItem,
+        mjeseci: yearItem.mjeseci
+          .map((monthItem) => ({
+            ...monthItem,
+            grupe: monthItem.grupe.filter((group) =>
+              selectedGroupIds.includes(group.sifra_grupe),
+            ),
+          }))
+          .filter((monthItem) => monthItem.grupe.length > 0),
+      }))
+      .filter((yearItem) => yearItem.mjeseci.length > 0);
+  }, [groupedByPeriod, selectedGroupIds]);
+
+  const groupChartSeriesMap = useMemo(() => {
+    const groupMap = new Map<
+      number,
+      {
+        sifra_grupe: number;
+        naziv_grupe: string;
+        jmSet: Set<string>;
+        periodMap: Map<
+          string,
+          { periodLabel: string; values: Record<string, number> }
+        >;
+      }
+    >();
+
+    for (const item of rawData) {
+      const groupId = item.sifra_grupe;
+      const periodKey = `${item.godina}-${String(item.mjesec).padStart(2, "0")}`;
+      const periodLabel = `${MONTHS[item.mjesec - 1] || `M${item.mjesec}`} ${item.godina}`;
+
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, {
+          sifra_grupe: groupId,
+          naziv_grupe: item.naziv_grupe,
+          jmSet: new Set<string>(),
+          periodMap: new Map(),
+        });
+      }
+
+      const groupEntry = groupMap.get(groupId)!;
+      groupEntry.jmSet.add(item.jm);
+
+      if (!groupEntry.periodMap.has(periodKey)) {
+        groupEntry.periodMap.set(periodKey, {
+          periodLabel,
+          values: {},
+        });
+      }
+
+      const periodEntry = groupEntry.periodMap.get(periodKey)!;
+      periodEntry.values[item.jm] =
+        (periodEntry.values[item.jm] ?? 0) + item.ukupna_kolicina;
+    }
+
+    const result = new Map<number, GroupChartSeries>();
+
+    for (const [groupId, groupEntry] of groupMap.entries()) {
+      const jmKeys = Array.from(groupEntry.jmSet).sort((a, b) =>
+        a.localeCompare(b, "sr"),
+      );
+
+      const data = Array.from(groupEntry.periodMap.entries())
+        .sort(([a], [b]) => (a > b ? -1 : 1))
+        .map(([, periodEntry]) => {
+          const point: { periodLabel: string; [key: string]: string | number } =
+            {
+              periodLabel: periodEntry.periodLabel,
+            };
+
+          for (const jm of jmKeys) {
+            point[jm] = periodEntry.values[jm] ?? 0;
+          }
+
+          return point;
+        });
+
+      result.set(groupId, {
+        sifra_grupe: groupEntry.sifra_grupe,
+        naziv_grupe: groupEntry.naziv_grupe,
+        jmKeys,
+        data,
+      });
+    }
+
+    return result;
+  }, [rawData]);
+
+  const selectedGroupsForChart = useMemo(() => {
+    return selectedGroupIds
+      .slice(0, 4)
+      .map((groupId) => groupChartSeriesMap.get(groupId))
+      .filter((series): series is GroupChartSeries => Boolean(series));
+  }, [selectedGroupIds, groupChartSeriesMap]);
+
   const toggleGroupExpand = (groupKey: string) => {
     setExpandedGroupIds((prev) => ({
       ...prev,
@@ -241,11 +404,25 @@ export default function KretanjeProizvoda() {
     }));
   };
 
+  const toggleGroupSelection = (groupId: number) => {
+    setSelectedGroupIds((prev) => {
+      if (prev.includes(groupId)) {
+        return prev.filter((id) => id !== groupId);
+      }
+
+      if (prev.length >= 4) {
+        return prev;
+      }
+
+      return [...prev, groupId];
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
-          <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+          <Loader className="w-8 h-8 text-[#785E9E] animate-spin" />
           <p className="text-gray-600">Učitavanje kretanja proizvoda...</p>
         </div>
       </div>
@@ -272,185 +449,267 @@ export default function KretanjeProizvoda() {
   }
 
   return (
-    <div className="space-y-6 pb-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          Kretanja proizvoda
-        </h2>
-        <p className="text-gray-600 text-sm">
-          Pregled količina po godini, mjesecu, grupi i proizvodu
-        </p>
+    <div className="pb-6">
+      <div className="mb-4 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#785E9E]">
+              Filter grupa proizvoda
+            </p>
+            <div className="mt-2 flex max-h-32 flex-wrap gap-x-4 gap-y-2 overflow-auto pr-1">
+              {groupFilterOptions.map((group) => {
+                const checked = selectedGroupIds.includes(group.sifra_grupe);
+                const disabled = !checked && selectedGroupIds.length >= 4;
+
+                return (
+                  <label
+                    key={group.sifra_grupe}
+                    className={`flex items-center gap-2 text-xs ${
+                      disabled
+                        ? "cursor-not-allowed text-gray-400"
+                        : "cursor-pointer text-gray-700"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={disabled}
+                      onChange={() => toggleGroupSelection(group.sifra_grupe)}
+                      className="h-3.5 w-3.5 accent-[#785E9E]"
+                    />
+                    <span>
+                      {group.naziv_grupe} ({group.sifra_grupe})
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-gray-500">
+              Možete izabrati maksimalno 4 grupe.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={selectedGroupIds.length === 0}
+              onClick={() => setIsChartModalOpen(true)}
+              className="rounded-md bg-[#785E9E] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300"
+            >
+              Grafikon ({Math.min(selectedGroupIds.length, 4)})
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {groupedByPeriod.map((yearItem) => (
-          <div
-            key={yearItem.godina}
-            className="bg-white rounded-lg shadow overflow-hidden"
-          >
-            <div
-              onClick={() => toggleGroupExpand(`year_${yearItem.godina}`)}
-              className="bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-600 px-6 py-4 cursor-pointer hover:from-purple-100 hover:to-purple-150 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <button className="p-1">
-                    {expandedGroupIds[`year_${yearItem.godina}`] ? (
-                      <ChevronDown className="w-5 h-5 text-purple-600" />
-                    ) : (
-                      <ChevronRight className="w-5 h-5 text-purple-600" />
-                    )}
-                  </button>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 text-lg">
-                      {yearItem.godina}
-                    </h3>
-                  </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {visibleGroupedByPeriod.map((yearItem) =>
+          yearItem.mjeseci.map((monthItem) => {
+            const monthName =
+              MONTHS[monthItem.mjesec - 1] || `M${monthItem.mjesec}`;
+
+            return (
+              <div
+                key={monthItem.key}
+                className="bg-white rounded-lg shadow overflow-hidden flex flex-col"
+              >
+                {/* ── Kartica header ── */}
+                <div className="bg-[#785E9E] px-4 py-2">
+                  <span className="text-white text-sm font-semibold uppercase tracking-wide">
+                    {monthName} {yearItem.godina}
+                  </span>
                 </div>
-                <span className="text-sm text-gray-600">
-                  {yearItem.mjeseci.length} mjesec
-                  {yearItem.mjeseci.length !== 1 ? "i" : ""}
-                </span>
+
+                {/* ── Tabela s grupama ── */}
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-[#8FC74A]/20 text-xs font-semibold text-[#785E9E] uppercase tracking-wide">
+                      <th className="w-6 px-2 py-1.5"></th>
+                      <th className="text-left px-2 py-1.5">Naziv grupe</th>
+                      <th className="text-right px-2 py-1.5">Količina</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {monthItem.grupe.map((group) => {
+                      const groupKey = `group_${group.key}`;
+                      const isExpanded = !!expandedGroupIds[groupKey];
+
+                      return (
+                        <>
+                          {/* ── Red grupe (klikabilni) ── */}
+                          <tr
+                            key={group.key}
+                            onClick={() => toggleGroupExpand(groupKey)}
+                            className="cursor-pointer border-t border-gray-200 hover:bg-[#8FC74A]/15 transition-colors font-medium text-gray-800"
+                          >
+                            <td className="px-2 py-2 text-[#785E9E]">
+                              {isExpanded ? (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              )}
+                            </td>
+                            <td className="px-2 py-2 text-xs">
+                              {group.naziv_grupe}
+                            </td>
+                            <td className="px-2 py-2 text-xs font-semibold text-[#785E9E]">
+                              {Object.entries(group.kolicinePoJm).map(
+                                ([jm, kol]) => (
+                                  <div
+                                    key={jm}
+                                    className="flex items-center justify-between gap-2"
+                                  >
+                                    <span className="font-normal text-gray-500">
+                                      {jm}:
+                                    </span>
+                                    <span className="text-right">
+                                      {formatQuantity(kol)}
+                                    </span>
+                                  </div>
+                                ),
+                              )}
+                            </td>
+                          </tr>
+
+                          {/* ── Redovi proizvoda ── */}
+                          {isExpanded &&
+                            group.proizvodi.map((product) => (
+                              <tr
+                                key={`${group.key}_${product.sifra_proizvoda}`}
+                                className="bg-gray-50 border-t border-gray-100 text-gray-700 text-xs"
+                              >
+                                <td className="px-2 py-1.5"></td>
+                                <td className="px-2 py-1.5 pl-5 text-gray-600">
+                                  <span className="text-gray-400 mr-1">
+                                    {product.sifra_proizvoda}
+                                  </span>
+                                  {product.naziv_proizvoda}
+                                  <span className="ml-1 text-gray-400">
+                                    ({product.jm})
+                                  </span>
+                                </td>
+                                <td className="px-2 py-1.5 text-right font-medium text-gray-800">
+                                  {formatQuantity(product.ukupna_kolicina)}
+                                </td>
+                              </tr>
+                            ))}
+                        </>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+            );
+          }),
+        )}
+      </div>
+
+      {isChartModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-1 md:p-2">
+          <div className="h-[96vh] w-[98vw] max-w-none overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Grafikon odabranih grupa proizvoda
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Prikaz po JM kroz sve dostupne godine i mjesece
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChartModalOpen(false)}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Zatvori
+              </button>
             </div>
 
-            {expandedGroupIds[`year_${yearItem.godina}`] && (
-              <div className="divide-y">
-                {yearItem.mjeseci.map((monthItem) => {
-                  const monthKey = `month_${monthItem.key}`;
-                  const monthName =
-                    MONTHS[monthItem.mjesec - 1] || `M${monthItem.mjesec}`;
-
-                  return (
-                    <div key={monthItem.key}>
-                      <div
-                        onClick={() => toggleGroupExpand(monthKey)}
-                        className="px-8 py-4 hover:bg-gray-50 cursor-pointer transition-colors border-l-2 border-purple-300"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <button className="p-0.5">
-                              {expandedGroupIds[monthKey] ? (
-                                <ChevronDown className="w-4 h-4 text-purple-500" />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-purple-500" />
-                              )}
-                            </button>
-                            <span className="font-medium text-gray-700">
-                              {monthName} {monthItem.godina}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm text-gray-500">
-                              {monthItem.grupe.length} grupa
-                              {monthItem.grupe.length !== 1 ? "e" : ""}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {expandedGroupIds[monthKey] &&
-                        monthItem.grupe.length > 0 && (
-                          <div className="bg-gray-50 px-8 py-3 space-y-3">
-                            {monthItem.grupe.map((group) => {
-                              const groupKey = `group_${group.key}`;
-
-                              return (
-                                <div
-                                  key={group.key}
-                                  className="rounded-lg border border-gray-200 bg-white overflow-hidden"
-                                >
-                                  <div
-                                    onClick={() => toggleGroupExpand(groupKey)}
-                                    className="px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                                  >
-                                    <div className="flex items-center justify-between gap-4">
-                                      <div className="flex items-center gap-3">
-                                        <button className="p-0.5">
-                                          {expandedGroupIds[groupKey] ? (
-                                            <ChevronDown className="w-4 h-4 text-purple-500" />
-                                          ) : (
-                                            <ChevronRight className="w-4 h-4 text-purple-500" />
-                                          )}
-                                        </button>
-                                        <div>
-                                          <p className="font-medium text-gray-800">
-                                            {group.naziv_grupe}
-                                          </p>
-                                          <p className="text-xs text-gray-500">
-                                            Šifra grupe: {group.sifra_grupe}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-sm text-gray-500">
-                                          Ukupna količina
-                                        </p>
-                                        <p className="font-semibold text-purple-600">
-                                          {group.ukupna_kolicina.toFixed(3)}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {expandedGroupIds[groupKey] && (
-                                    <div className="border-t border-gray-200 px-4 py-3">
-                                      <table className="w-full text-sm">
-                                        <thead>
-                                          <tr className="text-gray-600 text-xs font-semibold">
-                                            <th className="text-left pb-2">
-                                              Šifra
-                                            </th>
-                                            <th className="text-left pb-2">
-                                              Naziv proizvoda
-                                            </th>
-                                            <th className="text-left pb-2">
-                                              JM
-                                            </th>
-                                            <th className="text-right pb-2">
-                                              Količina
-                                            </th>
-                                          </tr>
-                                        </thead>
-                                        <tbody className="divide-y">
-                                          {group.proizvodi.map((product) => (
-                                            <tr
-                                              key={`${group.key}_${product.sifra_proizvoda}`}
-                                              className="hover:bg-gray-50 transition-colors"
-                                            >
-                                              <td className="py-2 text-gray-700">
-                                                {product.sifra_proizvoda}
-                                              </td>
-                                              <td className="py-2 text-gray-700">
-                                                {product.naziv_proizvoda}
-                                              </td>
-                                              <td className="py-2 text-gray-600 text-xs">
-                                                {product.jm}
-                                              </td>
-                                              <td className="py-2 text-right font-medium text-gray-800">
-                                                {product.ukupna_kolicina.toFixed(
-                                                  3,
-                                                )}
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+            <div className="h-[calc(96vh-72px)] overflow-auto p-4">
+              <div
+                className={`grid gap-4 ${
+                  selectedGroupsForChart.length === 1
+                    ? "grid-cols-1"
+                    : selectedGroupsForChart.length === 2
+                      ? "grid-cols-1 lg:grid-cols-2"
+                      : "grid-cols-1 md:grid-cols-2"
+                }`}
+              >
+                {selectedGroupsForChart.map((groupSeries) => (
+                  <div
+                    key={groupSeries.sifra_grupe}
+                    className="rounded-lg border border-gray-200 bg-white p-3"
+                  >
+                    <div className="mb-2">
+                      <p className="text-sm font-semibold text-gray-900">
+                        {groupSeries.naziv_grupe}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Šifra grupe: {groupSeries.sifra_grupe}
+                      </p>
                     </div>
-                  );
-                })}
+
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={groupSeries.data}
+                          margin={{ top: 10, right: 20, left: 5, bottom: 10 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="periodLabel"
+                            tick={{ fontSize: 11 }}
+                            interval={Math.max(
+                              0,
+                              Math.floor(groupSeries.data.length / 8),
+                            )}
+                            height={45}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11 }}
+                            tickFormatter={(value) =>
+                              formatQuantity(Number(value))
+                            }
+                          />
+                          <Tooltip
+                            formatter={(
+                              value: number | string | undefined,
+                              name: string | undefined,
+                            ) => [formatQuantity(toNumber(value)), name ?? ""]}
+                          />
+                          <Legend />
+
+                          {groupSeries.jmKeys.map((jm, index) => (
+                            <Line
+                              key={`${groupSeries.sifra_grupe}_${jm}`}
+                              type="monotone"
+                              dataKey={jm}
+                              name={jm}
+                              stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                              strokeWidth={2.5}
+                              dot={{
+                                r: 2.8,
+                                strokeWidth: 1,
+                                fill: CHART_COLORS[index % CHART_COLORS.length],
+                              }}
+                              activeDot={{
+                                r: 5,
+                                strokeWidth: 1,
+                                fill: CHART_COLORS[index % CHART_COLORS.length],
+                              }}
+                              isAnimationActive={false}
+                            />
+                          ))}
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
