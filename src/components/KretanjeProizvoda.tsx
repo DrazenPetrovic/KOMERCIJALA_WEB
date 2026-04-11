@@ -131,6 +131,15 @@ const getMonthlyOrderRank = (month: number, currentMonth: number) => {
   return currentMonth + (month - currentMonth);
 };
 
+const getQuarterOrderRank = (quarter: number, currentQuarter: number) => {
+  if (quarter <= currentQuarter) {
+    return currentQuarter - quarter;
+  }
+
+  // Kvartali koji tek dolaze u tekućoj godini idu na kraj, redom rastuće.
+  return currentQuarter + (quarter - currentQuarter);
+};
+
 const comparePeriods = (
   a: { godina: number; mjesec?: number; kvartal?: number },
   b: { godina: number; mjesec?: number; kvartal?: number },
@@ -149,11 +158,15 @@ const comparePeriods = (
   }
 
   if (viewMode === "quarter") {
-    if (a.godina !== b.godina) {
-      return b.godina - a.godina;
+    const currentQuarter = Math.floor((currentMonth - 1) / 3) + 1;
+    const rankA = getQuarterOrderRank(a.kvartal ?? 0, currentQuarter);
+    const rankB = getQuarterOrderRank(b.kvartal ?? 0, currentQuarter);
+
+    if (rankA !== rankB) {
+      return rankA - rankB;
     }
 
-    return (b.kvartal ?? 0) - (a.kvartal ?? 0);
+    return b.godina - a.godina;
   }
 
   return b.godina - a.godina;
@@ -261,7 +274,7 @@ export default function KretanjeProizvoda() {
         viewMode === "month"
           ? `${MONTHS[item.mjesec - 1] || `M${item.mjesec}`} ${item.godina}`
           : viewMode === "quarter"
-            ? `Q${kvartal} ${item.godina}`
+            ? `Q-${kvartal} ${item.godina}`
             : `${item.godina}`;
       if (!periodMap.has(periodKey)) {
         periodMap.set(periodKey, {
@@ -291,6 +304,27 @@ export default function KretanjeProizvoda() {
               godina,
               mjesec,
               kvartal: undefined,
+              items: [],
+            });
+          }
+        }
+      }
+    }
+
+    if (viewMode === "quarter") {
+      const years = Array.from(new Set(rawData.map((item) => item.godina)));
+
+      for (const godina of years) {
+        for (let kvartal = 1; kvartal <= 4; kvartal += 1) {
+          const periodKey = `${godina}-Q${kvartal}`;
+
+          if (!periodMap.has(periodKey)) {
+            periodMap.set(periodKey, {
+              key: periodKey,
+              periodLabel: `Q-${kvartal} ${godina}`,
+              godina,
+              mjesec: undefined,
+              kvartal,
               items: [],
             });
           }
@@ -418,7 +452,7 @@ export default function KretanjeProizvoda() {
         viewMode === "month"
           ? `${MONTHS[item.mjesec - 1] || `M${item.mjesec}`} ${item.godina}`
           : viewMode === "quarter"
-            ? `Q${kvartal} ${item.godina}`
+            ? `Q-${kvartal} ${item.godina}`
             : `${item.godina}`;
 
       if (!groupMap.has(groupId)) {
