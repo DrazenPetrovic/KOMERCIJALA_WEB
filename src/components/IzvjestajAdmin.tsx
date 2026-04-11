@@ -33,6 +33,21 @@ interface IzvjestajRow {
   podaci_razgovora: string;
 }
 
+interface PartnerReportResponseRow {
+  sifra_radnika?: number;
+  naziv_radnika?: string;
+  naziv_komercijaliste?: string;
+  radnik?: string;
+  sifra_partnera?: number;
+  naziv_partnera?: string;
+  datum_razgovora?: string;
+  datum_izvjestaja?: string;
+  podaci_razgovora?: string;
+  podaci_izvjestaja?: string;
+  podaci?: string;
+  tekst?: string;
+}
+
 const mockAIAnalysis = {
   summary:
     "Prodaja danas pokazuje pozitivan trend sa povećanjem od 15% u odnosu na prošli dan. Ana Anić je postigla najbolje rezultate.",
@@ -61,6 +76,8 @@ const IzvjestajAdmin: React.FC = () => {
   // NEW: modal state
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [activePartner, setActivePartner] = useState<PartnerKey>(null);
+  const [partnerModalRows, setPartnerModalRows] = useState<IzvjestajRow[]>([]);
+  const [loadingPartnerRows, setLoadingPartnerRows] = useState(false);
 
   const fetchIzvjestajiByDate = async (
     start: string,
@@ -302,26 +319,88 @@ const IzvjestajAdmin: React.FC = () => {
     }
   };
 
-  // NEW: rows u modalu = samo partner iz trenutnog "cardRows" (znači već je filtrirano po datumu/radniku)
+  // Modal: ignoriše datum/period filter, ali poštuje komercijalistu ako je odabran.
   const partnerRows = useMemo(() => {
-    if (!activePartner) return [];
-    return cardRows
-      .filter((r) => r.sifra_partnera === activePartner.sifra_partnera)
+    const selectedWorkerNormalized = selectedWorker.trim().toLowerCase();
+
+    return partnerModalRows
+      .filter((r) => {
+        if (!selectedWorkerNormalized) return true;
+
+        const rowWorker = (r.naziv_radnika || "").trim().toLowerCase();
+
+        // Ako backend ne vrati naziv radnika u istoriji partnera, nemamo osnov za filter.
+        if (!rowWorker) return true;
+
+        return rowWorker === selectedWorkerNormalized;
+      })
       .slice()
       .sort((a, b) => (a.datum_razgovora > b.datum_razgovora ? -1 : 1));
-  }, [activePartner, cardRows]);
+  }, [partnerModalRows, selectedWorker]);
 
-  const openPartnerModal = (r: IzvjestajRow) => {
+  const fetchPartnerReports = async (
+    sifraPartnera: number,
+  ): Promise<IzvjestajRow[]> => {
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
+    const res = await fetch(`${apiUrl}/api/izvjestaji/${sifraPartnera}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(
+        json?.error || "Greška pri učitavanju izvještaja partnera",
+      );
+    }
+
+    const rows = (json.data || []) as PartnerReportResponseRow[];
+    return rows.map((row) => ({
+      sifra_radnika: Number(row.sifra_radnika || 0),
+      naziv_radnika:
+        row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
+      sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
+      naziv_partnera: row.naziv_partnera || "",
+      datum_razgovora: String(
+        row.datum_razgovora || row.datum_izvjestaja || "",
+      ),
+      podaci_razgovora: String(
+        row.podaci_razgovora ||
+          row.podaci_izvjestaja ||
+          row.podaci ||
+          row.tekst ||
+          "",
+      ),
+    }));
+  };
+
+  const openPartnerModal = async (r: IzvjestajRow) => {
     setActivePartner({
       sifra_partnera: r.sifra_partnera,
       naziv_partnera: r.naziv_partnera,
     });
+    setPartnerModalRows([]);
     setPartnerModalOpen(true);
+
+    try {
+      setLoadingPartnerRows(true);
+      const rows = await fetchPartnerReports(r.sifra_partnera);
+      setPartnerModalRows(rows);
+    } catch (err) {
+      console.error("Greška pri učitavanju partner izvještaja:", err);
+      setPartnerModalRows([]);
+    } finally {
+      setLoadingPartnerRows(false);
+    }
   };
 
   const closePartnerModal = () => {
     setPartnerModalOpen(false);
     setActivePartner(null);
+    setPartnerModalRows([]);
+    setLoadingPartnerRows(false);
   };
 
   return (
@@ -518,7 +597,7 @@ const IzvjestajAdmin: React.FC = () => {
                           className="inline-flex items-center gap-2 max-w-full px-2 py-1 rounded-lg
                                      bg-[#785E9E]/10 border border-[#785E9E]/20
                                      hover:bg-[#785E9E]/15"
-                          title="Prikaži sve izvještaje za ovog partnera (u okviru trenutnih filtera)"
+                          title="Prikaži sve izvještaje za ovog partnera"
                         >
                           <span className="text-xs md:text-sm font-semibold text-[#5d4a7a] truncate">
                             {r.sifra_partnera} {r.naziv_partnera}
@@ -584,9 +663,12 @@ const IzvjestajAdmin: React.FC = () => {
               </div>
 
               <div className="p-3 max-h-[70vh] overflow-auto">
-                {partnerRows.length === 0 ? (
+                {loadingPartnerRows ? (
+                  <div className="text-xs text-gray-500">Učitavanje...</div>
+                ) : partnerRows.length === 0 ? (
                   <div className="text-xs text-gray-500">
-                    Nema izvještaja za ovog partnera u okviru trenutnih filtera.
+                    Nema izvještaja za ovog partnera (po izabranom
+                    komercijalisti).
                   </div>
                 ) : (
                   <div className="space-y-2">
