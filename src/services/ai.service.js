@@ -87,3 +87,90 @@ ZADATAK:
 
   return resp.output_text?.trim() || "";
 };
+
+const buildTransakcijeLines = (transakcije, jm) =>
+  (transakcije || [])
+    .slice(0, 120)
+    .map(
+      (t) =>
+        `- ${String(t.datum_racuna).slice(0, 10)} | ${t.naziv_partnera} | ${Number(t.kolicina).toFixed(2)} ${jm} | VPC: ${Number(t.vpc_vrednost).toFixed(2)} | Nab: ${Number(t.nabavna_vrednost).toFixed(2)}`,
+    )
+    .join("\n");
+
+export const generateProizvodAnaliza = async ({
+  naziv_proizvoda,
+  jm,
+  transakcije,
+}) => {
+  const system = `
+Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
+Odgovor kratko i konkretno, u tačkama. Ne izmišljaj podatke.
+`.trim();
+
+  const lines = buildTransakcijeLines(transakcije, jm);
+
+  const user = `
+PROIZVOD: ${naziv_proizvoda} (JM: ${jm})
+
+TRANSAKCIJE PRODAJE (od najnovijeg):
+${lines || "- nema podataka"}
+
+ZADATAK:
+1) Uoči trend kretanja količina i vrijednosti (rast, pad, stagnacija, sezonalnost)
+2) Naznači najvažnije kupce i njihov udio u prodaji
+3) Daj 2-3 moguća razloga za promjene u količinama
+4) Preporuči kratku akciju komercijalisti
+`.trim();
+
+  const resp = await openai.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    max_output_tokens: 500,
+  });
+
+  return resp.output_text?.trim() || "";
+};
+
+export const generateProizvodPitanje = async ({
+  naziv_proizvoda,
+  jm,
+  transakcije,
+  aiAnalysis,
+  chatHistory,
+  question,
+}) => {
+  const system = `
+Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
+Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
+`.trim();
+
+  const lines = buildTransakcijeLines(transakcije, jm);
+
+  const contextPrompt = `
+PROIZVOD: ${naziv_proizvoda} (JM: ${jm})
+
+TRANSAKCIJE PRODAJE (od najnovijeg):
+${lines || "- nema podataka"}`.trim();
+
+  const historyMessages = (chatHistory || []).map((item) => ({
+    role: item.role,
+    content: item.content,
+  }));
+
+  const resp = await openai.responses.create({
+    model: "gpt-4o-mini",
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: contextPrompt },
+      { role: "assistant", content: aiAnalysis },
+      ...historyMessages,
+      { role: "user", content: question },
+    ],
+    max_output_tokens: 400,
+  });
+
+  return resp.output_text?.trim() || "";
+};
