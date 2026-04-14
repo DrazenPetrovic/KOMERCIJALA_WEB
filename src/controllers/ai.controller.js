@@ -43,7 +43,7 @@ export const kupacAnaliza = async (req, res) => {
 
 export const proizvodAnaliza = async (req, res) => {
   try {
-    const { sifra_proizvoda, naziv_proizvoda, jm } = req.body || {};
+    const { sifra_proizvoda, naziv_proizvoda } = req.body || {};
 
     if (!sifra_proizvoda || !naziv_proizvoda) {
       return res.status(400).json({
@@ -56,7 +56,6 @@ export const proizvodAnaliza = async (req, res) => {
 
     const text = await AiService.generateProizvodAnaliza({
       naziv_proizvoda,
-      jm,
       transakcije,
     });
 
@@ -71,7 +70,7 @@ export const proizvodAnaliza = async (req, res) => {
 
 export const proizvodPitanje = async (req, res) => {
   try {
-    const { sifra_proizvoda, naziv_proizvoda, jm, aiAnalysis, chatHistory, question } =
+    const { sifra_proizvoda, naziv_proizvoda, aiAnalysis, chatHistory, question } =
       req.body || {};
 
     if (!sifra_proizvoda || !question) {
@@ -85,7 +84,6 @@ export const proizvodPitanje = async (req, res) => {
 
     const text = await AiService.generateProizvodPitanje({
       naziv_proizvoda,
-      jm,
       transakcije,
       aiAnalysis: aiAnalysis || "",
       chatHistory: Array.isArray(chatHistory) ? chatHistory : [],

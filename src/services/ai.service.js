@@ -88,18 +88,26 @@ ZADATAK:
   return resp.output_text?.trim() || "";
 };
 
-const buildTransakcijeLines = (transakcije, jm) =>
+const buildTransakcijeLines = (transakcije) =>
   (transakcije || [])
-    .slice(0, 120)
     .map(
       (t) =>
-        `- ${String(t.datum_racuna).slice(0, 10)} | ${t.naziv_partnera} | ${Number(t.kolicina).toFixed(2)} ${jm} | VPC: ${Number(t.vpc_vrednost).toFixed(2)} | Nab: ${Number(t.nabavna_vrednost).toFixed(2)}`,
+        `- ${String(t.datum_racuna).slice(0, 10)} | ${t.naziv_partnera} | ${Number(t.kolicina).toFixed(2)} ${t.jm} | VPC: ${Number(t.cijena_sa_rab).toFixed(2)} | Nab: ${Number(t.nabavna_cijena).toFixed(2)}`,
     )
     .join("\n");
 
+const buildKontekstPrompt = (naziv_proizvoda, transakcije) => {
+  const jm = transakcije?.[0]?.jm || "";
+  const sifra = transakcije?.[0]?.sifra_proizvoda ?? "";
+  const lines = buildTransakcijeLines(transakcije);
+  return `PROIZVOD: ${naziv_proizvoda}${sifra ? ` (šifra: ${sifra})` : ""}${jm ? ` (JM: ${jm})` : ""}
+
+TRANSAKCIJE PRODAJE (od najnovijeg):
+${lines || "- nema podataka"}`;
+};
+
 export const generateProizvodAnaliza = async ({
   naziv_proizvoda,
-  jm,
   transakcije,
 }) => {
   const system = `
@@ -107,19 +115,25 @@ Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
 Odgovor kratko i konkretno, u tačkama. Ne izmišljaj podatke.
 `.trim();
 
-  const lines = buildTransakcijeLines(transakcije, jm);
-
   const user = `
-PROIZVOD: ${naziv_proizvoda} (JM: ${jm})
-
-TRANSAKCIJE PRODAJE (od najnovijeg):
-${lines || "- nema podataka"}
+${buildKontekstPrompt(naziv_proizvoda, transakcije)}
 
 ZADATAK:
-1) Uoči trend kretanja količina i vrijednosti (rast, pad, stagnacija, sezonalnost)
-2) Naznači najvažnije kupce i njihov udio u prodaji
-3) Daj 2-3 moguća razloga za promjene u količinama
-4) Preporuči kratku akciju komercijalisti
+1. Uoči trend kretanja količina i vrednosti za ovaj proizvod u poslednje tri godine. Uzmi u obzir da podaci ukljucuju trenutni mjesec u trenutnoj godini i zaklucno sa Januarom 2023.godine. 
+
+2. Koje su ključne promene i šta one znače za prodaju proizvoda?
+
+3. Obrati pažnju na količine prodate za iste mesece tokom različitih godina. Uporedi količine i naglasi promene.
+
+4. Uoči kretanje prodajne i nabavne cene tokom poslednje tri godine. Kako promene u cenama utiču na količine prodaje?
+
+5. Identifikuj najvažnije kupce i analiziraj da li se njihovo interesovanje za proizvod menja kroz vreme.
+
+6. Pronađi kupce koji su prestali da naručuju proizvod i navedi razloge ako su dostupni.
+
+7. Ko su novi kupci koji su započeli kupovinu proizvoda u poslednjih nekoliko meseci?
+
+8. Identifikuj kupce koji su prestali da kupuju, a zatim ponovo započeli naručivanje proizvoda. Kako se količine menjaju?
 `.trim();
 
   const resp = await openai.responses.create({
@@ -136,7 +150,6 @@ ZADATAK:
 
 export const generateProizvodPitanje = async ({
   naziv_proizvoda,
-  jm,
   transakcije,
   aiAnalysis,
   chatHistory,
@@ -147,13 +160,7 @@ Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
 Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
 `.trim();
 
-  const lines = buildTransakcijeLines(transakcije, jm);
-
-  const contextPrompt = `
-PROIZVOD: ${naziv_proizvoda} (JM: ${jm})
-
-TRANSAKCIJE PRODAJE (od najnovijeg):
-${lines || "- nema podataka"}`.trim();
+  const contextPrompt = buildKontekstPrompt(naziv_proizvoda, transakcije);
 
   const historyMessages = (chatHistory || []).map((item) => ({
     role: item.role,

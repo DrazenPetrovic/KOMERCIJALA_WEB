@@ -287,7 +287,6 @@ export default function KretanjeProizvodaAdmin() {
           body: JSON.stringify({
             sifra_proizvoda: selectedProductForAi.sifra_proizvoda,
             naziv_proizvoda: selectedProductForAi.naziv_proizvoda,
-            jm: selectedProductForAi.jm,
           }),
         });
         const data = (await res.json()) as {
@@ -677,7 +676,6 @@ export default function KretanjeProizvodaAdmin() {
         body: JSON.stringify({
           sifra_proizvoda: selectedProductForAi.sifra_proizvoda,
           naziv_proizvoda: selectedProductForAi.naziv_proizvoda,
-          jm: selectedProductForAi.jm,
           aiAnalysis: aiText,
           chatHistory,
           question,
