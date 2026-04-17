@@ -155,7 +155,7 @@ export function Dashboard({
     }
 
     if (activeSection === "dugovanja") {
-      return <DugovanjaList onBack={() => setActiveSection(null)} />;
+      return <DugovanjaList />;
     }
 
     if (activeSection === "izvestaji") {

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, AlertCircle, Search, DollarSign } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { AlertCircle, Search, DollarSign, Building2 } from "lucide-react";
 
 const formatDate = (dateString: string): string => {
   if (!dateString) return "";
@@ -10,9 +10,18 @@ const formatDate = (dateString: string): string => {
   return `${day}.${month}.${year}`;
 };
 
-interface DugovanjaListProps {
-  onBack: () => void;
-}
+const formatDateTime = (dateString: string | null): string => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+};
+
 
 interface Dugovanje {
   sifra: number;
@@ -39,7 +48,14 @@ interface Uplata {
   sifra: number;
 }
 
-export default function DugovanjaList({ onBack }: DugovanjaListProps) {
+interface StatusIzvoda {
+  naziv_banke: string;
+  izvod_otvoren: string;
+  izvod_zatvoren: string | null;
+  status_izvoda: number;
+}
+
+export default function DugovanjaList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [uplateLoading, setUplateLoading] = useState(true);
@@ -59,14 +75,34 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
   const [error, setError] = useState<string | null>(null);
   const [uplateError, setUplateError] = useState<string | null>(null);
   const [filterDo24Active, setFilterDo24Active] = useState(true);
+  const [statusIzvoda, setStatusIzvoda] = useState<StatusIzvoda[]>([]);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    // 1️⃣ Prvo učitaj DUGOVANJA (obavezno)
     fetchDugovanja();
-
-    // 2️⃣ Zatim učitaj UPLATE u pozadini (opciono)
     fetchUplate();
+    fetchStatusIzvoda();
+
+    pollingRef.current = setInterval(fetchStatusIzvoda, 60_000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, []);
+
+  const fetchStatusIzvoda = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const response = await fetch(`${apiUrl}/api/dugovanja/status-izvoda`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) return;
+      const result = await response.json();
+      if (result.success) setStatusIzvoda(result.data || []);
+    } catch {
+      // tiho — ne blokiramo glavni prikaz
+    }
+  };
 
   // ===== DUGOVANJA - GLAVNA PROCEDURA (OBAVEZNA) =====
   const fetchDugovanja = async () => {
@@ -222,16 +258,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-lg font-medium">Nazad</span>
-        </button>
-      </div>
-
       {/* Statistika */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <div className="bg-blue-100 border-2 border-blue-300 rounded-xl p-4">
@@ -375,24 +401,98 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
       </div>
 
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-8 h-8" style={{ color: "#785E9E" }} />
+        <div className="flex gap-4 mb-6">
+          {/* Naslov - spaja 2 reda */}
+          <div className="flex items-center gap-3 self-stretch">
+            <AlertCircle className="w-8 h-8 shrink-0" style={{ color: "#785E9E" }} />
             <h2 className="text-3xl font-bold" style={{ color: "#785E9E" }}>
               Dugovanja
             </h2>
           </div>
+
+          {/* Status izvoda banke - 2 reda */}
+          <div className="flex flex-col gap-2 flex-1">
+            {statusIzvoda.length === 0 ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-green-400 bg-green-50 text-green-800 text-[10px] font-medium w-fit">
+                <Building2 className="w-3.5 h-3.5" />
+                Nema otvorenih izvoda za danas
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  {statusIzvoda.slice(0, Math.ceil(statusIzvoda.length / 2)).map((izvod, i) => {
+                    const otvoren = izvod.status_izvoda === 0;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-[10px] font-medium ${
+                          otvoren
+                            ? "border-orange-400 bg-orange-50 text-orange-800"
+                            : "border-green-400 bg-green-50 text-green-800"
+                        }`}
+                      >
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        <span className="font-semibold">{izvod.naziv_banke}</span>
+                        <span className="mx-1 text-gray-400">|</span>
+                        <span>Otvoren: {formatDateTime(izvod.izvod_otvoren)}</span>
+                        {!otvoren && izvod.izvod_zatvoren && (
+                          <>
+                            <span className="mx-1 text-gray-400">|</span>
+                            <span>Zatvoren: {formatDateTime(izvod.izvod_zatvoren)}</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {statusIzvoda.slice(Math.ceil(statusIzvoda.length / 2)).map((izvod, i) => {
+                    const otvoren = izvod.status_izvoda === 0;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 text-[10px] font-medium ${
+                          otvoren
+                            ? "border-orange-400 bg-orange-50 text-orange-800"
+                            : "border-green-400 bg-green-50 text-green-800"
+                        }`}
+                      >
+                        <Building2 className="w-3.5 h-3.5 shrink-0" />
+                        <span className="font-semibold">{izvod.naziv_banke}</span>
+                        <span className="mx-1 text-gray-400">|</span>
+                        <span>Otvoren: {formatDateTime(izvod.izvod_otvoren)}</span>
+                        {!otvoren && izvod.izvod_zatvoren && (
+                          <>
+                            <span className="mx-1 text-gray-400">|</span>
+                            <span>Zatvoren: {formatDateTime(izvod.izvod_zatvoren)}</span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="mb-6 relative">
-          <input
-            type="text"
-            placeholder="Pretraži po šifri ili nazivu partnera..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
-          />
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="mb-6 flex items-center gap-4">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Pretraži po šifri ili nazivu partnera..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
+            />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          </div>
+          <div className="flex items-center px-5 py-3 border-2 border-purple-400 bg-purple-50 rounded-lg whitespace-nowrap text-purple-800 text-lg">
+            Pronađeno partnera:{" "}
+            <span className="font-bold ml-2">
+              {!loading && !error ? filteredDugovanja.length : "–"}
+            </span>
+          </div>
         </div>
 
         {/* ===== DUGOVANJA SE UVIJEK PRIKAZUJU ===== */}
@@ -420,11 +520,6 @@ export default function DugovanjaList({ onBack }: DugovanjaListProps) {
 
         {!loading && !error && (
           <>
-            <div className="mb-4 text-gray-600 text-lg">
-              Pronađeno partnera:{" "}
-              <span className="font-semibold">{filteredDugovanja.length}</span>
-            </div>
-
             {/* ===== UPOZORENJE ZA UPLATE (OPCIONO) ===== */}
             {uplateError && (
               <div className="mb-4 flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
