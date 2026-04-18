@@ -30,4 +30,9 @@ router.get(
   verifyToken,
   PoslovanjeController.getKretanjeProizvoda,
 );
+router.get(
+  "/kretanje-proizvoda-detalji",
+  verifyToken,
+  PoslovanjeController.getKretanjeProizvodaDetalji,
+);
 export default router;

@@ -1,5 +1,4 @@
 import * as AiService from "../services/ai.service.js";
-import * as PoslovanjeService from "../services/poslovanje.service.js";
 
 export const kupacAnaliza = async (req, res) => {
   try {
@@ -43,20 +42,21 @@ export const kupacAnaliza = async (req, res) => {
 
 export const proizvodAnaliza = async (req, res) => {
   try {
-    const { sifra_proizvoda, naziv_proizvoda } = req.body || {};
+    const { naziv_proizvoda, jm, sifra, agregirano, kategorizirani } = req.body || {};
 
-    if (!sifra_proizvoda || !naziv_proizvoda) {
+    if (!naziv_proizvoda || !agregirano) {
       return res.status(400).json({
         success: false,
-        error: "sifra_proizvoda i naziv_proizvoda su obavezni.",
+        error: "naziv_proizvoda i agregirano su obavezni.",
       });
     }
 
-    const transakcije = await PoslovanjeService.getKretanjeProizvodaAi(sifra_proizvoda);
-
     const text = await AiService.generateProizvodAnaliza({
       naziv_proizvoda,
-      transakcije,
+      jm,
+      sifra,
+      agregirano,
+      kategorizirani,
     });
 
     return res.json({ success: true, text });
@@ -70,21 +70,22 @@ export const proizvodAnaliza = async (req, res) => {
 
 export const proizvodPitanje = async (req, res) => {
   try {
-    const { sifra_proizvoda, naziv_proizvoda, aiAnalysis, chatHistory, question } =
+    const { naziv_proizvoda, jm, sifra, agregirano, kategorizirani, aiAnalysis, chatHistory, question } =
       req.body || {};
 
-    if (!sifra_proizvoda || !question) {
+    if (!question) {
       return res.status(400).json({
         success: false,
-        error: "sifra_proizvoda i question su obavezni.",
+        error: "question je obavezan.",
       });
     }
 
-    const transakcije = await PoslovanjeService.getKretanjeProizvodaAi(sifra_proizvoda);
-
     const text = await AiService.generateProizvodPitanje({
       naziv_proizvoda,
-      transakcije,
+      jm,
+      sifra,
+      agregirano,
+      kategorizirani,
       aiAnalysis: aiAnalysis || "",
       chatHistory: Array.isArray(chatHistory) ? chatHistory : [],
       question,

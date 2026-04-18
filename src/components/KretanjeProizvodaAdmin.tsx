@@ -85,6 +85,44 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+interface TransakcijaAi {
+  sifra_proizvoda: number;
+  jm: string;
+  kolicina: number | string;
+  nabavna_cijena: number | string;
+  cijena_sa_rab: number | string;
+  datum_racuna: string;
+  sifra_partnera: number;
+  naziv_partnera: string;
+  izvor_baze: string;
+}
+
+interface KupacInfo {
+  kupac: string;
+  prvi: string;
+  zadnji: string;
+  aktivnostPosto?: string;
+}
+
+interface LokalnaAnaliza {
+  prestali: KupacInfo[];
+  novi: KupacInfo[];
+  povremeni: KupacInfo[];
+  stabilni: KupacInfo[];
+  ukupnoTransakcija: number;
+  periodOd: string;
+  periodDo: string;
+  jm: string;
+  sifra: number;
+}
+
+interface AgregiraniPeriod {
+  period: string;
+  kolicina: number;
+  vpc_avg: number;
+  nab_avg: number;
+}
+
 const MONTHS = [
   "JAN",
   "FEB",
@@ -208,6 +246,11 @@ export default function KretanjeProizvodaAdmin() {
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
   const [selectedProductForAi, setSelectedProductForAi] =
     useState<ProductData | null>(null);
+  const [transakcijeAi, setTransakcijeAi] = useState<TransakcijaAi[]>([]);
+  const [transakcijeLoading, setTransakcijeLoading] = useState(false);
+  const [transakcijeError, setTransakcijeError] = useState<string>("");
+  const [lokalnaAnaliza, setLokalnaAnaliza] = useState<LokalnaAnaliza | null>(null);
+  const [agregirano, setAgregirano] = useState<AgregiraniPeriod[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState<string>("");
   const [aiError, setAiError] = useState<string>("");
@@ -271,45 +314,110 @@ export default function KretanjeProizvodaAdmin() {
     fetchData();
   }, [apiUrl]);
 
+  const analizirajKupce = (tr: TransakcijaAi[]): LokalnaAnaliza => {
+    const prijeXMjeseci = (x: number) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - x);
+      return d.toISOString().slice(0, 7);
+    };
+    const granicaPrestali = prijeXMjeseci(18);
+    const granicaNovi = prijeXMjeseci(6);
+
+    const poKupcu: Record<string, { mjeseci: Set<string> }> = {};
+    for (const t of tr) {
+      const mjesec = String(t.datum_racuna).slice(0, 7);
+      if (!poKupcu[t.naziv_partnera])
+        poKupcu[t.naziv_partnera] = { mjeseci: new Set() };
+      poKupcu[t.naziv_partnera].mjeseci.add(mjesec);
+    }
+
+    const ukupnoMjeseci = new Set(tr.map((t) => String(t.datum_racuna).slice(0, 7))).size || 1;
+    const rezultat: LokalnaAnaliza = {
+      prestali: [], novi: [], povremeni: [], stabilni: [],
+      ukupnoTransakcija: tr.length,
+      periodOd: tr.map((t) => String(t.datum_racuna).slice(0, 7)).sort()[0] ?? "",
+      periodDo: (() => { const s = tr.map((t) => String(t.datum_racuna).slice(0, 7)).sort(); return s[s.length - 1] ?? ""; })(),
+      jm: tr[0]?.jm ?? "",
+      sifra: Number(tr[0]?.sifra_proizvoda ?? 0),
+    };
+
+    for (const [kupac, data] of Object.entries(poKupcu)) {
+      const sortirani = [...data.mjeseci].sort();
+      const prvi = sortirani[0];
+      const zadnji = sortirani[sortirani.length - 1] ?? "";
+      const aktivnostPosto = ((sortirani.length / ukupnoMjeseci) * 100).toFixed(0);
+
+      if (zadnji < granicaPrestali) {
+        rezultat.prestali.push({ kupac, prvi, zadnji });
+      } else if (prvi >= granicaNovi) {
+        rezultat.novi.push({ kupac, prvi, zadnji });
+      } else if (sortirani.length / ukupnoMjeseci < 0.5) {
+        rezultat.povremeni.push({ kupac, prvi, zadnji, aktivnostPosto });
+      } else {
+        rezultat.stabilni.push({ kupac, prvi, zadnji });
+      }
+    }
+    return rezultat;
+  };
+
+  const agregiranjePodataka = (tr: TransakcijaAi[]): AgregiraniPeriod[] => {
+    const periodi = new Map<string, { kolicina: number; vpc_sum: number; nab_sum: number; count: number }>();
+    for (const t of tr) {
+      const period = String(t.datum_racuna).slice(0, 7);
+      const ex = periodi.get(period) ?? { kolicina: 0, vpc_sum: 0, nab_sum: 0, count: 0 };
+      periodi.set(period, {
+        kolicina: ex.kolicina + Number(t.kolicina),
+        vpc_sum: ex.vpc_sum + Number(t.cijena_sa_rab),
+        nab_sum: ex.nab_sum + Number(t.nabavna_cijena),
+        count: ex.count + 1,
+      });
+    }
+    return Array.from(periodi.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, d]) => ({
+        period,
+        kolicina: d.kolicina,
+        vpc_avg: d.vpc_sum / d.count,
+        nab_avg: d.nab_sum / d.count,
+      }));
+  };
+
   useEffect(() => {
     if (!selectedProductForAi) return;
     let cancelled = false;
 
-    const analyze = async () => {
-      setAiLoading(true);
-      setAiError("");
+    const fetchTransakcije = async () => {
+      setTransakcijeLoading(true);
+      setTransakcijeError("");
+      setLokalnaAnaliza(null);
+      setAgregirano([]);
       setAiText("");
+      setAiError("");
       try {
-        const res = await fetch(`${apiUrl}/api/ai/proizvod-analiza`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            sifra_proizvoda: selectedProductForAi.sifra_proizvoda,
-            naziv_proizvoda: selectedProductForAi.naziv_proizvoda,
-          }),
-        });
-        const data = (await res.json()) as {
-          success: boolean;
-          text?: string;
-          error?: string;
-        };
+        const res = await fetch(
+          `${apiUrl}/api/poslovanje/kretanje-proizvoda-detalji?sifra_proizvoda=${selectedProductForAi.sifra_proizvoda}`,
+          { credentials: "include" },
+        );
+        const data = (await res.json()) as ApiResponse<TransakcijaAi[]>;
         if (cancelled) return;
-        if (!res.ok || !data.success)
-          throw new Error(data.error || "AI analiza nije uspjela.");
-        setAiText(String(data.text || ""));
+        if (!res.ok || !data.success) throw new Error(data.error || "Greška pri učitavanju podataka.");
+        const tr = (data.data ?? []).filter(
+          (t) =>
+            String(t.datum_racuna).slice(0, 7) >= "2023-01" &&
+            Number(t.sifra_partnera) !== 300,
+        );
+        setTransakcijeAi(tr);
+        setLokalnaAnaliza(analizirajKupce(tr));
+        setAgregirano(agregiranjePodataka(tr));
       } catch (e: unknown) {
-        if (!cancelled)
-          setAiError(e instanceof Error ? e.message : "Greška pri AI analizi.");
+        if (!cancelled) setTransakcijeError(e instanceof Error ? e.message : "Greška.");
       } finally {
-        if (!cancelled) setAiLoading(false);
+        if (!cancelled) setTransakcijeLoading(false);
       }
     };
 
-    analyze();
-    return () => {
-      cancelled = true;
-    };
+    fetchTransakcije();
+    return () => { cancelled = true; };
   }, [selectedProductForAi, analyzeKey, apiUrl]);
 
   const workerScopedData = useMemo(() => {
@@ -640,11 +748,19 @@ export default function KretanjeProizvodaAdmin() {
     if (!isAdmin) return;
     setChatHistory([]);
     setChatInput("");
+    setTransakcijeAi([]);
+    setLokalnaAnaliza(null);
+    setAgregirano([]);
+    setAiText("");
+    setAiError("");
     setSelectedProductForAi(product);
   };
 
   const closeAiPrompt = () => {
     setSelectedProductForAi(null);
+    setTransakcijeAi([]);
+    setLokalnaAnaliza(null);
+    setAgregirano([]);
     setAiText("");
     setAiError("");
     setAiLoading(false);
@@ -652,13 +768,44 @@ export default function KretanjeProizvodaAdmin() {
     setChatInput("");
   };
 
-  const retryAnaliza = () => {
-    setAnalyzeKey((k) => k + 1);
+  const retryFetch = () => setAnalyzeKey((k) => k + 1);
+
+  const pokrniAiAnalizu = async () => {
+    if (!selectedProductForAi || !lokalnaAnaliza || agregirano.length === 0) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiText("");
+    try {
+      const res = await fetch(`${apiUrl}/api/ai/proizvod-analiza`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          naziv_proizvoda: selectedProductForAi.naziv_proizvoda,
+          jm: lokalnaAnaliza.jm,
+          sifra: lokalnaAnaliza.sifra,
+          agregirano,
+          kategorizirani: {
+            prestali: lokalnaAnaliza.prestali,
+            novi: lokalnaAnaliza.novi,
+            povremeni: lokalnaAnaliza.povremeni,
+            stabilni: lokalnaAnaliza.stabilni,
+          },
+        }),
+      });
+      const data = (await res.json()) as { success: boolean; text?: string; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || "AI analiza nije uspjela.");
+      setAiText(String(data.text || ""));
+    } catch (e: unknown) {
+      setAiError(e instanceof Error ? e.message : "Greška pri AI analizi.");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const sendChatQuestion = async () => {
     const question = chatInput.trim();
-    if (!question || !selectedProductForAi || !aiText) return;
+    if (!question || !selectedProductForAi || !aiText || !lokalnaAnaliza) return;
 
     setChatInput("");
     setChatLoading(true);
@@ -674,20 +821,23 @@ export default function KretanjeProizvodaAdmin() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          sifra_proizvoda: selectedProductForAi.sifra_proizvoda,
           naziv_proizvoda: selectedProductForAi.naziv_proizvoda,
+          jm: lokalnaAnaliza.jm,
+          sifra: lokalnaAnaliza.sifra,
+          agregirano,
+          kategorizirani: {
+            prestali: lokalnaAnaliza.prestali,
+            novi: lokalnaAnaliza.novi,
+            povremeni: lokalnaAnaliza.povremeni,
+            stabilni: lokalnaAnaliza.stabilni,
+          },
           aiAnalysis: aiText,
           chatHistory,
           question,
         }),
       });
-      const data = (await res.json()) as {
-        success: boolean;
-        text?: string;
-        error?: string;
-      };
-      if (!res.ok || !data.success)
-        throw new Error(data.error || "Odgovor nije uspješan.");
+      const data = (await res.json()) as { success: boolean; text?: string; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || "Odgovor nije uspješan.");
       setChatHistory((prev) => [
         ...prev,
         { role: "assistant", content: String(data.text || "") },
@@ -695,11 +845,7 @@ export default function KretanjeProizvodaAdmin() {
     } catch (e: unknown) {
       setChatHistory((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          content:
-            e instanceof Error ? e.message : "Greška pri generisanju odgovora.",
-        },
+        { role: "assistant", content: e instanceof Error ? e.message : "Greška pri generisanju odgovora." },
       ]);
     } finally {
       setChatLoading(false);
@@ -1133,27 +1279,36 @@ export default function KretanjeProizvodaAdmin() {
       )}
 
       {selectedProductForAi && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
-          <div className="flex w-[92vw] max-w-6xl h-[82vh] flex-col rounded-xl bg-white shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[60] bg-black/60">
+          <div className="flex w-full h-full flex-col bg-white overflow-hidden">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#785E9E]/30 bg-[#785E9E] px-5 py-3 shrink-0">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">
-                  AI analiza kretanja proizvoda
-                </p>
-                <h3 className="text-sm font-bold text-white leading-tight">
-                  {selectedProductForAi.naziv_proizvoda}
-                  <span className="ml-2 text-white/60 font-normal text-xs">
-                    ({selectedProductForAi.jm})
-                  </span>
-                </h3>
+            <div className="flex items-center justify-between bg-[#785E9E] px-5 py-3 shrink-0">
+              <div className="flex items-center gap-5 min-w-0">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-widest text-white/60 font-semibold">
+                    Analiza kretanja proizvoda
+                  </p>
+                  <h3 className="text-sm font-bold text-white leading-tight truncate">
+                    {selectedProductForAi.naziv_proizvoda}
+                  </h3>
+                </div>
+                {lokalnaAnaliza && (
+                  <div className="hidden sm:flex items-center gap-4 shrink-0">
+                    <div className="rounded-lg bg-white/10 px-3 py-1.5 text-center">
+                      <div className="text-base font-bold text-white">{lokalnaAnaliza.ukupnoTransakcija}</div>
+                      <div className="text-[9px] uppercase tracking-wide text-white/60">transakcija</div>
+                    </div>
+                    <div className="text-[10px] text-white/70 leading-relaxed">
+                      <div>JM: <strong className="text-white">{lokalnaAnaliza.jm}</strong></div>
+                      <div>Šifra: <strong className="text-white">{lokalnaAnaliza.sifra}</strong></div>
+                      <div>Period: <strong className="text-white">{lokalnaAnaliza.periodOd} — {lokalnaAnaliza.periodDo}</strong></div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={closeAiPrompt}
-                className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
-              >
+              <button type="button" onClick={closeAiPrompt}
+                className="shrink-0 rounded-lg border border-white/30 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/10 transition-colors">
                 Zatvori
               </button>
             </div>
@@ -1161,115 +1316,251 @@ export default function KretanjeProizvodaAdmin() {
             {/* Body — two columns */}
             <div className="flex flex-1 overflow-hidden">
 
-              {/* LEFT — analiza + input za pitanja */}
+              {/* LEFT — lokalna analiza + AI sekcija + chat input */}
               <div className="flex w-1/2 flex-col border-r border-gray-200">
-                <div className="flex-1 overflow-auto p-4">
+                <div className="flex-1 overflow-auto p-5 flex flex-col gap-5">
+
+                  {transakcijeLoading && (
+                    <div className="flex items-center gap-2 text-xs text-gray-500 py-4">
+                      <Loader className="w-3.5 h-3.5 animate-spin text-[#785E9E]" />
+                      <span>Učitavanje i lokalna analiza podataka...</span>
+                    </div>
+                  )}
+                  {transakcijeError && (
+                    <div className="rounded-lg bg-red-50 border border-red-200 p-3">
+                      <p className="text-xs text-red-600 mb-2">{transakcijeError}</p>
+                      <button type="button" onClick={retryFetch}
+                        className="rounded-lg bg-[#785E9E] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
+                        Pokušaj ponovo
+                      </button>
+                    </div>
+                  )}
+
+                  {lokalnaAnaliza && (
+                    <div className="flex flex-col gap-4">
+                      <p className="text-[10px] uppercase tracking-widest text-[#785E9E] font-bold">
+                        Lokalna analiza kupaca
+                      </p>
+
+                      {/* Stat cards */}
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-center">
+                          <div className="text-3xl font-bold text-green-700 leading-none">{lokalnaAnaliza.stabilni.length}</div>
+                          <div className="text-[9px] font-semibold uppercase tracking-wide text-green-600 mt-1.5">Stabilni</div>
+                        </div>
+                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-center">
+                          <div className="text-3xl font-bold text-blue-700 leading-none">{lokalnaAnaliza.novi.length}</div>
+                          <div className="text-[9px] font-semibold uppercase tracking-wide text-blue-600 mt-1.5">Novi</div>
+                        </div>
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-center">
+                          <div className="text-3xl font-bold text-amber-700 leading-none">{lokalnaAnaliza.povremeni.length}</div>
+                          <div className="text-[9px] font-semibold uppercase tracking-wide text-amber-600 mt-1.5">Povremeni</div>
+                        </div>
+                        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-center">
+                          <div className="text-3xl font-bold text-red-700 leading-none">{lokalnaAnaliza.prestali.length}</div>
+                          <div className="text-[9px] font-semibold uppercase tracking-wide text-red-600 mt-1.5">Prestali</div>
+                        </div>
+                      </div>
+
+                      {/* Customer pill lists */}
+                      {(
+                        [
+                          { label: "Stabilni (≥50% aktivnih mj, zadnjih 12+ mj)", lista: lokalnaAnaliza.stabilni, pillClass: "bg-green-100 text-green-800 border-green-200" },
+                          { label: "Novi (zadnjih 6 mj)", lista: lokalnaAnaliza.novi, pillClass: "bg-blue-100 text-blue-800 border-blue-200" },
+                          { label: "Povremeni (<50% aktivnih mj)", lista: lokalnaAnaliza.povremeni, pillClass: "bg-amber-100 text-amber-800 border-amber-200" },
+                          { label: "Prestali (>18 mj bez narudžbe)", lista: lokalnaAnaliza.prestali, pillClass: "bg-red-100 text-red-800 border-red-200" },
+                        ] as { label: string; lista: KupacInfo[]; pillClass: string }[]
+                      ).map(({ label, lista, pillClass }) =>
+                        lista.length > 0 ? (
+                          <div key={label}>
+                            <p className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold mb-2">{label}</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {lista.map((k) => (
+                                <span key={k.kupac} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium leading-none ${pillClass}`}>
+                                  {k.kupac}
+                                  {k.aktivnostPosto && <span className="opacity-60">({k.aktivnostPosto}%)</span>}
+                                  {label.startsWith("Prestali") && k.zadnji && <span className="opacity-60">[{k.zadnji}]</span>}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null,
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI sekcija */}
+                  {lokalnaAnaliza && !aiText && !aiLoading && !aiError && (
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-[10px] text-gray-400 mb-3">
+                        Lokalna analiza je gotova. Pokrenite AI za interpretaciju trendova i preporuke.
+                      </p>
+                      <button type="button" onClick={() => void pokrniAiAnalizu()}
+                        className="rounded-lg bg-[#785E9E] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90 transition-opacity shadow-sm">
+                        Pokreni AI analizu
+                      </button>
+                    </div>
+                  )}
                   {aiLoading && (
-                    <div className="flex items-center gap-3 text-sm text-gray-500 mt-2">
-                      <Loader className="w-4 h-4 animate-spin text-[#785E9E]" />
-                      <span>AI analizira podatke iz baze...</span>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 border-t border-gray-100 pt-4">
+                      <Loader className="w-3.5 h-3.5 animate-spin text-[#785E9E]" />
+                      <span>AI interpretira podatke...</span>
                     </div>
                   )}
                   {aiError && (
-                    <div className="mt-2">
-                      <p className="text-xs text-red-600 mb-3">{aiError}</p>
-                      <button
-                        type="button"
-                        onClick={retryAnaliza}
-                        className="rounded-lg bg-[#785E9E] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                      >
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-xs text-red-600 mb-2">{aiError}</p>
+                      <button type="button" onClick={() => void pokrniAiAnalizu()}
+                        className="rounded-lg bg-[#785E9E] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90">
                         Pokušaj ponovo
                       </button>
                     </div>
                   )}
                   {aiText && (
-                    <p className="text-xs whitespace-pre-wrap leading-relaxed text-gray-700">
-                      {aiText}
-                    </p>
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="text-[10px] uppercase tracking-widest text-[#785E9E] font-bold mb-3">
+                        AI interpretacija
+                      </p>
+                      <p className="text-xs whitespace-pre-wrap leading-loose text-gray-700">
+                        {aiText}
+                      </p>
+                    </div>
                   )}
                 </div>
 
-                {/* Input za pitanja */}
-                <div className="shrink-0 border-t border-gray-200 p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-1.5">
-                    Postavi pitanje
-                  </p>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          void sendChatQuestion();
-                        }
-                      }}
-                      placeholder="npr. Zašto je došlo do pada u januaru?"
-                      disabled={!aiText || chatLoading}
-                      rows={3}
-                      className="flex-1 resize-none rounded-lg border border-gray-300 px-3 py-2 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#785E9E]/40 disabled:bg-gray-50 disabled:text-gray-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void sendChatQuestion()}
-                      disabled={!chatInput.trim() || !aiText || chatLoading}
-                      className="self-end rounded-lg bg-[#785E9E] px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 transition-colors"
-                    >
-                      {chatLoading ? (
-                        <Loader className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        "Pošalji"
-                      )}
-                    </button>
+                {/* Chat input — samo kad je AI analiza gotova */}
+                {aiText && (
+                  <div className="shrink-0 border-t border-gray-200 bg-gray-50 p-4">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold mb-2">
+                      Postavi pitanje
+                    </p>
+                    <div className="flex gap-2">
+                      <textarea
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            void sendChatQuestion();
+                          }
+                        }}
+                        placeholder="npr. Zašto je došlo do pada u januaru?"
+                        disabled={chatLoading}
+                        rows={2}
+                        className="flex-1 resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#785E9E]/40 disabled:bg-gray-100"
+                      />
+                      <button type="button" onClick={() => void sendChatQuestion()}
+                        disabled={!chatInput.trim() || chatLoading}
+                        className="self-end rounded-lg bg-[#785E9E] px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 transition-colors">
+                        {chatLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : "Pošalji"}
+                      </button>
+                    </div>
+                    <p className="mt-1.5 text-[10px] text-gray-400">Enter za slanje · Shift+Enter za novi red</p>
                   </div>
-                  <p className="mt-1 text-[10px] text-gray-400">
-                    Enter za slanje · Shift+Enter za novi red
-                  </p>
-                </div>
+                )}
               </div>
 
-              {/* RIGHT — chat historija */}
+              {/* RIGHT — agregirani podaci + chat historija */}
               <div className="flex w-1/2 flex-col bg-gray-50">
-                <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
-                    Razgovor
-                  </p>
-                </div>
-                <div className="flex-1 overflow-auto p-4 flex flex-col gap-3">
-                  {chatHistory.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-gray-400">
-                      <p className="text-xs">
-                        Ovdje će se prikazati vaša pitanja i AI odgovori.
-                      </p>
-                      <p className="text-[11px]">
-                        Koristite polje s lijeve strane.
-                      </p>
+
+                {/* Agregirani podaci table */}
+                <div className="shrink-0 flex flex-col border-b border-gray-200" style={{ maxHeight: "42%" }}>
+                  <div className="bg-white px-4 py-2 shrink-0 border-b border-gray-100 flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-500 font-semibold">
+                      Agregirani podaci po periodu
+                    </p>
+                    {lokalnaAnaliza && (
+                      <span className="text-[10px] text-gray-400">
+                        {lokalnaAnaliza.jm} · od 2023-01
+                      </span>
+                    )}
+                  </div>
+                  {agregirano.length > 0 ? (
+                    <div className="overflow-auto flex-1">
+                      <table className="w-full text-[11px]">
+                        <thead className="bg-gray-100 sticky top-0">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-gray-600 font-semibold">Period</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Količina</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">VPC avg</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Nab avg</th>
+                            <th className="px-3 py-2 text-right text-gray-600 font-semibold">Marža</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...agregirano].reverse().map((a) => {
+                            const marza = a.vpc_avg - a.nab_avg;
+                            const marzaPosto = a.nab_avg > 0 ? `${((marza / a.nab_avg) * 100).toFixed(1)}%` : "—";
+                            return (
+                              <tr key={a.period} className="border-t border-gray-100 hover:bg-white transition-colors">
+                                <td className="px-3 py-1.5 font-medium text-gray-700">{a.period}</td>
+                                <td className="px-3 py-1.5 text-right text-gray-700">{formatQuantity(a.kolicina)}</td>
+                                <td className="px-3 py-1.5 text-right text-gray-500">{a.vpc_avg.toFixed(2)}</td>
+                                <td className="px-3 py-1.5 text-right text-gray-500">{a.nab_avg.toFixed(2)}</td>
+                                <td className={`px-3 py-1.5 text-right font-semibold ${marza >= 0 ? "text-green-700" : "text-red-700"}`}>
+                                  {marza.toFixed(2)} ({marzaPosto})
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
-                    chatHistory.map((item, i) =>
-                      item.role === "user" ? (
-                        <div key={i} className="flex justify-end">
-                          <span className="inline-block max-w-[85%] rounded-lg bg-[#785E9E] px-3 py-2 text-xs text-white leading-relaxed">
-                            {item.content}
-                          </span>
-                        </div>
-                      ) : (
-                        <div key={i} className="flex justify-start">
-                          <div className="max-w-[90%] rounded-lg bg-white border border-gray-200 px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap leading-relaxed shadow-sm">
-                            {item.content}
-                          </div>
-                        </div>
-                      ),
+                    !transakcijeLoading && (
+                      <div className="flex items-center justify-center p-4 text-xs text-gray-400">
+                        Nema agregatnih podataka
+                      </div>
                     )
                   )}
-                  {chatLoading && (
-                    <div className="flex justify-start">
-                      <div className="rounded-lg bg-white border border-gray-200 px-3 py-2 shadow-sm">
-                        <Loader className="w-3.5 h-3.5 animate-spin text-[#785E9E]" />
-                      </div>
+                  {transakcijeLoading && (
+                    <div className="flex items-center justify-center p-4 text-xs text-gray-400">
+                      <Loader className="w-3 h-3 animate-spin mr-2 text-[#785E9E]" />
+                      Učitavanje...
                     </div>
                   )}
                 </div>
+
+                {/* Chat historija */}
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="shrink-0 bg-white px-4 py-2 border-b border-gray-200">
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
+                      Razgovor s AI
+                    </p>
+                  </div>
+                  <div className="flex-1 overflow-auto p-4 flex flex-col gap-3">
+                    {chatHistory.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center gap-2 text-gray-400">
+                        <p className="text-xs">Ovdje će se prikazati vaša pitanja i AI odgovori.</p>
+                        <p className="text-[11px]">{aiText ? "Koristite polje s lijeve strane." : "Prvo pokrenite AI analizu."}</p>
+                      </div>
+                    ) : (
+                      chatHistory.map((item, i) =>
+                        item.role === "user" ? (
+                          <div key={i} className="flex justify-end">
+                            <span className="inline-block max-w-[85%] rounded-lg bg-[#785E9E] px-3 py-2 text-xs text-white leading-relaxed">
+                              {item.content}
+                            </span>
+                          </div>
+                        ) : (
+                          <div key={i} className="flex justify-start">
+                            <div className="max-w-[90%] rounded-lg bg-white border border-gray-200 px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap leading-relaxed shadow-sm">
+                              {item.content}
+                            </div>
+                          </div>
+                        ),
+                      )
+                    )}
+                    {chatLoading && (
+                      <div className="flex justify-start">
+                        <div className="rounded-lg bg-white border border-gray-200 px-3 py-2 shadow-sm">
+                          <Loader className="w-3.5 h-3.5 animate-spin text-[#785E9E]" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
             </div>

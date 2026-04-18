@@ -88,61 +88,69 @@ ZADATAK:
   return resp.output_text?.trim() || "";
 };
 
-const buildTransakcijeLines = (transakcije) =>
-  (transakcije || [])
+const buildKontekstPrompt = ({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani }) => {
+  const agLines = (agregirano || [])
     .map(
-      (t) =>
-        `- ${String(t.datum_racuna).slice(0, 10)} | ${t.naziv_partnera} | ${Number(t.kolicina).toFixed(2)} ${t.jm} | VPC: ${Number(t.cijena_sa_rab).toFixed(2)} | Nab: ${Number(t.nabavna_cijena).toFixed(2)}`,
+      (a) =>
+        `- ${a.period}: ${Number(a.kolicina).toFixed(2)} ${jm} | VPC avg: ${Number(a.vpc_avg).toFixed(2)} | Nab avg: ${Number(a.nab_avg).toFixed(2)}`,
     )
     .join("\n");
 
-const buildKontekstPrompt = (naziv_proizvoda, transakcije) => {
-  const jm = transakcije?.[0]?.jm || "";
-  const sifra = transakcije?.[0]?.sifra_proizvoda ?? "";
-  const lines = buildTransakcijeLines(transakcije);
+  const fmt = (lista, fn) => (lista?.length ? lista.map(fn).join(", ") : "-");
+
+  const k = kategorizirani || {};
   return `PROIZVOD: ${naziv_proizvoda}${sifra ? ` (šifra: ${sifra})` : ""}${jm ? ` (JM: ${jm})` : ""}
 
-TRANSAKCIJE PRODAJE (od najnovijeg):
-${lines || "- nema podataka"}`;
+AGREGIRANE KOLIČINE PO PERIODU (od najstarijeg):
+${agLines || "- nema podataka"}
+
+KATEGORIZACIJA KUPACA (JS analiza):
+Stabilni: ${fmt(k.stabilni, (x) => x.kupac)}
+Povremeni (<50% aktivnih mj): ${fmt(k.povremeni, (x) => `${x.kupac} (${x.aktivnostPosto}%)`)}
+Novi (u zadnja 3 mj): ${fmt(k.novi, (x) => `${x.kupac} [od ${x.prvi}]`)}
+Prestali (>6 mj bez narudžbe): ${fmt(k.prestali, (x) => `${x.kupac} [zadnji ${x.zadnji}]`)}`;
 };
 
 export const generateProizvodAnaliza = async ({
   naziv_proizvoda,
-  transakcije,
+  jm,
+  sifra,
+  agregirano,
+  kategorizirani,
 }) => {
   const system = `
-Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
-Odgovor kratko i konkretno, u tačkama. Ne izmišljaj podatke.
+Ti si senior analitičar prodaje sa 15 godina iskustva.
+Piši isključivo na srpskom jeziku latiničnim pismom.
+Budi konkretan, navodi brojeve i procente iz podataka.
+Nikada ne izmišljaj podatke — ako nešto nije u podacima, kaži to eksplicitno.
+Struktuiraj odgovor po sekcijama sa jasnim naslovima.
 `.trim();
 
   const user = `
-${buildKontekstPrompt(naziv_proizvoda, transakcije)}
+${buildKontekstPrompt({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani })}
 
-ZADATAK:
-1. Uoči trend kretanja količina i vrednosti za ovaj proizvod u poslednje tri godine. Uzmi u obzir da podaci ukljucuju trenutni mjesec u trenutnoj godini i zaklucno sa Januarom 2023.godine. 
+## ZADATAK — odgovori na svako pitanje sa konkretnim brojevima:
 
-2. Koje su ključne promene i šta one znače za prodaju proizvoda?
+### 1. TREND KOLIČINA I VRIJEDNOSTI
+Godišnji zbirovi i % rast/pad između godina. Uoči sezonske obrasce.
 
-3. Obrati pažnju na količine prodate za iste mesece tokom različitih godina. Uporedi količine i naglasi promene.
+### 2. CJENOVNI TREND
+Kako se kretala prodajna (VPC) i nabavna cijena? Koja je marža na početku vs. kraju perioda?
 
-4. Uoči kretanje prodajne i nabavne cene tokom poslednje tri godine. Kako promene u cenama utiču na količine prodaje?
+### 3. INTERPRETACIJA KUPACA
+Na osnovu kategorizacije: zašto su prestali prestali? Šta privlači nove? Zašto su povremeni nestabilni?
 
-5. Identifikuj najvažnije kupce i analiziraj da li se njihovo interesovanje za proizvod menja kroz vreme.
-
-6. Pronađi kupce koji su prestali da naručuju proizvod i navedi razloge ako su dostupni.
-
-7. Ko su novi kupci koji su započeli kupovinu proizvoda u poslednjih nekoliko meseci?
-
-8. Identifikuj kupce koji su prestali da kupuju, a zatim ponovo započeli naručivanje proizvoda. Kako se količine menjaju?
+### 4. KONKRETNE PREPORUKE (3-5)
+Šta komercijalista treba uraditi sljedeće?
 `.trim();
 
   const resp = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4.1",
     input: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    max_output_tokens: 500,
+    max_output_tokens: 2000,
   });
 
   return resp.output_text?.trim() || "";
@@ -150,7 +158,10 @@ ZADATAK:
 
 export const generateProizvodPitanje = async ({
   naziv_proizvoda,
-  transakcije,
+  jm,
+  sifra,
+  agregirano,
+  kategorizirani,
   aiAnalysis,
   chatHistory,
   question,
@@ -160,7 +171,7 @@ Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
 Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
 `.trim();
 
-  const contextPrompt = buildKontekstPrompt(naziv_proizvoda, transakcije);
+  const contextPrompt = buildKontekstPrompt({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani });
 
   const historyMessages = (chatHistory || []).map((item) => ({
     role: item.role,
@@ -168,7 +179,7 @@ Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
   }));
 
   const resp = await openai.responses.create({
-    model: "gpt-4o-mini",
+    model: "gpt-4.1",
     input: [
       { role: "system", content: system },
       { role: "user", content: contextPrompt },
@@ -176,7 +187,7 @@ Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
       ...historyMessages,
       { role: "user", content: question },
     ],
-    max_output_tokens: 400,
+    max_output_tokens: 800,
   });
 
   return resp.output_text?.trim() || "";
