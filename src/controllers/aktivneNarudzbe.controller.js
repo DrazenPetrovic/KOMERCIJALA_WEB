@@ -150,17 +150,17 @@ export const narudzbaBrisanjePartnera = async (req, res) => {
       });
     }
 
-    // 🗑️ Briši stare podatke za partnera prije unosa novih
-    await NarudzbeService.obrisiNarudzbuPartnera({
+    const poruka = await NarudzbeService.obrisiNarudzbuPartnera({
       p_sifra_terena: sifraTerenaDostava,
       p_sifra_partnera: sifraKupca,
       p_referentni_broj: referentniBroj,
     });
 
-    return res.json({
-      success: true,
-      message: "✅ Narudžba uspješno obrisana",
-    });
+    if (poruka && poruka.toLowerCase().includes("nije dozvoljeno")) {
+      return res.status(403).json({ success: false, error: poruka });
+    }
+
+    return res.json({ success: true, message: poruka });
   } catch (error) {
     console.error("❌ Greška pri brisanju narudžbe:", error);
     return res.status(500).json({
@@ -190,17 +190,18 @@ export const narudzbaBrisanjePartneraProizvoda = async (req, res) => {
     }
 
     // 🗑️ Briši stare podatke za partnera i proizvod prije unosa novih
-    await NarudzbeService.obrisiNarudzbuPartneraProizvoda({
+    const poruka = await NarudzbeService.obrisiNarudzbuPartneraProizvoda({
       p_sifra_terena: sifraTerenaDostava,
       p_sifra_partnera: sifraKupca,
       p_sifra_proizvoda: sifraProizvoda,
       p_referentni_broj: referentniBroj,
     });
 
-    return res.json({
-      success: true,
-      message: "✅ Narudžba uspješno obrisana",
-    });
+    if (poruka && poruka.toLowerCase().includes("nije dozvoljeno")) {
+      return res.status(403).json({ success: false, error: poruka });
+    }
+
+    return res.json({ success: true, message: poruka });
   } catch (error) {
     console.error("❌ Greška pri brisanju narudžbe:", error);
     return res.status(500).json({

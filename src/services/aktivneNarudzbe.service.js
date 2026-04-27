@@ -126,11 +126,14 @@ export const obrisiNarudzbuPartnera = async ({
     throw new Error("Parametri moraju biti validni brojevi.");
   }
 
-  await withConnection(async (conn) => {
+  return withConnection(async (conn) => {
+    await conn.query("SET @p_poruka = ''");
     await conn.query(
-      "CALL komercijala.dostava_brisanje_podataka_za_partnera(?, ?, ?)",
+      "CALL komercijala.dostava_brisanje_podataka_za_partnera(?, ?, ?, @p_poruka)",
       [sifraTerena, sifraPartnera, referentniBroj],
     );
+    const [[row]] = await conn.query("SELECT @p_poruka AS poruka");
+    return row.poruka;
   });
 };
 export const obrisiNarudzbuPartneraProizvoda = async ({
@@ -152,11 +155,14 @@ export const obrisiNarudzbuPartneraProizvoda = async ({
     throw new Error("Parametri moraju biti validni brojevi.");
   }
 
-  await withConnection(async (conn) => {
+  return withConnection(async (conn) => {
+    await conn.query("SET @p_poruka = ''");
     await conn.query(
-      "CALL komercijala.dostava_brisanje_podataka_za_partnera_i_proizvod(?, ?, ?, ?)",
+      "CALL komercijala.dostava_brisanje_podataka_za_partnera_i_proizvod(?, ?, ?, ?, @p_poruka)",
       [sifraTerena, sifraPartnera, sifraProizvoda, referentniBroj],
     );
+    const [[row]] = await conn.query("SELECT @p_poruka AS poruka");
+    return row.poruka;
   });
 };
 

@@ -266,6 +266,7 @@ export function OrdersList() {
   const currentUser = getCurrentUser();
   const sifraRadnika = Number(currentUser?.sifraRadnika || 0);
 
+  const [errorModal, setErrorModal] = useState<string | null>(null);
   const [showDeletePartnerConfirm, setShowDeletePartnerConfirm] =
     useState<boolean>(false);
   const deletePartnerConfirmActionRef = useRef<(() => void) | null>(null);
@@ -1450,7 +1451,6 @@ export function OrdersList() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
         const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-partnera`, {
           method: "POST",
           credentials: "include",
@@ -1479,7 +1479,7 @@ export function OrdersList() {
         if (selectedDay) fetchAktivneNarudzbe(selectedDay);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        alert("Greška pri brisanju partnera: " + msg);
+        setErrorModal(msg);
       }
     };
     setShowDeletePartnerConfirm(true);
@@ -1514,7 +1514,6 @@ export function OrdersList() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
         const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-stavku`, {
           method: "POST",
           credentials: "include",
@@ -1536,7 +1535,7 @@ export function OrdersList() {
         if (selectedDay) fetchAktivneNarudzbe(selectedDay);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        alert("Greška pri brisanju stavke: " + msg);
+        setErrorModal(msg);
       }
     };
     setShowDeleteProizvodConfirm(true);
@@ -3649,6 +3648,27 @@ export function OrdersList() {
                 onClick={() => setShowNotif(false)}
                 className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
                 style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {errorModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-red-300 p-6">
+            <p className="text-base font-semibold text-red-700 text-center">
+              {errorModal}
+            </p>
+            <div className="mt-5 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setErrorModal(null)}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#785E9E" }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
