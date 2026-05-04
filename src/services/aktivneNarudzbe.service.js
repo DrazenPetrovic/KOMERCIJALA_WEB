@@ -169,7 +169,8 @@ export const obrisiNarudzbuPartneraProizvoda = async ({
 export const getRanijeUzimano = async (sifraPartnera, nazivPartnera) => {
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      "CALL komercijala.dostava_provjera_uzimanih_artikala_grupisano(?, ?)",
+      "CALL komercijala.sp_uzimani_proizvodi_kupca(?, ?)",
+      // "CALL komercijala.dostava_provjera_uzimanih_artikala_grupisano(?, ?)",
       [sifraPartnera, nazivPartnera],
     );
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
