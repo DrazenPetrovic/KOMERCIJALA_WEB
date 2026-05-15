@@ -173,6 +173,15 @@ const IzvjestajAdmin: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const parseDatumForSort = (datum: string): number => {
+    if (!datum) return 0;
+    const parts = datum.split(".");
+    if (parts.length === 3 && parts[2].length === 4) {
+      return new Date(`${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`).getTime();
+    }
+    return new Date(datum).getTime() || 0;
+  };
+
   const formatDate = (input?: string): string => {
     if (!input) return "";
     const datePart = input.includes("T") ? input.split("T")[0] : input; // YYYY-MM-DD
@@ -337,8 +346,8 @@ const IzvjestajAdmin: React.FC = () => {
       .slice()
       .sort(
         (a, b) =>
-          new Date(b.datum_razgovora).getTime() -
-          new Date(a.datum_razgovora).getTime(),
+          parseDatumForSort(b.datum_razgovora) -
+          parseDatumForSort(a.datum_razgovora),
       );
   }, [partnerModalRows, selectedWorker]);
 
