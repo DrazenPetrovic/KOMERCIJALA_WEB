@@ -335,7 +335,11 @@ const IzvjestajAdmin: React.FC = () => {
         return rowWorker === selectedWorkerNormalized;
       })
       .slice()
-      .sort((a, b) => (a.datum_razgovora > b.datum_razgovora ? -1 : 1));
+      .sort(
+        (a, b) =>
+          new Date(b.datum_razgovora).getTime() -
+          new Date(a.datum_razgovora).getTime(),
+      );
   }, [partnerModalRows, selectedWorker]);
 
   const fetchPartnerReports = async (
