@@ -32,6 +32,43 @@ interface ArtikalGrupaOption {
 
 const ALL_ARTIKLI_GRUPE = "all";
 
+function ArtikalImage({ sifra, naziv }: { sifra: number; naziv: string }) {
+  const [imgSrc, setImgSrc] = useState(`/proizvodi/${sifra}.jpg`);
+  const [failed, setFailed] = useState(false);
+
+  const handleError = () => {
+    if (imgSrc.endsWith(".jpg")) {
+      setImgSrc(`/proizvodi/${sifra}.png`);
+    } else {
+      setFailed(true);
+    }
+  };
+
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center text-[#9b89b8] absolute inset-0 justify-center bg-[#F3EFF9]">
+        <ImageIcon className="w-10 h-10" />
+        <span className="text-sm mt-1">Nema slike</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={imgSrc}
+        className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+      />
+      <img
+        src={imgSrc}
+        alt={naziv}
+        className="relative w-full h-full object-contain"
+        onError={handleError}
+      />
+    </>
+  );
+}
+
 const toGroupString = (value: unknown): string => String(value ?? "").trim();
 
 export default function ArtikliList() {
@@ -449,32 +486,10 @@ export default function ArtikliList() {
                     >
                       {/* image */}
                       <div className="w-full aspect-square overflow-hidden relative">
-                        {/* blur pozadina */}
-                        <img
-                          src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
-                          className="absolute inset-0 w-full h-full object-cover blur-md scale-110"
+                        <ArtikalImage
+                          sifra={artikal.sifra_proizvoda}
+                          naziv={artikal.naziv_proizvoda}
                         />
-                        {/* glavna slika */}
-                        <img
-                          src={`/proizvodi/${artikal.sifra_proizvoda}.jpg`}
-                          alt={artikal.naziv_proizvoda}
-                          className="relative w-full h-full object-contain"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            (
-                              e.currentTarget
-                                .previousElementSibling as HTMLElement
-                            ).style.display = "none";
-                            (
-                              e.currentTarget.nextElementSibling as HTMLElement
-                            ).style.display = "flex";
-                          }}
-                        />
-                        {/* fallback */}
-                        <div className="hidden flex-col items-center text-[#9b89b8] absolute inset-0 justify-center bg-[#F3EFF9]">
-                          <ImageIcon className="w-10 h-10" />
-                          <span className="text-sm mt-1">Nema slike</span>
-                        </div>
                       </div>
 
                       {/* content */}
