@@ -87,3 +87,108 @@ ZADATAK:
 
   return resp.output_text?.trim() || "";
 };
+
+const buildKontekstPrompt = ({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani }) => {
+  const agLines = (agregirano || [])
+    .map(
+      (a) =>
+        `- ${a.period}: ${Number(a.kolicina).toFixed(2)} ${jm} | VPC avg: ${Number(a.vpc_avg).toFixed(2)} | Nab avg: ${Number(a.nab_avg).toFixed(2)}`,
+    )
+    .join("\n");
+
+  const fmt = (lista, fn) => (lista?.length ? lista.map(fn).join(", ") : "-");
+
+  const k = kategorizirani || {};
+  return `PROIZVOD: ${naziv_proizvoda}${sifra ? ` (šifra: ${sifra})` : ""}${jm ? ` (JM: ${jm})` : ""}
+
+AGREGIRANE KOLIČINE PO PERIODU (od najstarijeg):
+${agLines || "- nema podataka"}
+
+KATEGORIZACIJA KUPACA (JS analiza):
+Stabilni: ${fmt(k.stabilni, (x) => x.kupac)}
+Povremeni (<50% aktivnih mj): ${fmt(k.povremeni, (x) => `${x.kupac} (${x.aktivnostPosto}%)`)}
+Novi (u zadnja 3 mj): ${fmt(k.novi, (x) => `${x.kupac} [od ${x.prvi}]`)}
+Prestali (>6 mj bez narudžbe): ${fmt(k.prestali, (x) => `${x.kupac} [zadnji ${x.zadnji}]`)}`;
+};
+
+export const generateProizvodAnaliza = async ({
+  naziv_proizvoda,
+  jm,
+  sifra,
+  agregirano,
+  kategorizirani,
+}) => {
+  const system = `
+Ti si senior analitičar prodaje sa 15 godina iskustva.
+Piši isključivo na srpskom jeziku latiničnim pismom.
+Budi konkretan, navodi brojeve i procente iz podataka.
+Nikada ne izmišljaj podatke — ako nešto nije u podacima, kaži to eksplicitno.
+Struktuiraj odgovor po sekcijama sa jasnim naslovima.
+`.trim();
+
+  const user = `
+${buildKontekstPrompt({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani })}
+
+## ZADATAK — odgovori na svako pitanje sa konkretnim brojevima:
+
+### 1. TREND KOLIČINA I VRIJEDNOSTI
+Godišnji zbirovi i % rast/pad između godina. Uoči sezonske obrasce.
+
+### 2. CJENOVNI TREND
+Kako se kretala prodajna (VPC) i nabavna cijena? Koja je marža na početku vs. kraju perioda?
+
+### 3. INTERPRETACIJA KUPACA
+Na osnovu kategorizacije: zašto su prestali prestali? Šta privlači nove? Zašto su povremeni nestabilni?
+
+### 4. KONKRETNE PREPORUKE (3-5)
+Šta komercijalista treba uraditi sljedeće?
+`.trim();
+
+  const resp = await openai.responses.create({
+    model: "gpt-4.1",
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    max_output_tokens: 2000,
+  });
+
+  return resp.output_text?.trim() || "";
+};
+
+export const generateProizvodPitanje = async ({
+  naziv_proizvoda,
+  jm,
+  sifra,
+  agregirano,
+  kategorizirani,
+  aiAnalysis,
+  chatHistory,
+  question,
+}) => {
+  const system = `
+Ti si analitičar prodaje. Piši na srpskom jeziku latiničnim pismom.
+Odgovaraj kratko i konkretno. Ne izmišljaj podatke.
+`.trim();
+
+  const contextPrompt = buildKontekstPrompt({ naziv_proizvoda, jm, sifra, agregirano, kategorizirani });
+
+  const historyMessages = (chatHistory || []).map((item) => ({
+    role: item.role,
+    content: item.content,
+  }));
+
+  const resp = await openai.responses.create({
+    model: "gpt-4.1",
+    input: [
+      { role: "system", content: system },
+      { role: "user", content: contextPrompt },
+      { role: "assistant", content: aiAnalysis },
+      ...historyMessages,
+      { role: "user", content: question },
+    ],
+    max_output_tokens: 800,
+  });
+
+  return resp.output_text?.trim() || "";
+};

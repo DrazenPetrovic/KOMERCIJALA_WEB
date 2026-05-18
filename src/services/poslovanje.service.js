@@ -62,3 +62,13 @@ export const getKretanjeProizvoda = async () => {
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
 };
+
+export const getKretanjeProizvodaAi = async (sifra_proizvoda) => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.pregled_prodanih_kolicina_proizvoda_ai(?)",
+      [sifra_proizvoda],
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};

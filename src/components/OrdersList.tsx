@@ -245,11 +245,18 @@ export function OrdersList() {
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentError, setRecentError] = useState<string | null>(null);
   const [recentExpanded, setRecentExpanded] = useState(false);
+  const [searchRecent, setSearchRecent] = useState("");
   const RECENT_PREVIEW_COUNT = 4;
-  const totalRecent = recentProducts.length;
+  const filteredRecent = recentProducts.filter((p) => {
+    const q = searchRecent.toLowerCase();
+    return (
+      p.naziv?.toLowerCase().includes(q) || p.sifra?.toLowerCase().includes(q)
+    );
+  });
+  const totalRecent = filteredRecent.length;
   const visibleRecent = recentExpanded
-    ? recentProducts
-    : recentProducts.slice(0, RECENT_PREVIEW_COUNT);
+    ? filteredRecent
+    : filteredRecent.slice(0, RECENT_PREVIEW_COUNT);
   const canExpand = totalRecent > RECENT_PREVIEW_COUNT;
   const [seenRecent, setSeenRecent] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -266,6 +273,7 @@ export function OrdersList() {
   const currentUser = getCurrentUser();
   const sifraRadnika = Number(currentUser?.sifraRadnika || 0);
 
+  const [errorModal, setErrorModal] = useState<string | null>(null);
   const [showDeletePartnerConfirm, setShowDeletePartnerConfirm] =
     useState<boolean>(false);
   const deletePartnerConfirmActionRef = useRef<(() => void) | null>(null);
@@ -1024,11 +1032,15 @@ export function OrdersList() {
 
   useEffect(() => {
     if (showKupacModal && selectedKupac?.sifra_kupca) {
-      fetchRanijeUzimano(selectedKupac.sifra_kupca, selectedKupac.naziv_kupca);
+      const sifraZaUpit =
+        selectedKupac.sifra_kupca >= 10000 ? 300 : selectedKupac.sifra_kupca;
+      fetchRanijeUzimano(sifraZaUpit, selectedKupac.naziv_kupca);
       setSearchArtikli("");
+      setSearchRecent("");
     } else {
       setRecentProducts([]);
       setRecentError(null);
+      setSearchRecent("");
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1214,7 +1226,11 @@ export function OrdersList() {
       const params = new URLSearchParams();
       params.set("sifraPartnera", String(sifraPartnera));
       if (nazivPartnera) params.set("nazivPartnera", nazivPartnera);
-      // console.log(`📥 Učitavanje ranije uzimanih proizvoda za kupca ${sifraPartnera} - ${nazivPartnera}...`);
+      // console.log(`📥 [fetchRanijeUzimano] ŠALJEM:`, {
+      //   sifraPartnera,
+      //   nazivPartnera,
+      //   url: `${apiUrl}/api/narudzbe/ranije-uzimano?${params.toString()}`,
+      // });
 
       const res = await fetch(
         `${apiUrl}/api/narudzbe/ranije-uzimano?${params.toString()}`,
@@ -1226,6 +1242,10 @@ export function OrdersList() {
       );
 
       const json = await res.json();
+      // console.log(
+      //   `📦 [fetchRanijeUzimano] PRIMIO (status ${res.status}):`,
+      //   json,
+      // );
 
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || `HTTP greška: ${res.status}`);
@@ -1450,7 +1470,6 @@ export function OrdersList() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
         const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-partnera`, {
           method: "POST",
           credentials: "include",
@@ -1479,7 +1498,7 @@ export function OrdersList() {
         if (selectedDay) fetchAktivneNarudzbe(selectedDay);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        alert("Greška pri brisanju partnera: " + msg);
+        setErrorModal(msg);
       }
     };
     setShowDeletePartnerConfirm(true);
@@ -1514,7 +1533,6 @@ export function OrdersList() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-        // ⚠️ TODO: promijeni rutu na tačnu rutu na backendu (ovo je primjer)
         const res = await fetch(`${apiUrl}/api/narudzbe/obrisi-stavku`, {
           method: "POST",
           credentials: "include",
@@ -1536,7 +1554,7 @@ export function OrdersList() {
         if (selectedDay) fetchAktivneNarudzbe(selectedDay);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        alert("Greška pri brisanju stavke: " + msg);
+        setErrorModal(msg);
       }
     };
     setShowDeleteProizvodConfirm(true);
@@ -3298,6 +3316,15 @@ export function OrdersList() {
                   style={{ borderTop: "1px solid #E0E0E0", margin: "0.5rem 0" }}
                 />
 
+                <input
+                  type="text"
+                  placeholder="Pretraži ranije uzimane..."
+                  value={searchRecent}
+                  onChange={(e) => setSearchRecent(e.target.value)}
+                  className="w-full px-2 py-1 mb-2 border rounded text-xs focus:outline-none"
+                  style={{ borderColor: "#8FC74A" }}
+                />
+
                 {/* bitno: flex-1 + min-h-0 da scroll radi u flex koloni */}
                 <div className="flex-1 min-h-0">
                   {recentLoading && (
@@ -3330,7 +3357,6 @@ export function OrdersList() {
                           >
                             <th className="py-1 pr-2 w-[90px]">ŠIFRA</th>
                             <th className="py-1 pr-2">NAZIV</th>
-                            <th className="py-1 w-[50px] text-right">OK</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3649,6 +3675,27 @@ export function OrdersList() {
                 onClick={() => setShowNotif(false)}
                 className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
                 style={{ backgroundColor: "#8FC74A" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {errorModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border-2 border-red-300 p-6">
+            <p className="text-base font-semibold text-red-700 text-center">
+              {errorModal}
+            </p>
+            <div className="mt-5 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setErrorModal(null)}
+                className="min-w-[90px] px-4 py-2 rounded-lg text-white font-semibold transition-all"
+                style={{ backgroundColor: "#785E9E" }}
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >

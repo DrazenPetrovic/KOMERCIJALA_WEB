@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import KretanjeProizvodaAdmin from "./KretanjeProizvodaAdmin";
 
 type PoslovanjeSekcija = "poslovanje" | "sekcija_2" | "sekcija_3" | "sekcija_4";
 type ViewMode = "month" | "quarter" | "year";
@@ -66,7 +67,7 @@ const MONTHS = [
 
 const poslovanjeButtons: { id: PoslovanjeSekcija; label: string }[] = [
   { id: "poslovanje", label: "POSLOVANJE" },
-  { id: "sekcija_2", label: "SEKCIJA 2" },
+  { id: "sekcija_2", label: "KRETANJE PROIZVODA" },
   { id: "sekcija_3", label: "SEKCIJA 3" },
   { id: "sekcija_4", label: "SEKCIJA 4" },
 ];
@@ -657,6 +658,13 @@ export default function PoslovanjeAdmin() {
                 </div>
               </div>
             </div>
+          </div>
+        ) : activeSection === "sekcija_2" ? (
+          <div
+            className="w-full bg-gray-50 p-2 md:p-3 rounded-2xl border"
+            style={{ borderColor: `${BRAND_PRIMARY}33` }}
+          >
+            <KretanjeProizvodaAdmin />
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">

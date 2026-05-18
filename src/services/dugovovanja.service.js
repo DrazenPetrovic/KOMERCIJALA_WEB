@@ -66,3 +66,12 @@ export const getDugovanja = async (sifraRadnika) => {
     return { dugovanja, stats };
   });
 };
+
+export const getStatusIzvoda = async () => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      "CALL komercijala.pregled_otvorenih_izvoda",
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
