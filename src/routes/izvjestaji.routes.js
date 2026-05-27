@@ -8,6 +8,8 @@ router.get('/komercijalisti', verifyToken, IzvjestajiController.getListaKomercij
 router.get('/izvjestaj-poslednji', verifyToken, IzvjestajiController.getIzvjestajiPoslednji);
 router.get('/izvjestaj-datum/:p_start_date/:p_end_date', verifyToken, IzvjestajiController.getIzvjestajiDatum);
 router.post('/save', verifyToken, IzvjestajiController.savePartnerReport);
+router.post('/ocjena', verifyToken, IzvjestajiController.sacuvajOcjenu);
+router.get('/ocjene', verifyToken, IzvjestajiController.getOcjene);
 router.get('/:sifraPartnera', verifyToken, IzvjestajiController.getPartnerReports);
 
 

@@ -67,6 +67,26 @@ export const getIzvjestajiPoslednji= async () => {
   });
 };
 
+export const getOcjene = async (idAdmina, datumOd, datumDo) => {
+  return withConnection(async (connection) => {
+    const [rows] = await connection.execute(
+      'CALL komercijala.sp_get_ocjene(?, NULL, ?, ?)',
+      [idAdmina, datumOd || null, datumDo || null]
+    );
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
+  });
+};
+
+export const sacuvajOcjenu = async (idIzvjestaja, idAdmina, sveobuhvatnost, relevantnost, komentar) => {
+  return withConnection(async (connection) => {
+    await connection.execute(
+      'CALL komercijala.sp_sacuvaj_ocjenu(?, ?, ?, ?, ?)',
+      [idIzvjestaja, idAdmina, sveobuhvatnost, relevantnost, komentar ?? null]
+    );
+    return { success: true, message: 'Ocjena uspješno sačuvana' };
+  });
+};
+
 export const getIzvjestajipoDatumu = async (pocetniDatum, krajnjiDatum) => {
   // Provjera da li su parametri prosleđeni
   if (pocetniDatum === undefined || pocetniDatum === null) {

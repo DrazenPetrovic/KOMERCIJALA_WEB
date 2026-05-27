@@ -77,6 +77,48 @@ export const getIzvjestajiPoslednji = async (req, res) => {
   }
 };
 
+export const getOcjene = async (req, res) => {
+  try {
+    const { sifraRadnika } = req.user;
+    const { datumOd, datumDo } = req.query;
+    const data = await IzvjestajiService.getOcjene(sifraRadnika, datumOd || null, datumDo || null);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error('Greška pri učitavanju ocjena:', error);
+    return res.status(500).json({ success: false, error: 'Greška pri učitavanju ocjena' });
+  }
+};
+
+export const sacuvajOcjenu = async (req, res) => {
+  try {
+    const { idIzvjestaja, sveobuhvatnost, relevantnost, komentar } = req.body;
+    const { sifraRadnika } = req.user;
+
+    if (!idIzvjestaja || !sveobuhvatnost || !relevantnost) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nedostaju obavezni podaci (idIzvjestaja, sveobuhvatnost, relevantnost)'
+      });
+    }
+
+    const result = await IzvjestajiService.sacuvajOcjenu(
+      idIzvjestaja,
+      sifraRadnika,
+      sveobuhvatnost,
+      relevantnost,
+      komentar ?? null
+    );
+
+    return res.json(result);
+  } catch (error) {
+    console.error('Greška pri spremanju ocjene:', error);
+    if (error.sqlState === '45000') {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    return res.status(500).json({ success: false, error: 'Greška pri spremanju ocjene' });
+  }
+};
+
 export const getIzvjestajiDatum = async (req, res) => {
   try {
     const { p_start_date, p_end_date } = req.params;

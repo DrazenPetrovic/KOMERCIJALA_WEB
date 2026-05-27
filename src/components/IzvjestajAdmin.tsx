@@ -25,15 +25,22 @@ interface Komercijalist {
 }
 
 interface IzvjestajRow {
+  sifra_tabele?: number;
   sifra_radnika: number;
   naziv_radnika: string;
   sifra_partnera: number;
   naziv_partnera: string;
   datum_razgovora: string;
   podaci_razgovora: string;
+  ocj_sveobuhvatnost?: number;
+  ocj_relevantnost?: number;
+  ocj_komentar?: string;
 }
 
 interface PartnerReportResponseRow {
+  sifra_tabele?: number;
+  id_tabele?: number;
+  id_izvjestaja?: number;
   sifra_radnika?: number;
   naziv_radnika?: string;
   naziv_komercijaliste?: string;
@@ -46,6 +53,16 @@ interface PartnerReportResponseRow {
   podaci_izvjestaja?: string;
   podaci?: string;
   tekst?: string;
+  ocj_sveobuhvatnost?: number;
+  ocj_relevantnost?: number;
+  ocj_komentar?: string;
+}
+
+interface RatingDraft {
+  sveobuhvatnost: number;
+  relevantnost: number;
+  komentar: string;
+  saving: boolean;
 }
 
 const mockAIAnalysis = {
@@ -73,6 +90,10 @@ const IzvjestajAdmin: React.FC = () => {
   const [komercijalisti, setKomercijalisti] = useState<Komercijalist[]>([]);
   const [cardRows, setCardRows] = useState<IzvjestajRow[]>([]);
 
+  const [ratingDraft, setRatingDraft] = useState<Record<string, RatingDraft>>({});
+  const [ratedKeys, setRatedKeys] = useState<Set<string>>(new Set());
+  const [ocjeneMap, setOcjeneMap] = useState<Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }>>({});
+
   // NEW: modal state
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [activePartner, setActivePartner] = useState<PartnerKey>(null);
@@ -99,7 +120,7 @@ const IzvjestajAdmin: React.FC = () => {
       throw new Error(json?.error || "Greška pri učitavanju izvještaja");
     }
 
-    return (json.data || []) as IzvjestajRow[];
+    return ((json.data || []) as any[]).map((r) => ({ ...r, sifra_tabele: r.sifra_tabele ?? r.id_tabele ?? r.id_izvjestaja }));
   };
 
   useEffect(() => {
@@ -131,7 +152,7 @@ const IzvjestajAdmin: React.FC = () => {
         const json = await res.json();
 
         if (json.success) {
-          const data: IzvjestajRow[] = json.data || [];
+          const data: IzvjestajRow[] = ((json.data || []) as any[]).map((r) => ({ ...r, sifra_tabele: r.sifra_tabele ?? r.id_tabele ?? r.id_izvjestaja }));
           setIzvjestaji(data);
 
           const firstDate = data?.[0]?.datum_razgovora?.slice(0, 10);
@@ -155,6 +176,8 @@ const IzvjestajAdmin: React.FC = () => {
             dateRangeEnd: "",
             selectedWorker: "",
           });
+
+          if (firstDate) fetchOcjene(firstDate, firstDate);
         } else {
           setIzvjestaji([]);
           setFilteredReports([]);
@@ -314,6 +337,8 @@ const IzvjestajAdmin: React.FC = () => {
         dateRangeEnd,
         selectedWorker,
       });
+
+      fetchOcjene(start, end);
     } catch (e) {
       console.error("Greška pri primjeni filtera:", e);
       applyFiltersWithData([], {
@@ -371,21 +396,18 @@ const IzvjestajAdmin: React.FC = () => {
 
     const rows = (json.data || []) as PartnerReportResponseRow[];
     return rows.map((row) => ({
-      sifra_radnika: Number(row.sifra_radnika || 0),
-      naziv_radnika:
-        row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
-      sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
-      naziv_partnera: row.naziv_partnera || "",
-      datum_razgovora: String(
-        row.datum_razgovora || row.datum_izvjestaja || "",
-      ),
+      sifra_tabele:    (row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja) != null ? Number(row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja) : undefined,
+      sifra_radnika:   Number(row.sifra_radnika || 0),
+      naziv_radnika:   row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
+      sifra_partnera:  Number(row.sifra_partnera || sifraPartnera),
+      naziv_partnera:  row.naziv_partnera || "",
+      datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
       podaci_razgovora: String(
-        row.podaci_razgovora ||
-          row.podaci_izvjestaja ||
-          row.podaci ||
-          row.tekst ||
-          "",
+        row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || "",
       ),
+      ocj_sveobuhvatnost: row.ocj_sveobuhvatnost ? Number(row.ocj_sveobuhvatnost) : undefined,
+      ocj_relevantnost:   row.ocj_relevantnost   ? Number(row.ocj_relevantnost)   : undefined,
+      ocj_komentar:       row.ocj_komentar       ?? undefined,
     }));
   };
 
@@ -406,6 +428,71 @@ const IzvjestajAdmin: React.FC = () => {
       setPartnerModalRows([]);
     } finally {
       setLoadingPartnerRows(false);
+    }
+  };
+
+  const fetchOcjene = async (datumOd: string, datumDo: string) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      const params = new URLSearchParams({ datumOd, datumDo });
+      const res = await fetch(`${apiUrl}/api/izvjestaji/ocjene?${params}`, {
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (json.success) {
+        const map: Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }> = {};
+        for (const o of json.data) {
+          map[Number(o.id_izvjestaja)] = {
+            sveobuhvatnost: o.sveobuhvatnost,
+            relevantnost:   o.relevantnost,
+            komentar:       o.komentar ?? "",
+          };
+        }
+        setOcjeneMap(map);
+      }
+    } catch (err) {
+      console.error("Greška pri učitavanju ocjena:", err);
+    }
+  };
+
+  const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
+    if (ratingDraft[key]) return ratingDraft[key];
+    const idIzv = Number(row.sifra_tabele ?? (row as any).id_izvjestaja ?? 0);
+    const ocjena = idIzv ? ocjeneMap[idIzv] : undefined;
+    return {
+      sveobuhvatnost: ocjena?.sveobuhvatnost ?? row.ocj_sveobuhvatnost ?? 0,
+      relevantnost:   ocjena?.relevantnost   ?? row.ocj_relevantnost   ?? 0,
+      komentar:       ocjena?.komentar       ?? row.ocj_komentar       ?? "",
+      saving:         false,
+    };
+  };
+
+  const updateRatingField = (key: string, row: IzvjestajRow, field: keyof Omit<RatingDraft, 'saving'>, value: string | number) => {
+    setRatingDraft(prev => ({ ...prev, [key]: { ...getDraft(key, row), [field]: value } }));
+  };
+
+  const saveOcjena = async (sifraTabele: number, key: string, draft: RatingDraft) => {
+    setRatingDraft(prev => ({ ...prev, [key]: { ...draft, saving: true } }));
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${apiUrl}/api/izvjestaji/ocjena`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idIzvjestaja:   sifraTabele,
+          sveobuhvatnost: draft.sveobuhvatnost,
+          relevantnost:   draft.relevantnost,
+          komentar:       draft.komentar || null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Greška');
+      setRatingDraft(prev => ({ ...prev, [key]: { ...draft, saving: false } }));
+      setRatedKeys(prev => new Set(prev).add(key));
+    } catch (err) {
+      console.error('Greška pri ocjenjivanju:', err);
+      setRatingDraft(prev => ({ ...prev, [key]: { ...draft, saving: false } }));
     }
   };
 
@@ -632,6 +719,56 @@ const IzvjestajAdmin: React.FC = () => {
                     {r.podaci_razgovora}
                   </div>
 
+                  {(() => {
+                    const idTabele = r.sifra_tabele ?? (r as any).id_tabele ?? (r as any).id_izvjestaja;
+                    const key = String(idTabele ?? `${r.sifra_partnera}-${r.datum_razgovora}-${idx}`);
+                    const draft = getDraft(key, r);
+                    return (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        {(["relevantnost", "sveobuhvatnost"] as const).map((field) => (
+                          <div key={field} className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] text-gray-500 w-24 capitalize">{field}</span>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => updateRatingField(key, r, field, n)}
+                                  className={`w-5 h-5 rounded-full text-[10px] font-bold transition-colors ${
+                                    draft[field] >= n
+                                      ? "bg-[#785E9E] text-white"
+                                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {n}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                        <textarea
+                          value={draft.komentar}
+                          onChange={(e) => updateRatingField(key, r, "komentar", e.target.value)}
+                          placeholder="Komentar..."
+                          rows={1}
+                          className="w-full mt-1 px-2 py-1 text-[10px] border border-gray-200 rounded resize-none focus:outline-none focus:ring-1 focus:ring-[#785E9E]"
+                        />
+                        {(ratedKeys.has(key) || !!ocjeneMap[Number(idTabele)]) ? (
+                          <span className="mt-1 inline-block text-[10px] text-green-600 font-semibold">✓ Ocijenjeno</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => idTabele && saveOcjena(Number(idTabele), key, draft)}
+                            disabled={!draft.relevantnost || !draft.sveobuhvatnost || draft.saving || !idTabele}
+                            className="mt-1 px-3 py-0.5 text-[10px] bg-[#785E9E] text-white rounded-lg hover:bg-[#6b5088] disabled:opacity-40 transition-colors"
+                          >
+                            {draft.saving ? "Snimanje..." : "Ocijeni"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   <div className="mt-2 flex justify-end">
                     <div className="text-[11px] md:text-xs font-semibold text-[#785E9E]">
                       {r.naziv_radnika}
@@ -701,6 +838,33 @@ const IzvjestajAdmin: React.FC = () => {
                         <div className="mt-1 text-xs text-gray-900 whitespace-pre-wrap break-words">
                           {r.podaci_razgovora}
                         </div>
+                        {(r.ocj_relevantnost || r.ocj_sveobuhvatnost) && (
+                          <div className="mt-2 pt-2 border-t border-gray-100 flex flex-wrap gap-3 items-start">
+                            <div className="flex gap-3 text-[10px] text-gray-500">
+                              {r.ocj_relevantnost && (
+                                <span>
+                                  Rel:{" "}
+                                  <span className="font-semibold text-[#785E9E]">
+                                    {r.ocj_relevantnost}/5
+                                  </span>
+                                </span>
+                              )}
+                              {r.ocj_sveobuhvatnost && (
+                                <span>
+                                  Svh:{" "}
+                                  <span className="font-semibold text-[#785E9E]">
+                                    {r.ocj_sveobuhvatnost}/5
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                            {r.ocj_komentar && (
+                              <p className="text-[10px] italic text-gray-500 break-words">
+                                {r.ocj_komentar}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
