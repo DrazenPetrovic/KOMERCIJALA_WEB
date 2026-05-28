@@ -228,7 +228,7 @@ export function Dashboard({
           >
             <div className="max-w-full mx-auto px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between gap-4">
               {/* LIJEVO - Logo + Korisnik */}
-              <div className="flex items-center gap-3 min-w-[180px]">
+              <div className="flex items-center gap-3 md:min-w-[180px]">
                 <img
                   src="/logo.png"
                   alt="Karpas Logo"
@@ -248,14 +248,14 @@ export function Dashboard({
 
               {/* SREDINA - Naziv firme */}
               <h1
-                className="text-xl md:text-2xl font-bold text-center flex-1"
+                className="hidden md:block text-xl md:text-2xl font-bold text-center flex-1"
                 style={{ color: "#785E9E" }}
               >
                 Karpas ambalaže doo
               </h1>
 
               {/* DESNO - Odjava */}
-              <div className="flex justify-end min-w-[180px]">
+              <div className="flex justify-end md:min-w-[180px]">
                 <button
                   onClick={onLogout}
                   className="flex items-center gap-2 bg-[#785E9E] hover:bg-[#5A3E8C] active:bg-[#4B2E6F] text-white px-4 py-2 rounded-xl transition-all text-sm font-medium shadow-md hover:shadow-lg transform active:scale-95"

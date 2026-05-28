@@ -503,12 +503,18 @@ const IzvjestajAdmin: React.FC = () => {
       const res = await fetch(`${apiUrl}/api/izvjestaji/ocjene`, { credentials: "include" });
       const json = await res.json();
       if (json.success) {
+        if (json.data?.length > 0) {
+          console.log("[DEBUG ocjene] prva stavka:", json.data[0]);
+        } else {
+          console.log("[DEBUG ocjene] nema podataka");
+        }
         const currentAdminId = getCurrentUser()?.sifraRadnika;
         const myMap: Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }> = {};
         const allMap: Record<number, OcjenaAdmina[]> = {};
 
         for (const o of json.data) {
-          const id = Number(o.id_izvjestaja);
+          const id = Number(o.id_izvjestaja ?? o.sifra_tabele ?? o.id_tabele ?? o.id ?? 0);
+          if (!id || isNaN(id)) continue;
 
           if (!allMap[id]) allMap[id] = [];
           allMap[id].push({
@@ -528,6 +534,7 @@ const IzvjestajAdmin: React.FC = () => {
           }
         }
 
+        console.log("[DEBUG ocjene] allMap ključevi:", Object.keys(allMap));
         setOcjeneMap(myMap);
         setAllOcjeneMap(allMap);
       }
@@ -829,6 +836,7 @@ const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
 
                   {(() => {
                     const idTabele = r.sifra_tabele ?? (r as any).id_tabele ?? (r as any).id_izvjestaja;
+                    if (idx === 0) console.log("[DEBUG kartica] idTabele:", idTabele, "allOcjeneMap ključevi:", Object.keys(allOcjeneMap).slice(0, 5));
                     const key = String(idTabele ?? `${r.sifra_partnera}-${r.datum_razgovora}-${idx}`);
                     const draft = getDraft(key, r);
                     return (
@@ -861,9 +869,7 @@ const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
                           rows={1}
                           className="w-full mt-1 px-2 py-1 text-[10px] border border-gray-200 rounded resize-none focus:outline-none focus:ring-1 focus:ring-[#785E9E]"
                         />
-                        {(ratedKeys.has(key) || !!ocjeneMap[Number(idTabele)]) ? (
-                          <span className="mt-1 inline-block text-[10px] text-green-600 font-semibold">✓ Ocijenjeno</span>
-                        ) : (
+                        {!(ratedKeys.has(key) || !!ocjeneMap[Number(idTabele)]) && (
                           <button
                             type="button"
                             onClick={() => idTabele && saveOcjena(Number(idTabele), key, draft)}
@@ -877,8 +883,15 @@ const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
                     );
                   })()}
 
-                  <div className="mt-2 flex justify-end">
-                    <div className="text-[11px] md:text-xs font-semibold text-[#785E9E]">
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 min-w-0">
+                      {(allOcjeneMap[Number(r.sifra_tabele)] || []).map((o, i) => (
+                        <span key={i} className="text-[9px] font-medium" style={{ color: "#8FC74A" }}>
+                          ✓ {o.naziv_admina}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-[11px] md:text-xs font-semibold text-[#785E9E] whitespace-nowrap">
                       {r.naziv_radnika}
                     </div>
                   </div>
