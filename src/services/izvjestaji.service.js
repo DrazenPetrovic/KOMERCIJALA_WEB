@@ -67,11 +67,10 @@ export const getIzvjestajiPoslednji= async () => {
   });
 };
 
-export const getOcjene = async (idAdmina, datumOd, datumDo) => {
+export const getOcjene = async () => {
   return withConnection(async (connection) => {
     const [rows] = await connection.execute(
-      'CALL komercijala.sp_get_ocjene(?, NULL, ?, ?)',
-      [idAdmina, datumOd || null, datumDo || null]
+      'CALL komercijala.sp_get_ocjene(NULL, NULL, NULL, NULL)'
     );
     return Array.isArray(rows) && rows.length > 0 ? rows[0] : [];
   });
@@ -86,6 +85,7 @@ export const sacuvajOcjenu = async (idIzvjestaja, idAdmina, sveobuhvatnost, rele
     return { success: true, message: 'Ocjena uspješno sačuvana' };
   });
 };
+
 
 export const getIzvjestajipoDatumu = async (pocetniDatum, krajnjiDatum) => {
   // Provjera da li su parametri prosleđeni

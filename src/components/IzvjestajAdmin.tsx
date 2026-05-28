@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { getCurrentUser } from "../utils/auth";
 import {
   Calendar,
   Filter,
@@ -69,6 +70,14 @@ interface RatingDraft {
   saving: boolean;
 }
 
+interface OcjenaAdmina {
+  id_izvjestaja: number;
+  naziv_admina: string;
+  sveobuhvatnost: number;
+  relevantnost: number;
+  komentar?: string;
+}
+
 const mockAIAnalysis = {
   summary:
     "Prodaja danas pokazuje pozitivan trend sa povećanjem od 15% u odnosu na prošli dan. Ana Anić je postigla najbolje rezultate.",
@@ -82,6 +91,16 @@ const mockAIAnalysis = {
 
 type PartnerKey = { sifra_partnera: number; naziv_partnera: string; grad_partnera?: string } | null;
 
+const toISODate = (raw: unknown): string => {
+  const s = String(raw || "");
+  if (!s) return "";
+  const dots = s.split(".");
+  if (dots.length === 3 && dots[2].length === 4) {
+    return `${dots[2]}-${dots[1].padStart(2, "0")}-${dots[0].padStart(2, "0")}`;
+  }
+  return s.split(/[T ]/)[0];
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapIzvjestajRow = (row: any): IzvjestajRow => {
   const idRaw = row.sifra_tabele ?? row.id_tabele ?? row.id_izvjestaja;
@@ -92,7 +111,7 @@ const mapIzvjestajRow = (row: any): IzvjestajRow => {
     sifra_partnera: Number(row.sifra_partnera || 0),
     naziv_partnera: row.naziv_partnera || "",
     grad_partnera: row.Naziv_grada || row.naziv_grada || row.grad_partnera || row.grad || "",
-    datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
+    datum_razgovora: toISODate(row.datum_razgovora || row.datum_izvjestaja),
     podaci_razgovora: String(row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || ""),
     ocj_sveobuhvatnost: row.ocj_sveobuhvatnost ? Number(row.ocj_sveobuhvatnost) : undefined,
     ocj_relevantnost: row.ocj_relevantnost ? Number(row.ocj_relevantnost) : undefined,
@@ -115,12 +134,14 @@ const IzvjestajAdmin: React.FC = () => {
   const [ratingDraft, setRatingDraft] = useState<Record<string, RatingDraft>>({});
   const [ratedKeys, setRatedKeys] = useState<Set<string>>(new Set());
   const [ocjeneMap, setOcjeneMap] = useState<Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }>>({});
+  const [allOcjeneMap, setAllOcjeneMap] = useState<Record<number, OcjenaAdmina[]>>({});
 
   // NEW: modal state
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
   const [activePartner, setActivePartner] = useState<PartnerKey>(null);
   const [partnerModalRows, setPartnerModalRows] = useState<IzvjestajRow[]>([]);
   const [loadingPartnerRows, setLoadingPartnerRows] = useState(false);
+  const [modalOcjeneMap, setModalOcjeneMap] = useState<Record<number, OcjenaAdmina[]>>({});
 
   const fetchIzvjestajiByDate = async (
     start: string,
@@ -199,7 +220,7 @@ const IzvjestajAdmin: React.FC = () => {
             selectedWorker: "",
           });
 
-          if (firstDate) fetchOcjene(firstDate, firstDate);
+          if (firstDate) fetchOcjene();
         } else {
           setIzvjestaji([]);
           setFilteredReports([]);
@@ -229,10 +250,13 @@ const IzvjestajAdmin: React.FC = () => {
 
   const formatDate = (input?: string): string => {
     if (!input) return "";
-    const datePart = input.includes("T") ? input.split("T")[0] : input; // YYYY-MM-DD
+    if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(input)) return input;
+    const datePart = input.split(/[T ]/)[0];
     const [y, m, d] = datePart.split("-");
-    if (!y || !m || !d) return input;
-    return `${d.padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
+    if (y?.length === 4 && m && d) {
+      return `${d.slice(0, 2).padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
+    }
+    return input;
   };
 
   const formatRangeLabel = (start?: string, end?: string): string => {
@@ -352,15 +376,16 @@ const IzvjestajAdmin: React.FC = () => {
       const data = await fetchIzvjestajiByDate(start, end);
       setIzvjestaji(data);
 
-      applyFiltersWithData(data, {
-        dateMode,
-        selectedDate,
-        dateRangeStart,
-        dateRangeEnd,
-        selectedWorker,
-      });
+      // Backend je već filtrirao po datumu — samo filtriramo po komercijalisti lokalno
+      const base = selectedWorker
+        ? data.filter((r) => r.naziv_radnika === selectedWorker)
+        : data;
+      setCardRows(base);
+      buildDetaljiTable(base, dateMode === "range" ? formatRangeLabel(start, end) : formatDate(start));
+      setPartnerModalOpen(false);
+      setActivePartner(null);
 
-      fetchOcjene(start, end);
+      fetchOcjene();
     } catch (e) {
       console.error("Greška pri primjeni filtera:", e);
       applyFiltersWithData([], {
@@ -426,7 +451,7 @@ const IzvjestajAdmin: React.FC = () => {
         sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
         naziv_partnera: row.naziv_partnera || "",
         grad_partnera: row.Naziv_grada || row.naziv_grada || row.grad_partnera || "",
-        datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
+        datum_razgovora: toISODate(row.datum_razgovora || row.datum_izvjestaja),
         podaci_razgovora: String(
           row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || "",
         ),
@@ -444,17 +469,26 @@ const IzvjestajAdmin: React.FC = () => {
       grad_partnera: r.grad_partnera,
     });
     setPartnerModalRows([]);
+    setModalOcjeneMap({});
     setPartnerModalOpen(true);
+    setLoadingPartnerRows(true);
 
     try {
-      setLoadingPartnerRows(true);
       const rows = await fetchPartnerReports(r.sifra_partnera);
+
       setPartnerModalRows(rows);
       if (!r.grad_partnera && rows.length > 0 && rows[0].grad_partnera) {
         setActivePartner((prev) =>
           prev ? { ...prev, grad_partnera: rows[0].grad_partnera } : prev,
         );
       }
+
+      const partnerIds = new Set(rows.map((row) => row.sifra_tabele).filter(Boolean) as number[]);
+      const map: Record<number, OcjenaAdmina[]> = {};
+      for (const id of partnerIds) {
+        if (allOcjeneMap[id]) map[id] = allOcjeneMap[id];
+      }
+      setModalOcjeneMap(map);
     } catch (err) {
       console.error("Greška pri učitavanju partner izvještaja:", err);
       setPartnerModalRows([]);
@@ -463,31 +497,46 @@ const IzvjestajAdmin: React.FC = () => {
     }
   };
 
-  const fetchOcjene = async (datumOd: string, datumDo: string) => {
+  const fetchOcjene = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const params = new URLSearchParams({ datumOd, datumDo });
-      const res = await fetch(`${apiUrl}/api/izvjestaji/ocjene?${params}`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${apiUrl}/api/izvjestaji/ocjene`, { credentials: "include" });
       const json = await res.json();
       if (json.success) {
-        const map: Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }> = {};
+        const currentAdminId = getCurrentUser()?.sifraRadnika;
+        const myMap: Record<number, { sveobuhvatnost: number; relevantnost: number; komentar: string }> = {};
+        const allMap: Record<number, OcjenaAdmina[]> = {};
+
         for (const o of json.data) {
-          map[Number(o.id_izvjestaja)] = {
-            sveobuhvatnost: o.sveobuhvatnost,
-            relevantnost:   o.relevantnost,
-            komentar:       o.komentar ?? "",
-          };
+          const id = Number(o.id_izvjestaja);
+
+          if (!allMap[id]) allMap[id] = [];
+          allMap[id].push({
+            id_izvjestaja: id,
+            naziv_admina: o.naziv_radnika || "Admin",
+            sveobuhvatnost: Number(o.sveobuhvatnost),
+            relevantnost: Number(o.relevantnost),
+            komentar: o.komentar ?? undefined,
+          });
+
+          if (currentAdminId && Number(o.id_admina) === currentAdminId) {
+            myMap[id] = {
+              sveobuhvatnost: Number(o.sveobuhvatnost),
+              relevantnost: Number(o.relevantnost),
+              komentar: o.komentar ?? "",
+            };
+          }
         }
-        setOcjeneMap(map);
+
+        setOcjeneMap(myMap);
+        setAllOcjeneMap(allMap);
       }
     } catch (err) {
       console.error("Greška pri učitavanju ocjena:", err);
     }
   };
 
-  const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
+const getDraft = (key: string, row: IzvjestajRow): RatingDraft => {
     if (ratingDraft[key]) return ratingDraft[key];
     const idIzv = Number(row.sifra_tabele ?? (row as any).id_izvjestaja ?? 0);
     const ocjena = idIzv ? ocjeneMap[idIzv] : undefined;
@@ -532,6 +581,7 @@ const IzvjestajAdmin: React.FC = () => {
     setPartnerModalOpen(false);
     setActivePartner(null);
     setPartnerModalRows([]);
+    setModalOcjeneMap({});
     setLoadingPartnerRows(false);
   };
 
@@ -628,16 +678,23 @@ const IzvjestajAdmin: React.FC = () => {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Datum
                   </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value);
-                      setDateRangeStart("");
-                      setDateRangeEnd("");
-                    }}
-                    className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setDateRangeStart("");
+                        setDateRangeEnd("");
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent [color:transparent] [&::-webkit-datetime-edit]:opacity-0"
+                    />
+                    <div className="absolute inset-0 px-2.5 flex items-center pointer-events-none text-xs md:text-sm">
+                      {selectedDate
+                        ? <span className="text-gray-800">{selectedDate.split("-").reverse().join(".")}</span>
+                        : <span className="text-gray-400">dd.MM.yyyy</span>}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -645,30 +702,44 @@ const IzvjestajAdmin: React.FC = () => {
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Od Datuma
                     </label>
-                    <input
-                      type="date"
-                      value={dateRangeStart}
-                      onChange={(e) => {
-                        setDateRangeStart(e.target.value);
-                        setSelectedDate("");
-                      }}
-                      className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-                    />
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={dateRangeStart}
+                        onChange={(e) => {
+                          setDateRangeStart(e.target.value);
+                          setSelectedDate("");
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent [color:transparent] [&::-webkit-datetime-edit]:opacity-0"
+                      />
+                      <div className="absolute inset-0 px-2.5 flex items-center pointer-events-none text-xs md:text-sm">
+                        {dateRangeStart
+                          ? <span className="text-gray-800">{dateRangeStart.split("-").reverse().join(".")}</span>
+                          : <span className="text-gray-400">dd.MM.yyyy</span>}
+                      </div>
+                    </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
                       Do Datuma
                     </label>
-                    <input
-                      type="date"
-                      value={dateRangeEnd}
-                      onChange={(e) => {
-                        setDateRangeEnd(e.target.value);
-                        setSelectedDate("");
-                      }}
-                      className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent"
-                    />
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={dateRangeEnd}
+                        onChange={(e) => {
+                          setDateRangeEnd(e.target.value);
+                          setSelectedDate("");
+                        }}
+                        className="w-full px-2.5 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#785E9E] focus:border-transparent [color:transparent] [&::-webkit-datetime-edit]:opacity-0"
+                      />
+                      <div className="absolute inset-0 px-2.5 flex items-center pointer-events-none text-xs md:text-sm">
+                        {dateRangeEnd
+                          ? <span className="text-gray-800">{dateRangeEnd.split("-").reverse().join(".")}</span>
+                          : <span className="text-gray-400">dd.MM.yyyy</span>}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -880,33 +951,30 @@ const IzvjestajAdmin: React.FC = () => {
                         <div className="mt-1 text-xs text-gray-900 whitespace-pre-wrap break-words">
                           {r.podaci_razgovora}
                         </div>
-                        {(r.ocj_relevantnost || r.ocj_sveobuhvatnost) && (
-                          <div className="mt-2 pt-2 border-t border-gray-100 flex flex-wrap gap-3 items-start">
-                            <div className="flex gap-3 text-[10px] text-gray-500">
-                              {r.ocj_relevantnost && (
-                                <span>
-                                  Rel:{" "}
-                                  <span className="font-semibold text-[#785E9E]">
-                                    {r.ocj_relevantnost}/5
-                                  </span>
-                                </span>
-                              )}
-                              {r.ocj_sveobuhvatnost && (
-                                <span>
-                                  Svh:{" "}
-                                  <span className="font-semibold text-[#785E9E]">
-                                    {r.ocj_sveobuhvatnost}/5
-                                  </span>
-                                </span>
-                              )}
+                        {(() => {
+                          const idIzv = r.sifra_tabele;
+                          const ocjene = idIzv ? (modalOcjeneMap[idIzv] || []) : [];
+                          if (ocjene.length === 0) return null;
+                          return (
+                            <div className="mt-2 pt-2 border-t border-gray-100 space-y-1.5">
+                              <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Ocjene admina</div>
+                              {ocjene.map((o, oi) => (
+                                <div key={oi} className="bg-purple-50 border border-purple-100 rounded-lg px-2 py-1.5">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <span className="text-[10px] font-semibold text-[#785E9E]">{o.naziv_admina}</span>
+                                    <div className="flex gap-2 text-[10px] text-gray-500">
+                                      <span>Rel: <span className="font-bold text-[#785E9E]">{o.relevantnost}/5</span></span>
+                                      <span>Svh: <span className="font-bold text-[#785E9E]">{o.sveobuhvatnost}/5</span></span>
+                                    </div>
+                                  </div>
+                                  {o.komentar && (
+                                    <p className="text-[10px] italic text-gray-500 break-words">{o.komentar}</p>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                            {r.ocj_komentar && (
-                              <p className="text-[10px] italic text-gray-500 break-words">
-                                {r.ocj_komentar}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

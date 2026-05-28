@@ -79,9 +79,7 @@ export const getIzvjestajiPoslednji = async (req, res) => {
 
 export const getOcjene = async (req, res) => {
   try {
-    const { sifraRadnika } = req.user;
-    const { datumOd, datumDo } = req.query;
-    const data = await IzvjestajiService.getOcjene(sifraRadnika, datumOd || null, datumDo || null);
+    const data = await IzvjestajiService.getOcjene();
     return res.json({ success: true, data });
   } catch (error) {
     console.error('Greška pri učitavanju ocjena:', error);
@@ -118,6 +116,7 @@ export const sacuvajOcjenu = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Greška pri spremanju ocjene' });
   }
 };
+
 
 export const getIzvjestajiDatum = async (req, res) => {
   try {
