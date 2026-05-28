@@ -30,6 +30,7 @@ interface IzvjestajRow {
   naziv_radnika: string;
   sifra_partnera: number;
   naziv_partnera: string;
+  grad_partnera?: string;
   datum_razgovora: string;
   podaci_razgovora: string;
   ocj_sveobuhvatnost?: number;
@@ -47,6 +48,9 @@ interface PartnerReportResponseRow {
   radnik?: string;
   sifra_partnera?: number;
   naziv_partnera?: string;
+  Naziv_grada?: string;
+  naziv_grada?: string;
+  grad_partnera?: string;
   datum_razgovora?: string;
   datum_izvjestaja?: string;
   podaci_razgovora?: string;
@@ -76,7 +80,25 @@ const mockAIAnalysis = {
   trend: "up" as const,
 };
 
-type PartnerKey = { sifra_partnera: number; naziv_partnera: string } | null;
+type PartnerKey = { sifra_partnera: number; naziv_partnera: string; grad_partnera?: string } | null;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapIzvjestajRow = (row: any): IzvjestajRow => {
+  const idRaw = row.sifra_tabele ?? row.id_tabele ?? row.id_izvjestaja;
+  return {
+    sifra_tabele: idRaw != null ? Number(idRaw) : undefined,
+    sifra_radnika: Number(row.sifra_radnika || 0),
+    naziv_radnika: row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
+    sifra_partnera: Number(row.sifra_partnera || 0),
+    naziv_partnera: row.naziv_partnera || "",
+    grad_partnera: row.Naziv_grada || row.naziv_grada || row.grad_partnera || row.grad || "",
+    datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
+    podaci_razgovora: String(row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || ""),
+    ocj_sveobuhvatnost: row.ocj_sveobuhvatnost ? Number(row.ocj_sveobuhvatnost) : undefined,
+    ocj_relevantnost: row.ocj_relevantnost ? Number(row.ocj_relevantnost) : undefined,
+    ocj_komentar: row.ocj_komentar ?? undefined,
+  };
+};
 
 const IzvjestajAdmin: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>("2026-02-20");
@@ -120,7 +142,7 @@ const IzvjestajAdmin: React.FC = () => {
       throw new Error(json?.error || "Greška pri učitavanju izvještaja");
     }
 
-    return ((json.data || []) as any[]).map((r) => ({ ...r, sifra_tabele: r.sifra_tabele ?? r.id_tabele ?? r.id_izvjestaja }));
+    return (json.data || []).map(mapIzvjestajRow);
   };
 
   useEffect(() => {
@@ -152,7 +174,7 @@ const IzvjestajAdmin: React.FC = () => {
         const json = await res.json();
 
         if (json.success) {
-          const data: IzvjestajRow[] = ((json.data || []) as any[]).map((r) => ({ ...r, sifra_tabele: r.sifra_tabele ?? r.id_tabele ?? r.id_izvjestaja }));
+          const data: IzvjestajRow[] = (json.data || []).map(mapIzvjestajRow);
           setIzvjestaji(data);
 
           const firstDate = data?.[0]?.datum_razgovora?.slice(0, 10);
@@ -395,26 +417,31 @@ const IzvjestajAdmin: React.FC = () => {
     }
 
     const rows = (json.data || []) as PartnerReportResponseRow[];
-    return rows.map((row) => ({
-      sifra_tabele:    (row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja) != null ? Number(row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja) : undefined,
-      sifra_radnika:   Number(row.sifra_radnika || 0),
-      naziv_radnika:   row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
-      sifra_partnera:  Number(row.sifra_partnera || sifraPartnera),
-      naziv_partnera:  row.naziv_partnera || "",
-      datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
-      podaci_razgovora: String(
-        row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || "",
-      ),
-      ocj_sveobuhvatnost: row.ocj_sveobuhvatnost ? Number(row.ocj_sveobuhvatnost) : undefined,
-      ocj_relevantnost:   row.ocj_relevantnost   ? Number(row.ocj_relevantnost)   : undefined,
-      ocj_komentar:       row.ocj_komentar       ?? undefined,
-    }));
+    return rows.map((row) => {
+      const idRaw = row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja;
+      return {
+        sifra_tabele: idRaw != null ? Number(idRaw) : undefined,
+        sifra_radnika: Number(row.sifra_radnika || 0),
+        naziv_radnika: row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
+        sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
+        naziv_partnera: row.naziv_partnera || "",
+        grad_partnera: row.Naziv_grada || row.naziv_grada || row.grad_partnera || "",
+        datum_razgovora: String(row.datum_razgovora || row.datum_izvjestaja || ""),
+        podaci_razgovora: String(
+          row.podaci_razgovora || row.podaci_izvjestaja || row.podaci || row.tekst || "",
+        ),
+        ocj_sveobuhvatnost: row.ocj_sveobuhvatnost ? Number(row.ocj_sveobuhvatnost) : undefined,
+        ocj_relevantnost: row.ocj_relevantnost ? Number(row.ocj_relevantnost) : undefined,
+        ocj_komentar: row.ocj_komentar ?? undefined,
+      };
+    });
   };
 
   const openPartnerModal = async (r: IzvjestajRow) => {
     setActivePartner({
       sifra_partnera: r.sifra_partnera,
       naziv_partnera: r.naziv_partnera,
+      grad_partnera: r.grad_partnera,
     });
     setPartnerModalRows([]);
     setPartnerModalOpen(true);
@@ -423,6 +450,11 @@ const IzvjestajAdmin: React.FC = () => {
       setLoadingPartnerRows(true);
       const rows = await fetchPartnerReports(r.sifra_partnera);
       setPartnerModalRows(rows);
+      if (!r.grad_partnera && rows.length > 0 && rows[0].grad_partnera) {
+        setActivePartner((prev) =>
+          prev ? { ...prev, grad_partnera: rows[0].grad_partnera } : prev,
+        );
+      }
     } catch (err) {
       console.error("Greška pri učitavanju partner izvještaja:", err);
       setPartnerModalRows([]);
@@ -505,7 +537,7 @@ const IzvjestajAdmin: React.FC = () => {
 
   return (
     <div className="w-full bg-gray-50 p-2 md:p-3">
-      <div className="max-w-7xl mx-auto space-y-3">
+      <div className="max-w-[104rem] mx-auto space-y-3">
         {/* ... tvoj AI panel ostaje isti ... */}
         {/* ...AI ANALIZA ... */}
         <div className="bg-gradient-to-br from-[#785E9E] to-[#5d4a7a] rounded-lg shadow-lg p-3 md:p-4 text-white">
@@ -679,11 +711,11 @@ const IzvjestajAdmin: React.FC = () => {
               Nema podataka za odabrane filtere.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-[13px]">
               {cardRows.map((r, idx) => (
                 <div
                   key={`${r.sifra_partnera}-${r.datum_razgovora}-${idx}`}
-                  className="rounded-xl border border-gray-200 bg-white px-3 pb-3 pt-3
+                  className="rounded-xl border border-gray-200 bg-white px-[13px] pb-[13px] pt-[13px]
                              shadow-[0_1px_0_rgba(0,0,0,0.03)]
                              hover:border-[#785E9E]/40 hover:shadow-md transition flex flex-col h-full"
                 >
@@ -702,6 +734,11 @@ const IzvjestajAdmin: React.FC = () => {
                           <span className="text-xs md:text-sm font-semibold text-[#5d4a7a] truncate">
                             {r.sifra_partnera} {r.naziv_partnera}
                           </span>
+                          {r.grad_partnera && (
+                            <span className="text-[10px] text-gray-500 truncate">
+                              {r.grad_partnera}
+                            </span>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -795,6 +832,11 @@ const IzvjestajAdmin: React.FC = () => {
                   <div className="text-sm font-semibold text-gray-900 truncate">
                     Partner: {activePartner.sifra_partnera}{" "}
                     {activePartner.naziv_partnera}
+                    {activePartner.grad_partnera && (
+                      <span className="ml-2 text-xs font-normal text-gray-500">
+                        — {activePartner.grad_partnera}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-500">
                     Prikazano unutar trenutnih filtera
