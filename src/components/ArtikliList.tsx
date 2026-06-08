@@ -33,12 +33,13 @@ interface ArtikalGrupaOption {
 const ALL_ARTIKLI_GRUPE = "all";
 
 function ArtikalImage({ sifra, naziv }: { sifra: number; naziv: string }) {
-  const [imgSrc, setImgSrc] = useState(`/proizvodi/${sifra}.jpg`);
+  const base = import.meta.env.BASE_URL;
+  const [imgSrc, setImgSrc] = useState(`${base}proizvodi/${sifra}.jpg`);
   const [failed, setFailed] = useState(false);
 
   const handleError = () => {
     if (imgSrc.endsWith(".jpg")) {
-      setImgSrc(`/proizvodi/${sifra}.png`);
+      setImgSrc(`${base}proizvodi/${sifra}.png`);
     } else {
       setFailed(true);
     }

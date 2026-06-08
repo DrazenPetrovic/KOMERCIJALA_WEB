@@ -230,7 +230,7 @@ export function Dashboard({
               {/* LIJEVO - Logo + Korisnik */}
               <div className="flex items-center gap-3 md:min-w-[180px]">
                 <img
-                  src="/logo.png"
+                  src={`${import.meta.env.BASE_URL}logo.png`}
                   alt="Karpas Logo"
                   className="w-9 h-9 object-contain"
                   onError={(e) => {
