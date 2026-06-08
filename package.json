@@ -7,9 +7,11 @@
     "dev": "vite",
     "dev:server": "node server.mjs",
     "build": "vite build",
+    "build:prod": "vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "start": "NODE_ENV=production node server.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",
