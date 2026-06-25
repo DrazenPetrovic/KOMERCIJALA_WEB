@@ -12,6 +12,7 @@ import {
 type RecentProduct = {
   sifra: string;
   naziv: string;
+  stariNaziv?: string;
 };
 
 type ZadnjiDanNarudzbe = {
@@ -1251,27 +1252,38 @@ export function OrdersList() {
         throw new Error(json?.error || `HTTP greška: ${res.status}`);
       }
 
-      // IMPORTANT: uskladi nazive polja sa onim što procedura vraća.
-      // Tipično: sifra_proizvoda / naziv_proizvoda (ili slicno).
-      const mapped: RecentProduct[] = (json.data || [])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((row: any) => ({
-          sifra: String(
-            row?.sifra ??
-              row?.sifra_proizvoda ??
-              row?.sifra_artikla ??
-              row?.sif ??
-              "",
-          ),
-          naziv: String(
-            row?.naziv ??
-              row?.naziv_proizvoda ??
-              row?.naziv_artikla ??
-              row?.naziv_pro ??
-              "",
-          ),
-        }))
-        .filter((p: RecentProduct) => p.sifra || p.naziv);
+      // Grupiramo po sifri jer procedura može vratiti isti artikal iz 2 godine
+      // s različitim nazivom — uzimamo naziv iz najveće godine, stari čuvamo za tooltip.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawRows: any[] = json.data || [];
+      const groupedBySifra = new Map<
+        string,
+        Array<{ naziv: string; godina: number }>
+      >();
+      for (const row of rawRows) {
+        const sifra = String(row?.sifra_proizvoda ?? "");
+        const naziv = String(row?.naziv_proizvoda ?? "");
+        const godina = Number(row?.godina ?? 0);
+        if (!sifra && !naziv) continue;
+        if (!groupedBySifra.has(sifra)) groupedBySifra.set(sifra, []);
+        groupedBySifra.get(sifra)!.push({ naziv, godina });
+      }
+
+      const mapped: RecentProduct[] = [];
+      for (const [sifra, entries] of groupedBySifra) {
+        entries.sort((a, b) => b.godina - a.godina);
+        const tekuciNaziv = entries[0].naziv;
+        const stariNazivi = entries
+          .slice(1)
+          .map((e) => e.naziv)
+          .filter((n) => n && n !== tekuciNaziv);
+        mapped.push({
+          sifra,
+          naziv: tekuciNaziv,
+          stariNaziv: stariNazivi.length > 0 ? stariNazivi[0] : undefined,
+        });
+      }
+      mapped.filter((p) => p.sifra || p.naziv);
 
       setRecentProducts(mapped);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -3410,7 +3422,24 @@ export function OrdersList() {
                                 }
                               >
                                 <td className="py-2 pr-2 whitespace-nowrap text-gray-700 font-semibold">
-                                  {p.sifra}
+                                  {p.stariNaziv ? (
+                                    <span
+                                      title={`Ranije korišten naziv: ${p.stariNaziv}`}
+                                      style={{
+                                        display: "inline-block",
+                                        border: "2px solid #e67e22",
+                                        borderRadius: "999px",
+                                        padding: "0px 6px",
+                                        color: "#e67e22",
+                                        cursor: "help",
+                                        lineHeight: "1.6",
+                                      }}
+                                    >
+                                      {p.sifra}
+                                    </span>
+                                  ) : (
+                                    p.sifra
+                                  )}
                                 </td>
                                 <td className="py-2 pr-2 text-gray-800">
                                   <div className="line-clamp-2">{p.naziv}</div>

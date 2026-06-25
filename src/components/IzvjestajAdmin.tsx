@@ -448,7 +448,6 @@ const IzvjestajAdmin: React.FC = () => {
     }
 
     const rows = (json.data || []) as PartnerReportResponseRow[];
-<<<<<<< Updated upstream
     return rows.map((row) => {
       const idRaw = row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja;
       return {
@@ -467,27 +466,6 @@ const IzvjestajAdmin: React.FC = () => {
         ocj_komentar: row.ocj_komentar ?? undefined,
       };
     });
-=======
-    return rows.map((row) => ({
-      sifra_radnika: Number(row.sifra_radnika || 0),
-      naziv_radnika:
-        row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
-      sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
-      naziv_partnera: row.naziv_partnera || "",
-      grad_partnera:
-        row.Naziv_grada || row.naziv_grada || row.grad_partnera || "",
-      datum_razgovora: String(
-        row.datum_razgovora || row.datum_izvjestaja || "",
-      ),
-      podaci_razgovora: String(
-        row.podaci_razgovora ||
-          row.podaci_izvjestaja ||
-          row.podaci ||
-          row.tekst ||
-          "",
-      ),
-    }));
->>>>>>> Stashed changes
   };
 
   const openPartnerModal = async (r: IzvjestajRow) => {
