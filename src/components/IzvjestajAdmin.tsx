@@ -89,7 +89,11 @@ const mockAIAnalysis = {
   trend: "up" as const,
 };
 
-type PartnerKey = { sifra_partnera: number; naziv_partnera: string; grad_partnera?: string } | null;
+type PartnerKey = {
+  sifra_partnera: number;
+  naziv_partnera: string;
+  grad_partnera?: string;
+} | null;
 
 const toISODate = (raw: unknown): string => {
   const s = String(raw || "");
@@ -243,7 +247,9 @@ const IzvjestajAdmin: React.FC = () => {
     if (!datum) return 0;
     const parts = datum.split(".");
     if (parts.length === 3 && parts[2].length === 4) {
-      return new Date(`${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`).getTime();
+      return new Date(
+        `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`,
+      ).getTime();
     }
     return new Date(datum).getTime() || 0;
   };
@@ -442,6 +448,7 @@ const IzvjestajAdmin: React.FC = () => {
     }
 
     const rows = (json.data || []) as PartnerReportResponseRow[];
+<<<<<<< Updated upstream
     return rows.map((row) => {
       const idRaw = row.sifra_tabele ?? row.id_tabele ?? (row as any).id_izvjestaja;
       return {
@@ -460,6 +467,27 @@ const IzvjestajAdmin: React.FC = () => {
         ocj_komentar: row.ocj_komentar ?? undefined,
       };
     });
+=======
+    return rows.map((row) => ({
+      sifra_radnika: Number(row.sifra_radnika || 0),
+      naziv_radnika:
+        row.naziv_radnika || row.naziv_komercijaliste || row.radnik || "",
+      sifra_partnera: Number(row.sifra_partnera || sifraPartnera),
+      naziv_partnera: row.naziv_partnera || "",
+      grad_partnera:
+        row.Naziv_grada || row.naziv_grada || row.grad_partnera || "",
+      datum_razgovora: String(
+        row.datum_razgovora || row.datum_izvjestaja || "",
+      ),
+      podaci_razgovora: String(
+        row.podaci_razgovora ||
+          row.podaci_izvjestaja ||
+          row.podaci ||
+          row.tekst ||
+          "",
+      ),
+    }));
+>>>>>>> Stashed changes
   };
 
   const openPartnerModal = async (r: IzvjestajRow) => {
